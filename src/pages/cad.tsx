@@ -29,6 +29,10 @@ import CADCanvas from '../components/cad/CADCanvas';
 import DrawingEnabledCADCanvas from '../components/cam/DrawingEnabledCADCanvas';
 import { AIHub, AIProcessingIndicator, TextToCADPanel } from '../components/ai/ai-new';
 import PluginSidebar from '../components/plugins/PluginSidebar';
+import { CADAssistantButton } from '../components/ai/ai-new/OpenaiAssistant/CADAssistantButton';
+import { CADAssistantBridge } from '../components/ai/ai-new/OpenaiAssistant/CADAssistantBridge';
+
+// Import new CAD Assistant components
 
 
 // Define structure for cross-window subscription
@@ -70,6 +74,8 @@ export default function CADPage() {
   const [showPluginSidebar, setShowPluginSidebar] = useState(false);
   const [showLeftSidebar, setShowLeftSidebar] = useState(true);
   
+  // Add state for CAD Assistant
+  const [showCADAssistant, setShowCADAssistant] = useState(false);
   
   // State to manage subscriptions from plugin windows
   const [crossWindowSubscriptions, setCrossWindowSubscriptions] = useState<CrossWindowSubscription[]>([]);
@@ -93,9 +99,6 @@ export default function CADPage() {
     };
   };
 
-
-
- 
   const [prompt, setPrompt] = useState('');
   const { textToCAD, state } = useAI();
   const [statuss, setStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
@@ -313,11 +316,6 @@ export default function CADPage() {
     }
   }, [showUnifiedLibrary, sidebarOpen]);
 
-
-
-  // Effect to handle communication with external plugin UI windows
-  
-
   if (status === 'loading') {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -327,12 +325,7 @@ export default function CADPage() {
   }
 
   
-  if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
-  }
  
-  
   return (
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
       <MetaTags 
@@ -357,11 +350,6 @@ export default function CADPage() {
         />
 
         <div className="flex flex-1 p-0.5 bg-gradient-to-b from-[#2A2A2A] to-[#303030] overflow-hidden w-full">
-       
-        
-        
-        {/* Plugin sidebar toggle */}
-       
           {/* Enhanced left sidebar */}
           <EnhancedSidebar2 
             isOpen={sidebarOpen} 
@@ -372,15 +360,15 @@ export default function CADPage() {
           
           {/* Main content */}
           <div className="flex-1 flex rounded-xl bg-gradient-to-b from-[#2A2A2A] to-[#303030] relative">
-          <DrawingEnabledCADCanvas 
-            width="100%" 
-            height="100%" 
-            previewComponent={selectedLibraryComponent}
-            onComponentPlaced={(component, position) => {
-            handleComponentPlacement(component, position);
-            setIsPlacingComponent(false);
-           }}
-          />
+            <DrawingEnabledCADCanvas 
+              width="100%" 
+              height="100%" 
+              previewComponent={selectedLibraryComponent}
+              onComponentPlaced={(component, position) => {
+                handleComponentPlacement(component, position);
+                setIsPlacingComponent(false);
+              }}
+            />
             
             {/* Floating toolbar */}
             {showFloatingToolbar && (
@@ -389,16 +377,30 @@ export default function CADPage() {
                 onClose={() => setShowFloatingToolbar(false)}
               />
             )}
-       
+            
+            {/* CAD Assistant Button - Fixed position in bottom right */}
+            <div className="absolute bottom-3.5 right-20 z-40">
+              <CADAssistantButton 
+                isVisible={showCADAssistant}
+                toggleVisibility={() => setShowCADAssistant(!showCADAssistant)}
+                className="shadow-lg"
+              />
+            </div>
+            
+            {/* CAD Assistant Bridge - Handles the AI integration */}
+            <CADAssistantBridge
+              isVisible={showCADAssistant}
+              onClose={() => setShowCADAssistant(false)}
+            />
           </div>
-          <><PluginSidebar 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      /></>
-          {/* Right sidebar for properties */}
           
-
-      <div 
+          <><PluginSidebar 
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          /></>
+          
+          {/* Right sidebar for properties */}
+          <div 
             className={`${
               rightSidebarOpen ? 'w-80' : 'w-0'
             } flex-shrink-0 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-xl border-2 border-l ml-0.5 transition-all duration-300 ease-in-out overflow-y-auto`}
@@ -507,4 +509,3 @@ export default function CADPage() {
     </div>
   );
 }
- 

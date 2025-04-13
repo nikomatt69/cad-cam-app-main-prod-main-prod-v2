@@ -1,5 +1,5 @@
-// src/services/ai/openAIService.ts
-import { AIMessage, AIArtifact } from '../../types/AITypes';
+// src/lib/ai/openaiService.ts - Enhanced for CAD operations
+import { AIMessage, AIArtifact, AIAction } from '@/src/types/AITypes';
 import { v4 as uuidv4 } from 'uuid';
 
 interface OpenAIRequest {
@@ -78,10 +78,8 @@ export class OpenAIService {
     // Create a system message with context and available actions
     const systemMessage = {
       role: 'system',
-      content: `You are an AI assistant specialized in CAD/CAM software. Current context: ${context}.` +
-        (availableActions.length > 0 ? 
-          ` You can perform the following actions: ${availableActions.join(', ')}.` : '') +
-        ` When you want to generate CAD components, create JSON artifacts with proper structure. Be helpful and concise.`
+      content: context + (availableActions.length > 0 ? 
+        ` You can perform the following actions: ${availableActions.join(', ')}.` : '')
     };
     
     // Convert our messages to the format expected by OpenAI
@@ -98,59 +96,128 @@ export class OpenAIService {
     // Define the tools based on available actions
     const tools = [];
     
-    if (availableActions.includes('generateCADComponent')) {
+    if (availableActions.includes('generateCADElement')) {
       tools.push({
         type: 'function',
         function: {
-          name: 'generateCADComponent',
-          description: 'Generate a CAD component based on a description',
+          name: 'generateCADElement',
+          description: 'Generate one or more CAD components based on a description',
           parameters: {
             type: 'object',
             properties: {
-              description: {
-                type: 'string',
-                description: 'Description of the CAD component to generate'
-              },
-              dimensions: {
-                type: 'object',
-                description: 'Dimensions of the component',
-                properties: {
-                  width: { type: 'number' },
-                  height: { type: 'number' },
-                  depth: { type: 'number' }
+              elements: {
+                type: 'array',
+                description: 'Array of CAD elements to create',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      enum: ['cube', 'sphere', 'cylinder', 'cone', 'torus'],
+                      description: 'Type of CAD element (cube, sphere, cylinder, etc.)'
+                    },
+                    x: { type: 'number', description: 'X position' },
+                    y: { type: 'number', description: 'Y position' },
+                    z: { type: 'number', description: 'Z position' },
+                    width: { type: 'number', description: 'Width (for cube)' },
+                    height: { type: 'number', description: 'Height (for cube, cylinder)' },
+                    depth: { type: 'number', description: 'Depth (for cube)' },
+                    radius: { type: 'number', description: 'Radius (for sphere, cylinder)' },
+                    color: { type: 'string', description: 'Color in hex format' },
+                    rotation: {
+                      type: 'object',
+                      description: 'Rotation in degrees',
+                      properties: {
+                        x: { type: 'number', description: 'X rotation' },
+                        y: { type: 'number', description: 'Y rotation' },
+                        z: { type: 'number', description: 'Z rotation' }
+                      }
+                    }
+                  },
+                  required: ['type']
                 }
-              },
-              type: {
-                type: 'string',
-                description: 'Type of component (cube, cylinder, etc.)'
               }
             },
-            required: ['description', 'type']
+            required: ['elements']
           }
         }
       });
     }
     
-    if (availableActions.includes('analyzeDesign')) {
+    if (availableActions.includes('updateCADElement')) {
       tools.push({
         type: 'function',
         function: {
-          name: 'analyzeDesign',
-          description: 'Analyze a CAD design for improvements',
+          name: 'updateCADElement',
+          description: 'Update an existing CAD element',
           parameters: {
             type: 'object',
             properties: {
-              designId: {
-                type: 'string',
-                description: 'ID of the design to analyze'
-              },
-              aspects: {
-                type: 'array',
-                items: { type: 'string' },
-                description: 'Aspects to analyze (structural, aesthetic, etc.)'
+              id: { type: 'string', description: 'ID of the element to update' },
+              properties: {
+                type: 'object',
+                description: 'Properties to update',
+                properties: {
+                  x: { type: 'number', description: 'X position' },
+                  y: { type: 'number', description: 'Y position' },
+                  z: { type: 'number', description: 'Z position' },
+                  width: { type: 'number', description: 'Width' },
+                  height: { type: 'number', description: 'Height' },
+                  depth: { type: 'number', description: 'Depth' },
+                  radius: { type: 'number', description: 'Radius' },
+                  color: { type: 'string', description: 'Color in hex format' },
+                  rotation: {
+                    type: 'object',
+                    description: 'Rotation in degrees',
+                    properties: {
+                      x: { type: 'number', description: 'X rotation' },
+                      y: { type: 'number', description: 'Y rotation' },
+                      z: { type: 'number', description: 'Z rotation' }
+                    }
+                  }
+                }
               }
             },
-            required: ['designId']
+            required: ['id', 'properties']
+          }
+        }
+      });
+    }
+    
+    if (availableActions.includes('removeCADElement')) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'removeCADElement',
+          description: 'Remove a CAD element from the canvas',
+          parameters: {
+            type: 'object',
+            properties: {
+              id: { type: 'string', description: 'ID of the element to remove' }
+            },
+            required: ['id']
+          }
+        }
+      });
+    }
+    
+    if (availableActions.includes('groupCADElements')) {
+      tools.push({
+        type: 'function',
+        function: {
+          name: 'groupCADElements',
+          description: 'Group multiple CAD elements together',
+          parameters: {
+            type: 'object',
+            properties: {
+              elementIds: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'IDs of elements to group'
+              },
+              groupName: { type: 'string', description: 'Name for the group' }
+            },
+            required: ['elementIds']
           }
         }
       });
