@@ -47,6 +47,9 @@ let pluginSystemInitialized = false;
 
 export default function App({ Component, pageProps: { session, ...pageProps }, router }: AppProps) {
 
+  // Get the function to add elements from the Zustand store
+  const addElements = useElementsStore((state) => state.addElements);
+
   // Service Worker Registration Effect (existing)
   useEffect(() => {
     // Register service worker
@@ -118,7 +121,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
                       <PageViewTracker />
                       <AnalyticsProvider>
                         <CursorProvider>
-                          <AIContextProvider>
+                          <AIContextProvider addElementsToCanvas={addElements}>
                             <style jsx global>{`
                               body {
                                 font-family: ${camFont.style.fontFamily};

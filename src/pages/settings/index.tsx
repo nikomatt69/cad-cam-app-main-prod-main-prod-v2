@@ -12,6 +12,10 @@ import MetaTags from 'src/components/layout/Metatags';
 import { useLanguage, SUPPORTED_LANGUAGES } from '../../contexts/LanguageContext';
 import { LanguageSelector } from '../../components/LanguageSelector';
 import { AISettingsPanel } from '@/src/components/ai/ai-new';
+import SubscriptionSettings from '@/src/components/subscription/SubscriptionSettings';
+import SubscriptionSettingsPage from './subscription';
+import ProfileSettingsPage from '../profile/settings';
+import { SubscriptionProvider } from '@/src/contexts/SubscriptionContext';
 
 export default function Settings() {
   // Funzioni per la gestione dell'immagine del profilo
@@ -120,12 +124,11 @@ export default function Settings() {
     { id: 'profile', name: 'Profilo', icon: <User size={18} /> },
     { id: 'account', name: 'Account', icon: <Shield size={18} /> },
     { id: 'notifications', name: 'Notifiche', icon: <Bell size={18} /> },
-    { id: 'appearance', name: 'Aspetto', icon: <Monitor size={18} /> },
     { id: 'ai', name: 'AI', icon: <Cpu size={18} /> },
     { id: 'language', name: 'Lingua', icon: <Globe size={18} /> },
     { id: 'security', name: 'Sicurezza', icon: <Key size={18} /> },
     { id: 'billing', name: 'Abbonamento', icon: <Tag size={18} /> },
-    { id: 'help', name: 'Aiuto', icon: <HelpCircle size={18} /> }
+   
   ];
 
   // Mobile tabs - show only the most important ones on small screens
@@ -224,7 +227,7 @@ export default function Settings() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+              <div className=" flex flex-col grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="col-span-full sm:col-span-4">
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Nome completo
@@ -608,9 +611,54 @@ export default function Settings() {
             </div>
             
           )}
+          {activeTab === 'billing' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Billing</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Configura le impostazioni di fatturazione.
+                </p>
+              </div>
+              
+              {/* Notifiche email */}
+              <div className="mt-6">
+                <fieldset>
+                  <legend className="text-base font-medium text-gray-900 dark:text-white">Billing</legend>
+                  <div className="mt-4 space-y-4">
+                  <SubscriptionProvider>
+                  <SubscriptionSettings />
+                  </SubscriptionProvider>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            
+          )}
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Security</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Configura le impostazioni di sicurezza.
+                </p>
+              </div>
+              
+              {/* Notifiche email */}
+              <div className="mt-6">
+                <fieldset>
+                  <legend className="text-base font-medium text-gray-900 dark:text-white">Security</legend>
+                  <div className="mt-4 space-y-4">
+                  <ProfileSettingsPage />
+                    
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+            
+          )}
 
           {/* Tab placeholder per le altre sezioni */}
-          {['appearance', 'security', 'billing', 'help'].includes(activeTab) && (
+          {['billing'].includes(activeTab) && (
             <div className="text-center py-8 sm:py-12">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-800/30 text-blue-600 dark:text-blue-400 mb-4">
                 {tabs.find(tab => tab.id === activeTab)?.icon}

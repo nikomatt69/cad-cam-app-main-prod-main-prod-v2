@@ -15,14 +15,21 @@ import {
   AIPerformanceMetrics, 
   GCodeOptimizationRequest, 
   DesignAnalysisRequest,
-  TokenUsage
+  TokenUsage,
+  AIMessage,
+  AssistantRole,
+  ResponseStyle,
+  ComplexityLevel,
+  AIArtifact
 } from '@/src/types/AITypes';
-import { unifiedAIService } from '@/src/lib/ai/ai-new/unifiedAIService';
+import { unifiedAIService } from '@/src/lib/ai/unifiedAIService';
 import { aiAnalytics } from '@/src/lib/ai/ai-new/aiAnalytics';
 import { aiCache } from '@/src/lib/ai/ai-new/aiCache';
 import { AI_MODELS, AI_MODES, aiConfigManager, MODEL_CAPABILITIES } from '@/src/lib/ai/ai-new/aiConfigManager';
 import { useContextStore } from '@/src/store/contextStore';
 import { openAIService } from '@/src/lib/ai/openaiService';
+import { v4 as uuidv4 } from 'uuid';
+import { Element } from '@/src/store/elementsStore';
 
 // Stato iniziale dell'AI
 const initialState: AIState = {
@@ -160,6 +167,8 @@ interface AIContextType {
   optimizeGCode: (gcode: string, machineType: string) => Promise<any>;
   analyzeDesign: (elements: any[]) => Promise<any>;
   generateSuggestions: (context: string) => Promise<any[]>;
+  // Canvas interaction function
+  addElementsToCanvas: (elements: Element[]) => void;
   // Operazioni dell'assistente
   showAssistant: () => void;
   hideAssistant: () => void;
@@ -176,8 +185,14 @@ interface AIContextType {
 // Creazione del contesto
 const AIContext = createContext<AIContextType | undefined>(undefined);
 
+// Define Props for the Provider
+interface AIContextProviderProps {
+  children: React.ReactNode;
+  addElementsToCanvas: (elements: Element[]) => void;
+}
+
 // Provider del contesto
-export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, addElementsToCanvas }) => {
   const [state, dispatch] = useReducer(aiReducer, initialState);
   const router = useRouter();
   const { getActiveContexts } = useContextStore();
@@ -298,51 +313,76 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (!state.isEnabled) return { success: false, data: null, error: 'AI is disabled' };
     
     dispatch({ type: 'START_PROCESSING' });
-    
+    let historyUserItemId = uuidv4();
+    let historyAssistantItemId = uuidv4();
+
     try {
-      // Selezione intelligente del modello
       let model = state.currentModel;
-      const provider = state.settings.preferredProvider;
-      
       if (state.settings.autoModelSelection) {
         model = selectOptimalModel('medium');
       }
-      
       const startTime = Date.now();
-      
-      // Ottieni il contesto attivo
       const activeContextFiles = getActiveContexts();
-      
-      // Unisci il contesto fornito con quello attivo dai file
       const contextTexts = [
         ...(providedContext || []),
         ...activeContextFiles.map(file => file.content)
       ];
-      
-      // Prepara i dati per la richiesta con contesto
       const requestWithContext: TextToCADRequest = {
         description,
         constraints,
         complexity: 'moderate',
         style: 'precise',
         context: contextTexts.length > 0 ? contextTexts : undefined,
-        
       };
       
       const result = await unifiedAIService.textToCADElements(requestWithContext);
-      
       const processingTime = Date.now() - startTime;
       
-      // Aggiungi alla cronologia
-      if (result.success && result.data) {
+      if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+        const generatedElements: Element[] = result.data;
+        const elementCount = generatedElements.length;
+
+        const cadArtifact: AIArtifact = {
+          id: uuidv4(),
+          type: 'cad_elements',
+          content: generatedElements,
+          title: `Generated ${elementCount} CAD Element(s)`
+        };
+        
+        console.log("[AIContextProvider] Created cad_elements artifact:", cadArtifact);
+
+        const historyPayload: AIHistoryItem = {
+          id: historyAssistantItemId,
+          type: 'assistant_response',
+          timestamp: Date.now(),
+          prompt: description,
+          result: `Ho generato ${elementCount} element${elementCount > 1 ? 'i' : 'o'}. Aggiungil${elementCount > 1 ? 'i' : 'o'} alla tela?`,
+          modelUsed: result.model || model,
+          processingTime,
+          tokenUsage: result.usage ? {
+            prompt: result.usage.promptTokens,
+            completion: result.usage.completionTokens,
+            total: result.usage.totalTokens
+          } : undefined,
+          artifacts: [cadArtifact]
+        };
+        
+        console.log("[AIContextProvider] Dispatching ADD_TO_HISTORY with payload:", historyPayload);
+
+        dispatch({ 
+          type: 'ADD_TO_HISTORY', 
+          payload: historyPayload satisfies AIHistoryItem
+        });
+        return { ...result, data: null };
+      } else if (result.success) {
         dispatch({ 
           type: 'ADD_TO_HISTORY', 
           payload: {
-            id: `cad_${Date.now()}`,
-            type: 'text_to_cad',
+            id: historyAssistantItemId,
+            type: 'assistant_response',
             timestamp: Date.now(),
             prompt: description,
-            result: result.data,
+            result: 'AI generated no elements.',
             modelUsed: result.model || model,
             processingTime,
             tokenUsage: result.usage ? {
@@ -350,13 +390,38 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               completion: result.usage.completionTokens,
               total: result.usage.totalTokens
             } : undefined,
-            
-          }
+          } satisfies AIHistoryItem
         });
+        return { ...result, error: 'AI generated no elements.' };
+      } else {
+        dispatch({ 
+          type: 'ADD_TO_HISTORY', 
+          payload: {
+            id: historyAssistantItemId,
+            type: 'assistant_error',
+            timestamp: Date.now(),
+            modelUsed: result.model || model,
+            processingTime,
+            result: `Error: ${result.error || 'Unknown AI error'}`,
+            prompt: description,
+          } satisfies AIHistoryItem
+        });
+        return result;
       }
-      return result;
     } catch (error) {
       console.error('Error in textToCAD:', error);
+      dispatch({ 
+        type: 'ADD_TO_HISTORY', 
+        payload: {
+          id: historyAssistantItemId,
+          type: 'system_error',
+          timestamp: Date.now(),
+          modelUsed: state.currentModel,
+          processingTime: 0,
+          result: `System Error: ${error instanceof Error ? error.message : 'Unknown system error'}`,
+          prompt: description,
+        } satisfies AIHistoryItem
+      });
       return { 
         success: false, 
         data: null, 
@@ -486,46 +551,144 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
   
   // Invia un messaggio all'assistente
-  const sendAssistantMessage = async (message: string) => {
-    if (!state.isEnabled) {
-      return { success: false, data: null, error: 'AI is disabled' };
-    }
-    
+  const sendAssistantMessage = async (messageText: string) => {
+    if (!state.isEnabled) return;
     dispatch({ type: 'START_PROCESSING' });
-    dispatch({ type: 'RECORD_ASSISTANT_ACTION', payload: 'message_sent' });
-    
-    try {
-      const result = await unifiedAIService.processMessage(message, state.mode);
-      
-      if (result.success) {
-        const action: AIHistoryItem = {
-          id: `chat_${Date.now()}`,
-          type: 'assistant_chat',
-          timestamp: Date.now(),
-          prompt: message,
-          result: result.data,
-          modelUsed: result.model || state.currentModel,
-          processingTime: result.processingTime || 0,
-          tokenUsage: result.usage ? {
-            prompt: result.usage.promptTokens,
-            completion: result.usage.completionTokens,
-            total: result.usage.totalTokens
-          } : undefined,
-          
-      
-        };
-        
-        dispatch({ type: 'ADD_TO_HISTORY', payload: action });
+
+    // 1. Format the new user message
+    const newUserMessage: AIMessage = {
+      id: uuidv4(), 
+      role: 'user',
+      content: messageText,
+      timestamp: Date.now(),
+    };
+
+    // Map history to AIMessage format
+    const currentMessages: AIMessage[] = state.history.reduce((acc: AIMessage[], item: AIHistoryItem) => {
+      if (item.type === 'user_message' && item.prompt) {
+        acc.push({ id: item.id, role: 'user', content: item.prompt, timestamp: item.timestamp });
+      } else if (item.type === 'assistant_response' && item.result) {
+        // Assuming item.result stores the assistant's response content (text/artifacts)
+        // This might need adjustment based on the actual structure of item.result
+        acc.push({ 
+          id: item.id, 
+          role: 'assistant', 
+          content: typeof item.result === 'string' ? item.result : JSON.stringify(item.result), // Simple string conversion for now
+          timestamp: item.timestamp 
+        });
       }
+      return acc;
+    }, []);
+
+    const messagesToSend = [...currentMessages, newUserMessage];
+
+    // 2. Gather context and parameters
+    const activeContexts = getActiveContexts();
+    const contextString = `Current application context: ${activeContexts.join(', ')}`;
+    const assistantActions = ['generateCADElement', 'updateCADElement', 'removeCADElement', 'suggestOptimizations', 'chainOfThoughtAnalysis', 'thinkAloudMode', 'exportCADProjectAsZip']; 
+    const assistantRole: AssistantRole = "CAD Assistant"; 
+    const responseStyle: ResponseStyle = "detailed"; 
+    const complexityLevel: ComplexityLevel = "moderate";
+    
+    // --- Determine Model --- 
+    // For general chat, force OpenAI. Allow override if needed later.
+    const modelToUse: AIModelType = 'gpt-4o-mini'; 
+    // We could add logic here later to use state.currentModel if needed for specific roles/modes
+    // console.log(`[AIContextProvider] Using model for general chat: ${modelToUse}`);
+
+    let historyUserItemId = uuidv4();
+    let historyAssistantItemId = uuidv4();
+
+    // Add user message history item immediately
+    dispatch({ 
+      type: 'ADD_TO_HISTORY', 
+      payload: { 
+        id: historyUserItemId, 
+        type: 'user_message', 
+        timestamp: newUserMessage.timestamp, 
+        prompt: messageText,
+        modelUsed: modelToUse, // Track model used even for user prompt context
+        processingTime: 0, // Placeholder
+        result: null // No result for user message
+      } satisfies AIHistoryItem // Use satisfies for type checking
+    });
+
+    try {
+      // 3. Call unifiedAiService, explicitly passing the desired model
+      const response = await unifiedAIService.getAssistantCompletion(
+        messagesToSend,
+        contextString,
+        assistantActions,
+        responseStyle,
+        complexityLevel,
+        assistantRole,
+        undefined, // Explicitly no tool override from here
+        modelToUse // Pass the chosen model as override
+      );
       
-      return result;
+      console.log("[AIContextProvider] Received response from getAssistantCompletion:", response);
+
+      // 4. Process Response
+      if (response.success && response.data) {
+        console.log("[AIContextProvider] Processing successful response data:", response.data);
+        const assistantResponseContent = response.data.content || ""; 
+        dispatch({ 
+          type: 'ADD_TO_HISTORY', 
+          payload: { 
+            id: historyAssistantItemId, 
+            type: 'assistant_response', 
+            timestamp: Date.now(), 
+            result: assistantResponseContent || "(No text content received)",
+            modelUsed: modelToUse, 
+            processingTime: response.processingTime ?? 0, 
+            tokenUsage: response.usage ? {  
+              prompt: response.usage.promptTokens,
+              completion: response.usage.completionTokens,
+              total: response.usage.totalTokens
+            } : undefined, 
+            prompt: messageText,
+          } satisfies AIHistoryItem 
+        });
+
+        // --- Handle potential actions --- 
+        if (response.data.actions && response.data.actions.length > 0) { 
+          console.log("AI Assistant suggested actions:", response.data.actions);
+          dispatch({ type: 'RECORD_ASSISTANT_ACTION', payload: JSON.stringify(response.data.actions) });
+          // TODO: Implement logic to handle/execute these actions
+        }
+
+      } else {
+        // Handle error response from AI service
+        console.error("Error from AI Assistant:", response.error);
+        dispatch({ 
+          type: 'ADD_TO_HISTORY', 
+          payload: { 
+            id: historyAssistantItemId,
+            type: 'assistant_error',
+            timestamp: Date.now(),
+            modelUsed: modelToUse,
+            processingTime: response.processingTime ?? 0,
+            result: `Error: ${response.error || 'Unknown AI error'}`,
+            prompt: messageText,
+          } satisfies AIHistoryItem
+        });
+      }
+
     } catch (error) {
-      console.error('Error in assistant message:', error);
-      return {
-        success: false,
-        data: null,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
+      console.error("Failed to send message to AI Assistant:", error);
+      // Handle unexpected error during the call
+      dispatch({ 
+          type: 'ADD_TO_HISTORY', 
+          payload: { 
+             id: historyAssistantItemId,
+             type: 'system_error', // Use a specific type for system errors
+             timestamp: Date.now(),
+             modelUsed: modelToUse, // Model that was attempted
+             processingTime: 0, // Or calculate time until error
+             result: `System Error: ${error instanceof Error ? error.message : 'Unknown system error'}`, // Store error in result
+             prompt: messageText
+          } satisfies AIHistoryItem
+        });
     } finally {
       dispatch({ type: 'END_PROCESSING' });
     }
@@ -555,6 +718,7 @@ export const AIContextProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     optimizeGCode,
     analyzeDesign,
     generateSuggestions,
+    addElementsToCanvas,
     showAssistant,
     hideAssistant,
     toggleAssistantPanel,

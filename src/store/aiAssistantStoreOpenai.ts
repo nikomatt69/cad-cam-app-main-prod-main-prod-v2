@@ -1,11 +1,11 @@
 // src/store/aiAssistantStore.ts
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { AIAssistantState, AIMessage, AIAction, AIArtifact } from '../types/AITypes';
+import { AIAssistantState, AIMessage, AIAction, AIArtifact, MessageContent } from '../types/AITypes';
 
 interface AIAssistantStore extends AIAssistantState {
   // Actions
-  addMessage: (role: 'user' | 'assistant' | 'system', content: string, artifacts?: AIArtifact[]) => void;
+  addMessage: (role: 'user' | 'assistant' | 'system', content: MessageContent, artifacts?: AIArtifact[]) => void;
   setProcessing: (isProcessing: boolean) => void;
   toggleAssistant: () => void;
   clearMessages: () => void;
@@ -20,7 +20,7 @@ export const useAIAssistantStoreOpenai = create<AIAssistantStore>((set, get) => 
   isOpen: false,
   error: null,
   context: 'default',
-  availableActions: ['generateCADComponent', 'analyzeDesign', 'optimizeModel'],
+  availableActions: ['generateCADComponent', 'analyzeDesign', 'optimizeModel', 'removeCADElement', 'exportCADProjectAsZip', 'thinkAloudMode', 'chainOfThoughtAnalysis', 'suggestOptimizations'],
 
   addMessage: (role, content, artifacts = []) => {
     const newMessage: AIMessage = {

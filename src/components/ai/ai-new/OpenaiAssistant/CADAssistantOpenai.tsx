@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageCircle, 
@@ -10,71 +10,307 @@ import {
   AlertTriangle,
   Layers
 } from 'react-feather';
+import toast, { Toaster } from 'react-hot-toast';
+import { v4 as uuidv4 } from 'uuid';
 
-import { useCADAssistant } from '@/src/hooks/useCADAssistant';
+import { useAI } from '../AIContextProvider';
 
-import { AIAction } from '@/src/types/AITypes';
-import { AIMessage } from './AIMessage';
+import { AIAction, AIModelType, AIMessage as AIMessageType, AIHistoryItem } from '@/src/types/AITypes';
 import { CADAssistantExamples } from './CADAssistantExample';
 import { AIActionHandler } from './AIActionHandler';
-import { AIMessageInput } from './AIMessageInput';
+import { AIMessageInput, ToolName, SelectedFileData } from './AIMessageInput';
+import { FeedbackForm } from './FeedbackForm';
+import { CADAssistantSettingsPanel } from './CADAssistantSettingsPanel';
+import { AIMessage } from './AIMessage';
+import AISettingsPanel from '../AISettingsPanel';
+
+interface ConstraintPreset {
+  id: string;
+  name: string;
+  description: string;
+  constraints: Record<string, any>;
+}
 
 interface CADAssistantOpenaiProps {
   contextData: any;
   actionHandler: any;
   onClose: () => void;
+  availableModels?: AIModelType[];
+  constraintPresets?: ConstraintPreset[];
+  availableElementTypes?: string[];
+  isProcessing: boolean;
+  pendingActions: AIAction[];
+  clearMessages: () => void;
+  executePendingAction: (action: AIAction) => Promise<{ success: boolean; message: string }>;
 }
 
 export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   contextData,
   actionHandler,
-  onClose
+  onClose,
+  availableModels = ['gpt-4o-mini' as AIModelType],
+  constraintPresets = [],
+  availableElementTypes = [],
+  isProcessing,
+  pendingActions,
+  clearMessages,
+  executePendingAction
 }) => {
-  const {
-    messages,
-    isProcessing,
-    isOpen,
-    pendingActions,
-    sendMessage,
-    toggleAssistant,
-    clearMessages,
-    executePendingAction
-  } = useCADAssistant({ 
-    contextData, 
-    actionHandler 
-  });
+  const { state, textToCAD: contextTextToCAD, sendAssistantMessage: contextSendAssistantMessage, dispatch } = useAI();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [isPanelExpanded, setIsPanelExpanded] = React.useState(true);
-  const [showSettings, setShowSettings] = React.useState(false);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
   
-  // Scroll to bottom when messages change
+  const [selectedModel, setSelectedModel] = useState<AIModelType>(availableModels[0] || 'gpt-4o-mini' as AIModelType);
+  const [maxTokens, setMaxTokens] = useState<number>(4000);
+  const [complexity, setComplexity] = useState<number>(0.5);
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('custom');
+  const [customMaxWidth, setCustomMaxWidth] = useState<number>(200);
+  const [customMaxHeight, setCustomMaxHeight] = useState<number>(200);
+  const [customMaxDepth, setCustomMaxDepth] = useState<number>(200);
+  const [customPreferredTypes, setCustomPreferredTypes] = useState<string[]>([]);
+  
+  const submitFeedbackHandler = async (messageId: string, comment: string) => {
+    console.log(`Feedback Submitted - Message ID: ${messageId}, Comment: ${comment}`);
+    try {
+      const response = await fetch('/api/ai/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messageId, rating: 'bad', comment }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit feedback');
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast.error('Could not submit feedback. Please try again.');
+    }
+  };
+  
+  const handleFeedback = async (messageId: string, rating: 'good' | 'bad') => {
+    console.log(`Feedback received for message ${messageId}: ${rating}`);
+    if (rating === 'good') {
+      toast.success('Thanks for the feedback!', { duration: 1500 });
+      try {
+        const response = await fetch('/api/ai/feedback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ messageId, rating: 'good' }),
+        });
+        if (!response.ok) {
+           console.error('Failed to submit positive feedback:', await response.text());
+        }
+      } catch (error) {
+         console.error("Error submitting positive feedback:", error);
+      }
+    } else {
+      toast.custom(
+        (t) => (
+          <FeedbackForm
+            messageId={messageId}
+            onSubmit={submitFeedbackHandler}
+            toastId={t.id}
+          />
+        ),
+        {
+          duration: Infinity,
+          position: 'bottom-center',
+        }
+      );
+    }
+  };
+  
+  const handleModelChange = (model: AIModelType) => setSelectedModel(model);
+  const handleMaxTokensChange = (tokens: number) => setMaxTokens(tokens);
+  const handleComplexityChange = (complexity: number) => setComplexity(complexity);
+  const handlePresetChange = (presetId: string) => setSelectedPresetId(presetId);
+  const handleCustomMaxWidthChange = (width: number) => setCustomMaxWidth(width);
+  const handleCustomMaxHeightChange = (height: number) => setCustomMaxHeight(height);
+  const handleCustomMaxDepthChange = (depth: number) => setCustomMaxDepth(depth);
+  const handleCustomPreferredTypesChange = (types: string[]) => setCustomPreferredTypes(types);
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [state.history.length]);
   
+  const handleSendMessage = async (messageText: string, filesData?: SelectedFileData[], activeTool?: ToolName | null) => {
+    let textContents: string[] = [];
+    let imageDataUrls: string[] = [];
+
+    if (filesData && filesData.length > 0) {
+      filesData.forEach(fileData => {
+        if (fileData.type === 'text') {
+          textContents.push(`--- File: ${fileData.name} ---\n${fileData.content}`);
+        } else if (fileData.type === 'image') {
+          imageDataUrls.push(fileData.content);
+        }
+      });
+      console.log("Processed Text Contents:", textContents.length, "files");
+      console.log("Processed Image Data URLs:", imageDataUrls.length, "files");
+    }
+
+    const generationKeywords = ['create', 'generate', 'make', 'draw', 'model', 'design', 'build', 'construct', 'add'];
+    const useTextToCAD = 
+      activeTool === 'textToCAD' || 
+      (!activeTool && generationKeywords.some(keyword => messageText.toLowerCase().trim().startsWith(keyword)));
+
+    if (useTextToCAD) {
+      console.log("Handling as Text-to-CAD request (Tool Active: ", !!activeTool, ")");
+      let constraintsToSend = {};
+      if (selectedPresetId === 'custom') {
+        constraintsToSend = {
+          maxDimensions: { width: customMaxWidth, height: customMaxHeight, depth: customMaxDepth },
+          preferredTypes: customPreferredTypes.length > 0 ? customPreferredTypes : undefined,
+        };
+      } else {
+        const preset = constraintPresets.find(p => p.id === selectedPresetId);
+        constraintsToSend = preset ? preset.constraints : {};
+      }
+      
+      try {
+        const result = await contextTextToCAD(messageText, constraintsToSend, textContents);
+        console.log("Text-to-CAD Result:", result);
+        if (result.success) {
+           toast.success('CAD elements generated (check history)');
+        } else {
+           toast.error(`CAD generation failed: ${result.error}`);
+        }
+      } catch (error) {
+        console.error("Error calling textToCAD:", error);
+        toast.error("An error occurred during CAD generation.");
+      }
+    } else {
+      console.log("Handling as general assistant message (Tool Active: ", activeTool, ")");
+      if (contextSendAssistantMessage) {
+        contextSendAssistantMessage(messageText);
+      } else {
+          console.error("sendAssistantMessage function from context is not available!");
+          toast.error("Error: Could not send message.");
+      }
+    }
+  };
+  
+  const handleExecuteAction = async (action: AIAction) => {
+    if (!executePendingAction) {
+      console.error("executePendingAction prop is not provided!");
+      toast.error("Cannot execute action.");
+      return; 
+    }
+
+    let historyAssistantItemId = uuidv4();
+    const startTime = Date.now();
+
+    try {
+      const result = await executePendingAction(action);
+      const processingTime = Date.now() - startTime;
+
+      console.log("Action execution result:", result);
+
+      if (dispatch) {
+        dispatch({ 
+          type: 'ADD_TO_HISTORY', 
+          payload: { 
+            id: historyAssistantItemId, 
+            type: result.success ? 'assistant_response' : 'assistant_error',  
+            timestamp: Date.now(), 
+            result: result.message,
+            modelUsed: 'N/A (Tool Execution)',
+            processingTime: processingTime, 
+            tokenUsage: undefined,
+            prompt: `Executed Action: ${action.type}`,
+          } satisfies AIHistoryItem 
+        });
+      } else {
+        console.error("AIContext dispatch is not available!");
+      }
+
+      if (result.success) {
+        toast.success(`Action executed: ${action.type}`);
+      } else {
+        toast.error(`Action failed: ${result.message}`);
+      }
+      
+    } catch (error) {
+      console.error("Error executing action:", error);
+      toast.error("An unexpected error occurred while executing the action.");
+      if (dispatch) {
+         dispatch({ 
+            type: 'ADD_TO_HISTORY', 
+            payload: { 
+              id: historyAssistantItemId,
+              type: 'system_error',
+              timestamp: Date.now(),
+              result: `System Error executing ${action.type}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              modelUsed: 'N/A (System)',
+              processingTime: Date.now() - startTime,
+            } satisfies AIHistoryItem
+         });
+      }
+    }
+  };
+
+  const mapHistoryItemToAIMessage = (item: AIHistoryItem): AIMessageType | null => {
+    let role: 'user' | 'assistant' | 'system' | null = null;
+    let content: any = null;
+    let isError = false;
+
+    if (item.type === 'user_message' && item.prompt) {
+      role = 'user';
+      content = item.prompt;
+    } else if (item.type === 'assistant_response' && item.result) {
+      role = 'assistant'; 
+      content = item.result;
+    } else if ((item.type === 'assistant_error' || item.type === 'system_error') && item.result) {
+      role = 'assistant';
+      content = item.result;
+      isError = true;
+    } else if (item.type === 'text_to_cad' && item.result) {
+      return null;
+    }
+    
+    if (role && content !== null) {
+      return {
+        id: item.id,
+        role: role,
+        content: content,
+        timestamp: item.timestamp,
+        artifacts: item.artifacts,
+        isError: isError,
+      };
+    } 
+    return null;
+  };
+
   return (
     <AnimatePresence>
+      <Toaster />
       <motion.div
+        key="cad-assistant-panel"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="fixed z-50 bottom-4 right-4 shadow-xl rounded-lg bg-white transition-all duration-200"
+        className="fixed z-60 bottom-4 right-4 shadow-xl rounded-lg bg-white transition-all duration-200 dark:bg-gray-800 dark:border dark:border-gray-700"
         style={{ 
-          width: isPanelExpanded ? '380px' : 'auto', 
-          height: isPanelExpanded ? '500px' : 'auto' 
+          width: isPanelExpanded ? '420px' : 'auto', 
+          height: isPanelExpanded ? 'calc(100vh - 80px)': 'auto',
+          maxHeight: '90vh'
         }}
       >
         {isPanelExpanded ? (
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+          <div className="flex flex-col rounded-lg h-full">
+            <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg dark:from-gray-700 dark:to-gray-800 dark:border-gray-600">
               <div className="flex items-center">
                 <Layers size={18} className="mr-2" />
                 <div>
                   <h3 className="font-medium">CAD Assistant</h3> 
                   <div className="text-xs text-blue-100">
-                    {contextData?.elementCount || 0} elements on canvas
+                    {contextData.elementCount || 0} elements on canvas
                   </div>
                 </div>
               </div>
@@ -103,19 +339,27 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               </div>
             </div>
             
-            {/* Settings Panel */}
+            <AnimatePresence>
+              {showSettings && (
+                <div className="overflow-y-auto max-h-96 border-b border-gray-200 dark:border-gray-700">
+                  <AISettingsPanel/>
+                </div>
+              )}
+            </AnimatePresence>
+            
             <AnimatePresence>
               {showSettings && (
                 <motion.div
+                  key="original-settings-content"
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="border-b border-gray-200 overflow-hidden"
+                  className="border-b border-gray-200 overflow-hidden bg-gray-50 dark:bg-gray-800"
                 >
-                  <div className="p-3 space-y-2 text-sm bg-gray-50">
+                  <div className="p-3 space-y-2 text-sm">
                     <button
                       onClick={clearMessages}
-                      className="flex items-center text-xs text-red-600 hover:text-red-800"
+                      className="flex items-center text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                     >
                       <X size={12} className="mr-1" />
                       Clear Conversation
@@ -125,10 +369,9 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               )}
             </AnimatePresence>
             
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800">
+              {state.history.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
                   <Cpu size={32} className="mb-2" />
                   <p className="text-sm">I&apos;m your CAD assistant. How can I help?</p>
                   <p className="text-xs text-center mt-2 text-gray-400">
@@ -136,36 +379,37 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                   </p>
                 </div>
               ) : (
-                messages.map((message) => (
-                  <AIMessage key={message.id} message={message} />
-                ))
+                [...state.history].reverse().map((item) => { 
+                  const message = mapHistoryItemToAIMessage(item);
+                  if (!message) return null; 
+                  return (
+                    <AIMessage 
+                      key={message.id} 
+                      message={message} 
+                      onFeedback={handleFeedback}
+                    />
+                  )
+                })
               )}
               <div ref={messagesEndRef} />
             </div>
             
-            {/* Examples Panel - only shown when no messages */}
-            {messages.length === 0 && (
-              <CADAssistantExamples onSelectExample={sendMessage} />
-            )}
-            
-            {/* Action Handler */}
-            {pendingActions.length > 0 && (
+            {pendingActions && pendingActions.length > 0 && (
               <AIActionHandler
+                key="action-handler"
                 actions={pendingActions}
-                onExecute={executePendingAction}
+                onExecute={handleExecuteAction}
                 isProcessing={isProcessing}
               />
             )}
             
-            {/* Input Area */}
             <AIMessageInput
-              onSendMessage={sendMessage}
+              onSendMessage={handleSendMessage}
               isProcessing={isProcessing}
               placeholder="Describe what you want to create or modify..."
             />
           </div>
         ) : (
-          // Minimized version
           <div className="flex items-center p-2 space-x-2">
             <button
               onClick={() => setIsPanelExpanded(true)}

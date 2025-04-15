@@ -4,6 +4,13 @@
  * Centralizza tutte le definizioni di tipo AI per garantire coerenza e tipo-sicurezza
  */
 
+import { Element } from '@/src/store/elementsStore'; // Import Element type
+
+// === TIPI PER CONTROLLO RISPOSTA ===
+export type ResponseStyle = "concise" | "detailed" | "step-by-step" | "professional" | "creative" | "bulleted";
+export type ComplexityLevel = "simple" | "moderate" | "complex";
+export type AssistantRole = "General AI" | "CAD Expert" | "Code Explainer" | "Helpful Assistant" | "CAD Assistant";
+
 
 // === MODELLI AI ===
 export type AIModelType = 
@@ -15,7 +22,9 @@ export type AIModelType =
   // OpenAI models
   | 'gpt-4'
   | 'gpt-4-turbo-preview'
-  | 'gpt-3.5-turbo';
+  | 'gpt-3.5-turbo'
+  | 'gpt-4o'
+  | 'gpt-4o-mini';
 
 // === PROVIDER AI ===
 export type AIProviderType = 'claude' | 'openai' | 'CLAUDE' | 'OPENAI';
@@ -284,7 +293,7 @@ export interface AIHistoryItem {
   timestamp: number;
   prompt?: string;
   result?: any;
-  modelUsed: AIModelType;
+  modelUsed: AIModelType | string | null;
   processingTime: number;
   tokenUsage?: {
     prompt: number;
@@ -297,6 +306,7 @@ export interface AIHistoryItem {
     cost: number;
     timeMs: number;
   };
+  artifacts?: AIArtifact[];
 }
 
 export interface AISettings {
@@ -321,18 +331,42 @@ export interface AISettings {
 
 export type MessageRole = 'user' | 'assistant' | 'system';
 
+// --- Define complex message content structure --- 
+export interface TextContentBlock {
+  type: "text";
+  text: string;
+}
+
+export interface ImageUrl {
+  url: string; // Can be http(s) URL or data URL
+  detail?: "low" | "high" | "auto"; // Optional detail level
+}
+
+export interface ImageContentBlock {
+  type: "image_url";
+  image_url: ImageUrl;
+}
+
+// Union type for message content
+export type MessageContent = string | (TextContentBlock | ImageContentBlock)[];
+// --- End complex message content structure --- 
+
 export interface AIMessage {
   id: string;
-  role: MessageRole;
-  content: string;
+  role: 'user' | 'assistant' | 'system';
+  content: MessageContent; // Allow complex content
   timestamp: number;
+  name?: string; // For function/tool role
+  tool_call_id?: string; // For tool role
   artifacts?: AIArtifact[];
+  isError?: boolean; // Add optional error flag
 }
 
 export interface AIArtifact {
   id: string;
-  type: 'code' | 'json' | 'cad' | 'image' | 'markdown';
-  content: string;
+  // Add 'cad_elements' to the allowed types
+  type: 'code' | 'json' | 'cad' | 'image' | 'markdown' | 'cad_elements'; 
+  content: any; // Change content to 'any' to allow storing Element[]
   language?: string;
   title?: string;
 }

@@ -23,6 +23,11 @@ const elementDetailsDb: Record<string, any> = {
       y: 0,
       z: 0
     },
+    rotation: {
+      x: 0,
+      y: 0,
+      z: 0
+    },
     material: 'aluminum'
   },
   'test_cylinder_1': {
@@ -35,6 +40,12 @@ const elementDetailsDb: Record<string, any> = {
     },
     position: {
       x: 150,
+      y: 0,
+      z: 0
+    },  
+    rotation: {
+      degrees: 0,
+      x: 0,
       y: 0,
       z: 0
     },
@@ -70,7 +81,13 @@ export async function getElementDetails(id: string, type: string): Promise<any> 
           y: Math.random() * 100 - 50,
           z: Math.random() * 100 - 50
         },
-        material: 'aluminum'
+        material: 'aluminum',
+        rotation: {
+          degrees: 0,
+          x: 0,
+          y: 0,
+          z: 0
+        }
       };
     
     case 'cylinder':
@@ -87,7 +104,13 @@ export async function getElementDetails(id: string, type: string): Promise<any> 
           y: Math.random() * 100 - 50,
           z: Math.random() * 100 - 50
         },
-        material: 'steel'
+        material: 'steel',
+        rotation: {
+          degrees: 0,
+          x: 0,
+          y: 0,
+          z: 0
+        }
       };
     
     case 'sphere':
@@ -103,7 +126,13 @@ export async function getElementDetails(id: string, type: string): Promise<any> 
           y: Math.random() * 100 - 50,
           z: Math.random() * 100 - 50
         },
-        material: 'plastic'
+        material: 'plastic',
+        rotation: {
+          degrees: 0,
+          x: 0,
+          y: 0,
+          z: 0
+        }
       };
     
     case 'face':
@@ -122,6 +151,12 @@ export async function getElementDetails(id: string, type: string): Promise<any> 
           x: Math.random() * 100 - 50,
           y: Math.random() * 100 - 50,
           z: Math.random() * 100 - 50
+        },
+        rotation: {
+          degrees: 0,
+          x: 0,
+          y: 0,
+          z: 0
         }
       };
     
@@ -136,6 +171,12 @@ export async function getElementDetails(id: string, type: string): Promise<any> 
           x: Math.random() * 100 - 50,
           y: Math.random() * 100 - 50,
           z: Math.random() * 100 - 50
+        },
+        rotation: {
+          degrees: 0,
+          x: 0,
+          y: 0,
+          z: 0
         }
       };
     
@@ -148,6 +189,12 @@ export async function getElementDetails(id: string, type: string): Promise<any> 
           x: Math.random() * 100 - 50,
           y: Math.random() * 100 - 50,
           z: Math.random() * 100 - 50
+        },
+        rotation: {
+          degrees: 0,
+          x: 0,
+          y: 0,
+          z: 0
         }
       };
   }

@@ -1,5 +1,5 @@
 // src/pages/cad.tsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import PropertyPanel from '../components/cad/PropertyPanel';
@@ -31,6 +31,7 @@ import { AIHub, AIProcessingIndicator, TextToCADPanel } from '../components/ai/a
 import PluginSidebar from '../components/plugins/PluginSidebar';
 import { CADAssistantButton } from '../components/ai/ai-new/OpenaiAssistant/CADAssistantButton';
 import { CADAssistantBridge } from '../components/ai/ai-new/OpenaiAssistant/CADAssistantBridge';
+import { useSelectionStore } from 'src/store/selectorStore';
 
 // Import new CAD Assistant components
 
@@ -58,10 +59,10 @@ export default function CADPage() {
   const [activeSidebarTab, setActiveSidebarTab] = useState<'tools' | 'layers' | 'settings' >('tools');
   const { viewMode, gridVisible, axisVisible } = useCADStore();
   const { elements, selectedElement, selectElement, undo, redo } = useElementsStore();
-  const { layers } = useLayerStore();
+  const { layers, activeLayer } = useLayerStore();
   const [showImportExportDialog, setShowImportExportDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'import' | 'export'>('export');
-  const [showFloatingToolbar, setShowFloatingToolbar] = useState(true);
+  const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
   const [selectedLibraryComponent, setSelectedLibraryComponent] = useState<string | null>(null);
   const [showLibraryView, setShowLibraryView] = useState(false);
   // Add state for the unified library modal
@@ -316,6 +317,48 @@ export default function CADPage() {
     }
   }, [showUnifiedLibrary, sidebarOpen]);
 
+  // Accedi agli store Zustand
+  const { selectedElementIds } = useSelectionStore();
+
+  // Costruisci l'oggetto di contesto CAD aggiornato
+  const cadContextData = useMemo(() => {
+    const selectedElementsDetails = selectedElementIds
+      .map(id => elements.find(el => el.id === id))
+      .filter(el => el !== undefined)
+      .map(el => ({ // Passa solo info essenziali per ridurre i token
+        id: el!.id,
+        type: el!.type,
+        name: el!.name || 'Unnamed',
+        
+        x: el!.x,
+        y: el!.y,
+        z: el!.z,
+        rotation: el!.rotation || {x: 0, y: 0, z: 0},
+        scale: el!.scale || {x: 1, y: 1, z: 1},
+        color: el!.color || '#000000',
+        linewidth: el!.linewidth || 1,
+        description: el!.description || '',
+        material: el!.material || 'default',
+        additionalProps: el!.additionalProps || {}, 
+        operands: el!.operands || [],
+        wireframe: el!.wireframe || false,
+       
+
+        // Potresti aggiungere altre proprietà rilevanti qui se necessario
+      }));
+
+    const activeLayerDetails = layers.find(l => l.id === activeLayer);
+
+    return {
+      totalElementCount: elements.length,
+      selectedElementCount: selectedElementIds.length,
+      selectedElements: selectedElementsDetails, // Array con dettagli elementi selezionati
+      activeLayer: activeLayerDetails ? 
+        { id: activeLayerDetails.id, name: activeLayerDetails.name } : 
+        null // Dettagli layer attivo
+    };
+  }, [elements, selectedElementIds, layers, activeLayer]);
+
   if (status === 'loading') {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -379,7 +422,7 @@ export default function CADPage() {
             )}
             
             {/* CAD Assistant Button - Fixed position in bottom right */}
-            <div className="absolute bottom-3.5 right-20 z-40">
+            <div className="absolute bottom-3.5 rounded-lg right-20 z-40">
               <CADAssistantButton 
                 isVisible={showCADAssistant}
                 toggleVisibility={() => setShowCADAssistant(!showCADAssistant)}
@@ -387,10 +430,11 @@ export default function CADPage() {
               />
             </div>
             
-            {/* CAD Assistant Bridge - Handles the AI integration */}
+            {/* CAD Assistant Bridge - Passa il contesto aggiornato */}
             <CADAssistantBridge
               isVisible={showCADAssistant}
               onClose={() => setShowCADAssistant(false)}
+              initialContextData={cadContextData} 
             />
           </div>
           

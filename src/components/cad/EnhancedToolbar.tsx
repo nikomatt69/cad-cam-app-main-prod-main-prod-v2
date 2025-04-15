@@ -228,7 +228,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
           </button>
           <div className="h-5 border-l border-gray-300 dark:border-gray-700 mx-1"></div>
           <button
-            onClick={() => setShowFloatingToolbar(!showFloatingToolbar)}
+            onClick={() => setShowFloatingToolbar(showFloatingToolbar)}
             className={`px-3 py-1.5 border shadow-sm rounded-md flex items-center ${
               showFloatingToolbar 
                 ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 

@@ -18,6 +18,8 @@ export const AI_MODELS = {
   GPT_4: 'gpt-4',
   GPT_4_TURBO: 'gpt-4-turbo-preview',
   GPT_3_5_TURBO: 'gpt-3.5-turbo',
+  GPT_4O: 'gpt-4o',
+  GPT_4O_MINI: 'gpt-4o-mini',
 } as const;
 
 // Definizione dei provider AI
@@ -37,6 +39,8 @@ export const MODEL_PROVIDERS: Record<AIModelType, AIProvider> = {
   [AI_MODELS.GPT_4]: 'OPENAI',
   [AI_MODELS.GPT_4_TURBO]: 'OPENAI',
   [AI_MODELS.GPT_3_5_TURBO]: 'OPENAI',
+  [AI_MODELS.GPT_4O]: 'OPENAI',
+  [AI_MODELS.GPT_4O_MINI]: 'OPENAI',
 } as const;
 
 // Definizione delle modalità AI
@@ -119,6 +123,20 @@ export const MODEL_CAPABILITIES = {
     supportedFeatures: ['basic_reasoning', 'text_completion', 'simple_assistance'],
     provider: AI_PROVIDERS.OPENAI
   },
+  [AI_MODELS.GPT_4O]: {
+    maxTokens: 8000,
+    bestFor: ['complex_reasoning', 'creative_content', 'code_generation'],
+    costTier: 'high',
+    tokensPerSecond: 15,
+    provider: AI_PROVIDERS.OPENAI
+  },  
+  [AI_MODELS.GPT_4O_MINI]: {
+    maxTokens: 4000,
+    bestFor: ['quick_responses', 'simple_tasks', 'cost_efficiency'],
+    costTier: 'low',
+    tokensPerSecond: 40,
+    provider: AI_PROVIDERS.OPENAI
+  },
 } as const;
 
 // Mappatura dei costi per token per ciascun modello
@@ -129,7 +147,9 @@ export const MODEL_COSTS: Record<AIModelType, { input: number, output: number }>
   [AI_MODELS.CLAUDE_HAIKU]: { input: 0.002, output: 0.01 },      // $ per 1K tokens
   [AI_MODELS.CLAUDE_SONNET_7]: { input: 0.008, output: 0.024 },  // $ per 1K tokens
   // OpenAI models
-  [AI_MODELS.GPT_4]: { input: 0.03, output: 0.06 },              // $ per 1K tokens
+  [AI_MODELS.GPT_4]: { input: 0.03, output: 0.06 },
+  [AI_MODELS.GPT_4O]: { input: 0.03, output: 0.06 },
+  [AI_MODELS.GPT_4O_MINI]: { input: 0.03, output: 0.06 },
   [AI_MODELS.GPT_4_TURBO]: { input: 0.01, output: 0.03 },        // $ per 1K tokens
   [AI_MODELS.GPT_3_5_TURBO]: { input: 0.0005, output: 0.0015 },  // $ per 1K tokens
 };

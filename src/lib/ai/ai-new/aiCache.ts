@@ -20,6 +20,15 @@ interface CacheItem<T> {
     persistToDisk?: boolean; // Abilita persistenza su localStorage
   }
   
+  // Helper function (potrebbe essere già presente o puoi aggiungerla)
+  function uint8ArrayToBinaryString(uint8Array: Uint8Array): string {
+    let binaryString = '';
+    for (let i = 0; i < uint8Array.length; i++) {
+      binaryString += String.fromCharCode(uint8Array[i]);
+    }
+    return binaryString;
+  }
+  
   /**
    * Servizio di caching per le risposte AI
    * Supporta memorizzazione in memoria e persistenza opzionale su localStorage
@@ -50,16 +59,27 @@ interface CacheItem<T> {
     /**
      * Genera una chiave di cache da un oggetto di richiesta
      */
-    getKeyForRequest(requestObj: any): string {
-      // Serializza e codifica l'oggetto per una chiave univoca
-      const requestStr = JSON.stringify(requestObj);
-      
-      // Usa btoa per codifica base64 in browser o una versione personalizzata in Node.js
-      if (typeof btoa === 'function') {
-        return btoa(requestStr);
-      } else {
-        // Node.js fallback
-        return Buffer.from(requestStr).toString('base64');
+    getKeyForRequest(payload: any): string {
+      try {
+        const payloadString = JSON.stringify(payload);
+
+        // 1. Codifica la stringa UTF-8 in un array di byte
+        const utf8Bytes = new TextEncoder().encode(payloadString);
+
+        // 2. Converti l'array di byte in una stringa binaria (compatibile con Latin-1)
+        const binaryString = uint8ArrayToBinaryString(utf8Bytes);
+
+        // 3. Ora btoa funzionerà correttamente sulla stringa binaria
+        const base64Key = btoa(binaryString);
+
+        // Restituisci la chiave formattata come necessario (es. con un prefisso)
+        // Assicurati che il formato corrisponda a quello che usi altrove
+        return `cache-${base64Key}`;
+
+      } catch (error) {
+        console.error("Errore durante la generazione della chiave di cache:", error, "Payload:", payload);
+        // Gestisci l'errore, ad esempio restituendo una chiave non valida per evitare la cache
+        return `cache-error-${Date.now()}-${Math.random()}`;
       }
     }
     

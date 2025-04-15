@@ -5,6 +5,22 @@ import { promptTemplates } from './promptTemplates';
 import { Element } from '@/src/store/elementsStore';
 import { mcpService } from './ai-new/mcpService';
 import { aiConfigManager } from './ai-new/aiConfigManager';
+import { v4 as uuidv4 } from 'uuid';
+
+// Add necessary imports from openaiService and AITypes if not already present
+import { openAIService } from './openaiService'; // Assuming relative path is correct
+// Adjust import to include types specifically used by the new method
+import { 
+  AIMessage, AIArtifact, AIAction, ResponseStyle, ComplexityLevel, AssistantRole, 
+  MessageContent, TextContentBlock, ImageContentBlock
+  // Removed OpenAI specific types - will use general types or 'any' for now
+} from '@/src/types/AITypes'; // Adjust path as needed
+
+// Define ForceToolChoice locally if not exported elsewhere
+interface ForceToolChoice {
+  type: "function";
+  function: { name: string };
+}
 
 /**
  * Servizio AI unificato che gestisce tutte le interazioni con i modelli AI
@@ -18,6 +34,7 @@ export class UnifiedAIService {
   private mcpEnabled: boolean = false;
   private mcpStrategy: 'aggressive' | 'balanced' | 'conservative' = 'balanced';
   private mcpCacheLifetime: number = 3600000; // 1 ora in millisecondi
+  private apiEndpoint = '/api/ai/proxy'; // Added apiEndpoint property
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || '';
@@ -365,53 +382,42 @@ export class UnifiedAIService {
       .replace('{{style}}', style);
     
     // Costruisce il prompt utente
-    let prompt = promptTemplates.textToCAD.user.replace('{{description}}', description);
-    
-    // Aggiunge i vincoli se presenti
+    let userPrompt = promptTemplates.textToCAD.user.replace('{{description}}', description);
     if (constraints) {
-      prompt += '\n\nConstraints:\n' + JSON.stringify(constraints, null, 2);
+      userPrompt += '\n\nConstraints:\n' + JSON.stringify(constraints, null, 2);
     }
-    
-    // Aggiunge il contesto se presente
     if (context && context.length > 0) {
-      prompt += '\n\nReference Context:\n';
-      
-      // Limita la dimensione di ciascun contesto per evitare di superare i limiti di token
-      const maxContextLength = 3000; // Dimensione massima in caratteri per documento
-      
+      userPrompt += '\n\nReference Context:\n';
+      const maxContextLength = 3000; // Limit context size
       context.forEach((contextItem, index) => {
-        // Tronca il contesto se troppo lungo
         const truncatedContext = contextItem.length > maxContextLength 
           ? contextItem.substring(0, maxContextLength) + '... [content truncated]' 
           : contextItem;
-        
-        prompt += `\n--- Context Document ${index + 1} ---\n${truncatedContext}\n`;
+        userPrompt += `\n--- Context Document ${index + 1} ---\n${truncatedContext}\n`;
       });
-      
-      // Aggiunge istruzioni specifiche per l'utilizzo del contesto
-      prompt += '\n\nPlease consider the above reference context when generating the CAD model. ' +
-                'Use relevant specifications, measurements, and design principles from the context ' +
-                'to inform your design, while adhering to the provided constraints.';
+      userPrompt += '\n\nPlease consider the above reference context...';
     }
     
+    // Revert to calling this.processRequest
     return this.processRequest<Element[]>({
-      prompt,
+      prompt: userPrompt, // Pass the constructed user prompt
       systemPrompt,
-      model: 'claude-3-7-sonnet-20250219', // Usa il modello più potente per generazione CAD
+      model: 'claude-3-7-sonnet-20250219', // Explicitly use Claude model
       temperature: complexity === 'creative' ? 0.8 : 0.5,
       maxTokens: this.defaultMaxTokens,
-      parseResponse: this.parseTextToCADResponse,
-      metadata: {
+      parseResponse: this.parseTextToCADResponse, // Use the parsing function
+      metadata: { // Pass relevant metadata
         type: 'text_to_cad',
         description: description.substring(0, 100),
         complexity,
         style,
         contextCount: context?.length || 0
       }
+      // Add useMCP/mcpParams here if needed based on request
+      // useMCP: request.useMCP,
+      // mcpParams: request.mcpParams
     });
   }
-
-
 
   /**
    * Analizza progetti CAD e fornisce suggerimenti
@@ -777,6 +783,176 @@ export class UnifiedAIService {
       throw error;
     }
   };
+
+  /**
+   * Handles conversational AI requests, similar to openaiService.sendMessage,
+   * but integrated into the unified service flow (including MCP).
+   */
+  async getAssistantCompletion(
+    messages: AIMessage[],
+    context: string,
+    availableActions: string[] = [],
+    responseStyle: ResponseStyle = "detailed",
+    complexityLevel: ComplexityLevel = "moderate",
+    assistantRole: AssistantRole = "General AI",
+    forceToolChoice?: ForceToolChoice,
+    modelOverride?: AIModelType
+  ): Promise<AIResponse<any>> { 
+    
+    const modelToUse = modelOverride || this.defaultModel;
+    const startTime = Date.now();
+    const requestId = uuidv4(); 
+
+    // --- Caching Logic --- 
+    const lastMessage = messages[messages.length - 1];
+    const hasImages = Array.isArray(lastMessage?.content) &&
+                      lastMessage.content.some(block => block.type === 'image_url');
+    let cacheKey = null;
+    let cachedResponse = null;
+    if (!hasImages) {
+       // Re-add cache key payload generation
+       const cacheKeyPayload = {
+         messages: messages.map(m => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content :
+                     (Array.isArray(m.content) ? m.content.filter(b => b.type === 'text').map(b => (b as TextContentBlock).text).join('\\n') : '[Unsupported Content]')
+         })),
+         context,
+         availableActions,
+         responseStyle,
+         complexityLevel,
+         assistantRole,
+         forceToolChoice,
+         model: modelToUse 
+       };
+       cacheKey = aiCache.getKeyForRequest(cacheKeyPayload); // Pass payload
+       cachedResponse = aiCache.get<AIResponse<{ content: string; actions?: AIAction[]; artifacts?: AIArtifact[] }>>(cacheKey);
+    }
+    if (cachedResponse) {
+       return { ...cachedResponse, fromCache: true };
+    }
+    // --- End Caching Logic --- 
+
+    // --- Analytics Start (Reverting to 3 args) --- 
+    const metadata = { assistantRole, responseStyle, complexityLevel, requestId };
+    aiAnalytics.trackRequestStart( 
+      'assistant_completion', // eventName (string)
+      modelToUse,           // model (string)
+      { // metadata (object)
+        messageCount: messages.length, 
+        actionCount: availableActions.length, 
+        forcedTool: !!forceToolChoice,
+        ...metadata // Spread the specific metadata 
+      }
+    );
+    // --- End Analytics Start --- 
+
+    try {
+      // --- Prepare Request for openaiService.sendMessage --- 
+      
+      // 1. Construct System Prompt
+      let systemPrompt = `You are an AI assistant integrated into a CAD/CAM application. Your role is: ${assistantRole}. `; 
+      systemPrompt += `Current context: ${context}. `;
+      systemPrompt += `Respond in a ${responseStyle} manner, appropriate for a user with ${complexityLevel} understanding. `;
+      if (availableActions.length > 0) {
+        systemPrompt += `You have the following tools available: ${availableActions.join(', ')}. Only use tools when specifically requested or clearly necessary based on the user's request.`;
+      }
+
+      // 2. Filter Messages (exclude system roles)
+      const filteredMessages = messages.filter(msg => msg.role === 'user' || msg.role === 'assistant');
+
+      // 3. Map availableActions to the format expected by OpenAI tools
+      const tools = availableActions.map(actionName => ({ 
+          type: "function", 
+          function: { name: actionName, description: "" } // Add descriptions if available/needed 
+      })); 
+      
+      // 4. Remove messageOptions object, not needed for this signature
+      
+      // 5. Call openaiService.sendMessage with potentially correct arguments
+      console.log("[UnifiedAIService] Calling openaiService.sendMessage with messages, system prompt, and available actions:");
+      const response: any = await openAIService.sendMessage(
+          filteredMessages, // 1st arg: messages array
+          systemPrompt,     // 2nd arg: system prompt string
+          availableActions  // 3rd arg: available actions string array
+      ); 
+      console.log("[UnifiedAIService] Received response from openaiService:", response);
+
+      // --- Process Response (adapted from previous attempt) --- 
+      const processingTime = Date.now() - startTime;
+      const success = !response?.error; // Infer success
+      const errorMessage = response?.error || response?.message || null;
+      const usageData = response?.usage; // Assume usage object exists
+      const promptTokens = usageData?.promptTokens ?? usageData?.prompt_tokens ?? usageData?.input_tokens ?? 0;
+      const completionTokens = usageData?.completionTokens ?? usageData?.completion_tokens ?? usageData?.output_tokens ?? 0;
+      const totalTokens = usageData?.totalTokens ?? (promptTokens + completionTokens);
+      const extractedContent = response?.data?.content ?? response?.content ?? ""; // Prioritize response.data.content if exists
+      const extractedActions = response?.data?.actions; // Check standard location
+      const extractedArtifacts = response?.data?.artifacts; // Check standard location
+
+      // --- Analytics Complete (Reverting to 5 args) --- 
+      aiAnalytics.trackRequestComplete(
+        requestId, // string
+        processingTime, // number
+        success, // boolean
+        promptTokens, // number
+        completionTokens // number
+      );
+      
+      // --- Construct Final AIResponse --- 
+      if (success) {
+        const finalData = {
+            content: extractedContent || "(No content)",
+            actions: extractedActions,
+            artifacts: extractedArtifacts
+        };
+        const finalResponse: AIResponse<typeof finalData> = {
+            rawResponse: JSON.stringify(response), 
+            data: finalData,
+            success: true,
+            error: undefined, 
+            processingTime: processingTime,
+            model: modelToUse,
+            provider: 'openai',
+            usage: { promptTokens, completionTokens, totalTokens },
+            metadata: { ...metadata, ...(response?.metadata || {}) }
+        };
+         // Cache the successful response
+        if (cacheKey) {
+            aiCache.set(cacheKey, finalResponse);
+            console.log("UnifiedAIService (getAssistantCompletion): Cached new response for key:", cacheKey);
+        }
+        return finalResponse;
+      } else {
+        throw new Error(errorMessage || 'openaiService.sendMessage returned an error');
+      }
+
+    } catch (error) {
+      // --- Error Handling --- 
+      const processingTime = Date.now() - startTime;
+      console.error("Error in getAssistantCompletion:", error);
+      // --- Analytics Complete (Error - Reverting to 5 args) --- 
+      aiAnalytics.trackRequestComplete(requestId, processingTime, false, 0, 0); 
+      // --- Analytics Event Error (Restoring full object) ---
+      aiAnalytics.trackEvent({ 
+          eventType: 'error',
+          eventName: 'assistant_completion_error',
+          errorType: error instanceof Error ? error.name : 'unknown',
+          success: false,
+          duration: processingTime, // Add duration back?
+          metadata: { requestId, message: error instanceof Error ? error.message : 'Unknown error' }
+      });
+      const errorResponse: AIResponse<any> = {
+        rawResponse: null,
+        data: null,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        success: false,
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        metadata: metadata
+      };
+      return errorResponse;
+    }
+  }
 }
 
 // Esporta un'istanza singleton

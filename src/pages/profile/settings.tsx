@@ -243,7 +243,7 @@ export default function ProfileSettingsPage() {
       <MetaTags 
         title="Profile Settings" 
       />
-      <DynamicLayout>
+     
         <div className="p-6 max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h1>
           
@@ -441,7 +441,7 @@ export default function ProfileSettingsPage() {
             </div>
           </form>
         </div>
-      </DynamicLayout>
+      
     </>
   );
 }

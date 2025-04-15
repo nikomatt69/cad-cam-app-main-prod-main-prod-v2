@@ -48,6 +48,7 @@ import Image from 'next/image';
 import FixedCyclesUIRenderer from '../components/cam/FixedCyclesUIRenderer';
 import EnhancedToolpathVisualizer from '../components/cam/EnhancedToolpathVisualizer';
 import ToolpathVisualizer from 'src/components/cam/ToolpathVisualizer2';
+import { AIAssistantOpenai } from '../components/ai/ai-new/OpenaiAssistant/AIAssistantOpenai';
 
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
@@ -419,7 +420,7 @@ export default function CAMPage() {
               </div>
             )}
             </div>
-          
+            
           {/* Right sidebar for controls */}
           <div 
             className={`${

@@ -164,7 +164,7 @@ const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({
         
         <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
           <p>
-            <span className="font-medium">Capacità:</span> {MODEL_CAPABILITIES[state.currentModel as AIModelType].supportedFeatures.join(', ')}
+            <span className="font-medium">Capacità:</span> {MODEL_CAPABILITIES[state.currentModel as AIModelType].bestFor.join(', ')}
           </p>
           <p>
             <span className="font-medium">Tokens:</span> {MODEL_CAPABILITIES[state.currentModel as AIModelType].maxTokens.toLocaleString()}

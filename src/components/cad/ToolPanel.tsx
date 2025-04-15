@@ -1351,7 +1351,7 @@ const ScreenshotIcon = () => (
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
       <text x="6" y="16" fontSize="14" fontWeight="bold">T</text>
       <line x1="6" y1="18" x2="18" y2="18" />
-      <path d="M7,13 L7,18" stroke-dasharray="2,2" />
+      <path d="M7,13 L7,18" strokeDasharray="2,2" />
     </svg>
   );
 

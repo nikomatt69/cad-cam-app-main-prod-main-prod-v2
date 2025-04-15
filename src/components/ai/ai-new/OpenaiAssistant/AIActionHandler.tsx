@@ -41,7 +41,7 @@ export const AIActionHandler: React.FC<AIActionHandlerProps> = ({
                 {isProcessing ? 'Processing...' : 'Execute'}
               </button>
             </div>
-            <div className="mt-2 text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto">
+            <div className="mt-2 text-xs bg-white p-2 rounded border border-gray-200 overflow-x-auto max-h-40 overflow-y-auto">
               <pre>{JSON.stringify(action.payload, null, 2)}</pre>
             </div>
           </div>

@@ -175,12 +175,13 @@ export const AIAssistantOpenai: React.FC = () => {
                 isProcessing={isProcessing}
               />
             )}
-            
             {/* Input Area */}
             <AIMessageInput
               onSendMessage={sendMessage}
               isProcessing={isProcessing}
               placeholder="Type your message..."
+          
+         
             />
           </div>
         ) : (

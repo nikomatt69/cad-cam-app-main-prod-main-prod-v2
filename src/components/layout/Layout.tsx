@@ -274,7 +274,7 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
                 </div>
               </div>
             </footer>
-            <div className="fixed bottom-4 right-4 z-150"><AIAssistantOpenai/></div>
+            <div className="fixed bottom-4 right-4 z-60"><AIAssistantOpenai/></div>
             
             
             {/* Bottom Navigation for Mobile */}

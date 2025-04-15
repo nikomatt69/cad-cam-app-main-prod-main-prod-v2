@@ -15,9 +15,9 @@ export const CADAssistantButton: React.FC<CADAssistantButtonProps> = ({
   return (
     <button
       onClick={toggleVisibility}
-      className={`p-3 rounded-full shadow-lg transition-colors ${
+      className={`p-3 rounded-full shadow-lg z-60 transition-colors ${
         isVisible 
-          ? 'bg-blue-700 text-white' 
+          ? 'bg-blue-700 text-white z-60' 
           : 'bg-white text-blue-700 hover:bg-blue-50'
       } ${className}`}
       title={isVisible ? 'Hide CAD Assistant' : 'Show CAD Assistant'}
