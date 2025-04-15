@@ -1,10 +1,11 @@
 // src/components/ai/AIMessageInput.tsx
+import { LightbulbIcon } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type } from 'react-feather';
+import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type, Edit3, Trash, ExternalLink } from 'react-feather';
 import toast from 'react-hot-toast';
 
 // Define and export tool types for clarity
-export type ToolName = 'generateCADElement' | 'chainOfThoughtAnalysis' | 'suggestOptimizations' | 'textToCAD';
+export type ToolName = 'generateCADElement' | 'chainOfThoughtAnalysis' | 'suggestOptimizations' | 'textToCAD' | 'updateCADElement' | 'removeCADElement' | 'exportCADProjectAsZip' | 'thinkAloudMode';
 
 // Structure to hold selected file data (text or image)
 export interface SelectedFileData {
@@ -199,14 +200,24 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
           <Type size={14} />
         </button>
         <button
-          onClick={() => handleToolButtonClick('generateCADElement')}
-          title="Force Generate Element"
+          onClick={() => handleToolButtonClick('updateCADElement')}
+          title="Force Update Element(s)"
           disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'generateCADElement' 
-            ? 'bg-blue-100 border-blue-400 text-blue-700' 
+          className={`p-1.5 rounded border text-xs ${activeTool === 'updateCADElement' 
+            ? 'bg-yellow-100 border-yellow-400 text-yellow-700' 
             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
         >
-          <Box size={14} />
+          <Edit3 size={14} />
+        </button>
+        <button
+          onClick={() => handleToolButtonClick('removeCADElement')}
+          title="Force Remove Element(s)"
+          disabled={isProcessing}
+          className={`p-1.5 rounded border text-xs ${activeTool === 'removeCADElement' 
+            ? 'bg-red-100 border-red-400 text-red-700' 
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+        >
+          <Trash size={14} />
         </button>
         <button
           onClick={() => handleToolButtonClick('chainOfThoughtAnalysis')}
@@ -227,6 +238,26 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
         >
           <Zap size={14} />
+        </button>
+        <button
+          onClick={() => handleToolButtonClick('exportCADProjectAsZip')}
+          title="Force Export CAD Project"
+          disabled={isProcessing}
+          className={`p-1.5 rounded border text-xs ${activeTool === 'exportCADProjectAsZip' 
+            ? 'bg-blue-100 border-blue-400 text-blue-700' 
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+        >
+          <ExternalLink size={14} />
+        </button>
+        <button
+          onClick={() => handleToolButtonClick('thinkAloudMode')}
+          title="Force Think Aloud Mode"
+          disabled={isProcessing}
+          className={`p-1.5 rounded border text-xs ${activeTool === 'thinkAloudMode' 
+            ? 'bg-blue-100 border-blue-400 text-blue-700' 
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+        >
+          <LightbulbIcon size={14} />
         </button>
       </div>
       

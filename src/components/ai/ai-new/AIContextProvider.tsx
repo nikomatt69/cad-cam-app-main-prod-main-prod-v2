@@ -20,8 +20,13 @@ import {
   AssistantRole,
   ResponseStyle,
   ComplexityLevel,
-  AIArtifact
+  AIArtifact,
+  MessageContent, 
+  TextContentBlock, 
+  ImageContentBlock,
+  AIAction
 } from '@/src/types/AITypes';
+import { ToolName } from './OpenaiAssistant/AIMessageInput';
 import { unifiedAIService } from '@/src/lib/ai/unifiedAIService';
 import { aiAnalytics } from '@/src/lib/ai/ai-new/aiAnalytics';
 import { aiCache } from '@/src/lib/ai/ai-new/aiCache';
@@ -29,7 +34,13 @@ import { AI_MODELS, AI_MODES, aiConfigManager, MODEL_CAPABILITIES } from '@/src/
 import { useContextStore } from '@/src/store/contextStore';
 import { openAIService } from '@/src/lib/ai/openaiService';
 import { v4 as uuidv4 } from 'uuid';
-import { Element } from '@/src/store/elementsStore';
+import { Element, useElementsStore } from '@/src/store/elementsStore';
+
+// Ripristina definizione locale di ForceToolChoice
+interface ForceToolChoice {
+  type: "function";
+  function: { name: ToolName }; 
+}
 
 // Stato iniziale dell'AI
 const initialState: AIState = {
@@ -65,11 +76,12 @@ const initialState: AIState = {
     successRate: 100,
     tokenUsage: 0,
     lastSync: Date.now()
-  }
+  },
+  pendingActions: []
 };
 
-// Tipi di azioni per il reducer
-type AIAction = 
+// Tipi di azioni per il reducer - Rinomina per evitare conflitti
+type AIContextAction = 
   | { type: 'TOGGLE_AI'; payload: boolean }
   | { type: 'SET_MODEL'; payload: AIModelType }
   | { type: 'SET_TEMPERATURE'; payload: number }
@@ -85,10 +97,13 @@ type AIAction =
   | { type: 'TOGGLE_ASSISTANT_PANEL'; payload: boolean }
   | { type: 'SET_SUGGESTIONS'; payload: any[] }
   | { type: 'RECORD_ASSISTANT_ACTION'; payload: string }
-  | { type: 'SET_PROVIDER'; payload: AIProviderType };
+  | { type: 'SET_PROVIDER'; payload: AIProviderType }
+  // Usa AIAction importato per il payload qui
+  | { type: 'SET_PENDING_ACTIONS'; payload: AIAction[] }
+  | { type: 'CLEAR_PENDING_ACTIONS' };
 
-// Reducer per gestire lo stato dell'AI
-function aiReducer(state: AIState, action: AIAction): AIState {
+// Reducer per gestire lo stato dell'AI - Aggiorna il tipo dell'argomento action
+function aiReducer(state: AIState, action: AIContextAction): AIState {
   switch (action.type) {
     case 'TOGGLE_AI':
       return { ...state, isEnabled: action.payload };
@@ -153,6 +168,10 @@ function aiReducer(state: AIState, action: AIAction): AIState {
           preferredProvider: action.payload
         }
       };
+    case 'SET_PENDING_ACTIONS':
+      return { ...state, pendingActions: action.payload }; // Il payload è già del tipo corretto AIAction[]
+    case 'CLEAR_PENDING_ACTIONS':
+      return { ...state, pendingActions: [] };
     default:
       return state;
   }
@@ -161,7 +180,8 @@ function aiReducer(state: AIState, action: AIAction): AIState {
 // Interfaccia del contesto AI
 interface AIContextType {
   state: AIState;
-  dispatch: React.Dispatch<AIAction>;
+  // Aggiorna il tipo del dispatch
+  dispatch: React.Dispatch<AIContextAction>; 
   // Metodi per operazioni AI core
   textToCAD: (description: string, constraints?: any, context?: string[]) => Promise<any>;
   optimizeGCode: (gcode: string, machineType: string) => Promise<any>;
@@ -179,7 +199,7 @@ interface AIContextType {
   setProvider: (provider: AIProviderType) => void;
   getProviderForModel: (model: AIModelType) => AIProviderType;
   // Chat dell'assistente
-  sendAssistantMessage: (message: string) => Promise<any>;
+  sendAssistantMessage: (message: string, imageDataUrls?: string[], activeTool?: ToolName | null) => Promise<any>;
 }
 
 // Creazione del contesto
@@ -551,29 +571,40 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
   };
   
   // Invia un messaggio all'assistente
-  const sendAssistantMessage = async (messageText: string) => {
+  const sendAssistantMessage = async (messageText: string, imageDataUrls?: string[], activeTool?: ToolName | null) => {
     if (!state.isEnabled) return;
     dispatch({ type: 'START_PROCESSING' });
 
     // 1. Format the new user message
+    let userMessageContent: MessageContent = messageText; 
+    if (imageDataUrls && imageDataUrls.length > 0) {
+      const contentBlocks: (TextContentBlock | ImageContentBlock)[] = [];
+      if (messageText.trim()) {
+        contentBlocks.push({ type: 'text', text: messageText.trim() });
+      }
+      imageDataUrls.forEach(url => {
+        contentBlocks.push({ type: 'image_url', image_url: { url } });
+      });
+      userMessageContent = contentBlocks;
+    }
+
     const newUserMessage: AIMessage = {
-      id: uuidv4(), 
+      id: uuidv4(),
       role: 'user',
-      content: messageText,
+      content: userMessageContent, 
       timestamp: Date.now(),
     };
 
     // Map history to AIMessage format
     const currentMessages: AIMessage[] = state.history.reduce((acc: AIMessage[], item: AIHistoryItem) => {
       if (item.type === 'user_message' && item.prompt) {
-        acc.push({ id: item.id, role: 'user', content: item.prompt, timestamp: item.timestamp });
+         // Handle potential complex content stored in prompt if needed later
+        acc.push({ id: item.id, role: 'user', content: item.prompt, timestamp: item.timestamp }); 
       } else if (item.type === 'assistant_response' && item.result) {
-        // Assuming item.result stores the assistant's response content (text/artifacts)
-        // This might need adjustment based on the actual structure of item.result
         acc.push({ 
           id: item.id, 
           role: 'assistant', 
-          content: typeof item.result === 'string' ? item.result : JSON.stringify(item.result), // Simple string conversion for now
+          content: typeof item.result === 'string' ? item.result : JSON.stringify(item.result), 
           timestamp: item.timestamp 
         });
       }
@@ -583,112 +614,205 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
     const messagesToSend = [...currentMessages, newUserMessage];
 
     // 2. Gather context and parameters
-    const activeContexts = getActiveContexts();
-    const contextString = `Current application context: ${activeContexts.join(', ')}`;
+    const activeContextFiles = getActiveContexts();
+    const canvasElements = useElementsStore.getState().elements;
+    let elementContextString = "Current Canvas Elements:\n";
+    if (canvasElements.length > 0) {
+      elementContextString += canvasElements.map(el => 
+        `- ID: ${el.id}, Type: ${el.type}, Name: ${el.name || 'Unnamed'}`
+      ).join('\n');
+    } else {
+      elementContextString += "(No elements on canvas)";
+    }
+    
+    const fileContextString = activeContextFiles.map(f => `--- File: ${f.name} ---\n${f.content}`).join('\n\n');
+    const contextString = `${elementContextString}\n\n${fileContextString}`.trim(); 
+    
+    console.log("[AIContextProvider] Combined Context String:", contextString);
+    
     const assistantActions = ['generateCADElement', 'updateCADElement', 'removeCADElement', 'suggestOptimizations', 'chainOfThoughtAnalysis', 'thinkAloudMode', 'exportCADProjectAsZip']; 
     const assistantRole: AssistantRole = "CAD Assistant"; 
     const responseStyle: ResponseStyle = "detailed"; 
     const complexityLevel: ComplexityLevel = "moderate";
-    
-    // --- Determine Model --- 
-    // For general chat, force OpenAI. Allow override if needed later.
-    const modelToUse: AIModelType = 'gpt-4o-mini'; 
-    // We could add logic here later to use state.currentModel if needed for specific roles/modes
-    // console.log(`[AIContextProvider] Using model for general chat: ${modelToUse}`);
+    const modelToUse: AIModelType = 'gpt-4.1'; 
 
     let historyUserItemId = uuidv4();
     let historyAssistantItemId = uuidv4();
 
-    // Add user message history item immediately
-    dispatch({ 
-      type: 'ADD_TO_HISTORY', 
-      payload: { 
+    // --- Add user message history item --- (Do this once)
+    const userHistoryPayload: AIHistoryItem = { 
         id: historyUserItemId, 
         type: 'user_message', 
         timestamp: newUserMessage.timestamp, 
-        prompt: messageText,
-        modelUsed: modelToUse, // Track model used even for user prompt context
-        processingTime: 0, // Placeholder
-        result: null // No result for user message
-      } satisfies AIHistoryItem // Use satisfies for type checking
-    });
+        userContent: userMessageContent, 
+        prompt: typeof userMessageContent === 'string' ? userMessageContent : 
+                userMessageContent.map(block => block.type === 'text' ? block.text : '[Image]').join(' '),
+        modelUsed: modelToUse, 
+        processingTime: 0, 
+        result: null 
+    };
+    dispatch({ type: 'ADD_TO_HISTORY', payload: userHistoryPayload });
 
     try {
-      // 3. Call unifiedAiService, explicitly passing the desired model
-      const response = await unifiedAIService.getAssistantCompletion(
-        messagesToSend,
-        contextString,
-        assistantActions,
-        responseStyle,
-        complexityLevel,
-        assistantRole,
-        undefined, // Explicitly no tool override from here
-        modelToUse // Pass the chosen model as override
-      );
-      
-      console.log("[AIContextProvider] Received response from getAssistantCompletion:", response);
+      let response: any; // Use 'any' for now to hold response from either service
 
-      // 4. Process Response
-      if (response.success && response.data) {
-        console.log("[AIContextProvider] Processing successful response data:", response.data);
-        const assistantResponseContent = response.data.content || ""; 
-        dispatch({ 
-          type: 'ADD_TO_HISTORY', 
-          payload: { 
-            id: historyAssistantItemId, 
-            type: 'assistant_response', 
-            timestamp: Date.now(), 
-            result: assistantResponseContent || "(No text content received)",
-            modelUsed: modelToUse, 
-            processingTime: response.processingTime ?? 0, 
-            tokenUsage: response.usage ? {  
-              prompt: response.usage.promptTokens,
-              completion: response.usage.completionTokens,
-              total: response.usage.totalTokens
-            } : undefined, 
-            prompt: messageText,
-          } satisfies AIHistoryItem 
-        });
-
-        // --- Handle potential actions --- 
-        if (response.data.actions && response.data.actions.length > 0) { 
-          console.log("AI Assistant suggested actions:", response.data.actions);
-          dispatch({ type: 'RECORD_ASSISTANT_ACTION', payload: JSON.stringify(response.data.actions) });
-          // TODO: Implement logic to handle/execute these actions
-        }
+      // --- Decide which service to call --- 
+      if (activeTool) {
+        // --- Call OpenAI Service Directly for specific tools --- 
+        console.log(`[AIContextProvider] Calling openaiService directly for tool: ${activeTool}`);
+        const forceToolChoice: ForceToolChoice = { type: "function", function: { name: activeTool } };
+        
+        // Call openaiService.sendMessage
+        // Note: Assuming openaiService is imported and instantiated correctly
+        response = await openAIService.sendMessage(
+          messagesToSend, 
+          contextString, // Pass context, though formatMessagesForApi might rebuild it
+          assistantActions, 
+          responseStyle,
+          complexityLevel,
+          assistantRole,
+          forceToolChoice 
+        );
+        console.log("[AIContextProvider] Received response from openaiService:", response);
+        // Manually add success: true/false based on whether content/actions exist, 
+        // and map the response to the structure expected by the processing logic below
+        // The structure from processResponse in openaiService.ts is { content, actions, artifacts, fromCache }
+        response = {
+            success: !!(response.content || response.actions || response.artifacts),
+            data: {
+                content: response.content,
+                tool_calls: response.actions // Map 'actions' from OpenAIResponse to 'tool_calls'
+                // Assuming 'artifacts' from openaiService are not relevant here or handled differently
+            },
+            error: !(response.content || response.actions || response.artifacts) ? "No content or actions received from OpenAI" : null,
+            processingTime: 0, // TODO: Calculate processing time if possible
+            usage: undefined, // TODO: Map token usage if returned by openaiService
+            fromCache: response.fromCache
+        };
 
       } else {
-        // Handle error response from AI service
-        console.error("Error from AI Assistant:", response.error);
-        dispatch({ 
-          type: 'ADD_TO_HISTORY', 
-          payload: { 
-            id: historyAssistantItemId,
-            type: 'assistant_error',
-            timestamp: Date.now(),
-            modelUsed: modelToUse,
-            processingTime: response.processingTime ?? 0,
-            result: `Error: ${response.error || 'Unknown AI error'}`,
-            prompt: messageText,
-          } satisfies AIHistoryItem
-        });
+        // --- Call Unified AI Service for general chat --- 
+        console.log("[AIContextProvider] Calling unifiedAIService for general message.");
+        response = await unifiedAIService.getAssistantCompletion(
+          messagesToSend, 
+          contextString,
+          assistantActions,
+          responseStyle,
+          complexityLevel,
+          assistantRole,
+          undefined, // No forceToolChoice for general chat
+          modelToUse 
+        );
+        console.log("[AIContextProvider] Received response from getAssistantCompletion:", response);
+      }
+      
+      // --- 4. Process Response (Common logic for both services) --- 
+      if (response.success && response.data) {
+        const assistantResponseContent = response.data.content || ""; 
+        let toolCalls = response.data.tool_calls; // This should now contain data from either service
+
+        // --- START MODIFICATION: Populate missing fields --- 
+        if (toolCalls && toolCalls.length > 0) {
+          const userMessageText = typeof userMessageContent === 'string' ? userMessageContent : 
+                                  userMessageContent.map(block => block.type === 'text' ? block.text : '[Image]').join(' ');
+          toolCalls = toolCalls.map((call: AIAction) => {
+            // Handle Chain of Thought Analysis
+            if (call.type === 'chainOfThoughtAnalysis' && !call.payload?.goal && userMessageText) {
+               console.log(`[AIContextProvider] Populating missing 'goal' for chainOfThoughtAnalysis with user message: "${userMessageText}"`);
+               return {
+                 ...call,
+                 payload: { ...call.payload, goal: userMessageText }
+               };
+            }
+            // Handle Export
+            else if (call.type === 'exportCADProjectAsZip' && !call.payload?.filename) {
+               const defaultFilename = "cad-project-export.zip";
+               console.log(`[AIContextProvider] Populating missing 'filename' for exportCADProjectAsZip with default: "${defaultFilename}"`);
+               return {
+                  ...call,
+                  payload: { ...call.payload, filename: defaultFilename }
+               };
+            }
+            // Handle Update (Log missing ID)
+            else if (call.type === 'updateCADElement' && !call.payload?.id) {
+               console.warn(`[AIContextProvider] Missing 'id' in payload for updateCADElement. Action may fail.`);
+            }
+            // Handle Remove (Log missing ID)
+            else if (call.type === 'removeCADElement' && !call.payload?.id) {
+               console.warn(`[AIContextProvider] Missing 'id' in payload for removeCADElement. Action may fail.`);
+            }
+            // Return call unmodified if no specific handling needed
+            return call;
+          });
+        }
+        // --- END MODIFICATION --- 
+
+        let artifacts: AIArtifact[] = [];
+        if (toolCalls && toolCalls.length > 0) {
+           console.log("[AIContextProvider] Creating tool_calls artifact:", toolCalls);
+           artifacts.push({
+             id: uuidv4(),
+             type: 'tool_calls',
+             content: toolCalls,
+             title: 'Pending Actions' 
+           });
+           console.log(`[AIContextProvider] >>>>>> DISPATCHING SET_PENDING_ACTIONS with ${toolCalls.length} actions. First action type: ${toolCalls[0]?.type}`);
+           dispatch({ type: 'SET_PENDING_ACTIONS', payload: toolCalls }); 
+        } else {
+             console.log("[AIContextProvider] Clearing pending actions as none were returned.");
+             dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
+        }
+
+        if (assistantResponseContent && assistantResponseContent !== "(No text content received)" || artifacts.length > 0) { 
+            const assistantHistoryPayload: AIHistoryItem = { 
+                id: historyAssistantItemId, 
+                type: 'assistant_response', 
+                timestamp: Date.now(), 
+                result: assistantResponseContent && assistantResponseContent !== "(No text content received)" ? assistantResponseContent : "(Pending Actions)", 
+                modelUsed: modelToUse, 
+                processingTime: response.processingTime ?? 0, 
+                tokenUsage: response.usage ? { 
+                    prompt: response.usage.promptTokens,
+                    completion: response.usage.completionTokens,
+                    total: response.usage.totalTokens
+                } : undefined, 
+                prompt: userHistoryPayload.prompt, 
+                artifacts: artifacts.length > 0 ? artifacts : undefined 
+            };
+            
+            console.log("[AIContextProvider] Dispatching Assistant History Item:", JSON.stringify(assistantHistoryPayload, null, 2));
+             dispatch({ type: 'ADD_TO_HISTORY', payload: assistantHistoryPayload });
+        }
+      } else {
+         // Error handling
+         console.log("[AIContextProvider] Clearing pending actions due to failed response.");
+         dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
+         const errorHistoryPayload: AIHistoryItem = { 
+             id: historyAssistantItemId,
+             type: 'assistant_error',
+             timestamp: Date.now(),
+             modelUsed: modelToUse,
+             processingTime: response.processingTime ?? 0,
+             result: `Error: ${response.error || 'Unknown AI error'}`,
+             prompt: userHistoryPayload.prompt // Usa il prompt utente associato
+         };
+         dispatch({ type: 'ADD_TO_HISTORY', payload: errorHistoryPayload });
       }
 
     } catch (error) {
-      console.error("Failed to send message to AI Assistant:", error);
-      // Handle unexpected error during the call
-      dispatch({ 
-          type: 'ADD_TO_HISTORY', 
-          payload: { 
-             id: historyAssistantItemId,
-             type: 'system_error', // Use a specific type for system errors
-             timestamp: Date.now(),
-             modelUsed: modelToUse, // Model that was attempted
-             processingTime: 0, // Or calculate time until error
-             result: `System Error: ${error instanceof Error ? error.message : 'Unknown system error'}`, // Store error in result
-             prompt: messageText
-          } satisfies AIHistoryItem
-        });
+      // Exception handling
+      console.log("[AIContextProvider] Clearing pending actions due to caught error.");
+      dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
+      const systemErrorPayload: AIHistoryItem = { 
+          id: historyAssistantItemId,
+          type: 'system_error', 
+          timestamp: Date.now(),
+          modelUsed: modelToUse,
+          processingTime: 0, 
+          result: `System Error: ${error instanceof Error ? error.message : 'Unknown system error'}`,
+          prompt: userHistoryPayload.prompt // Usa il prompt utente associato
+      };
+      dispatch({ type: 'ADD_TO_HISTORY', payload: systemErrorPayload });
     } finally {
       dispatch({ type: 'END_PROCESSING' });
     }

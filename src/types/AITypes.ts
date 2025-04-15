@@ -21,6 +21,7 @@ export type AIModelType =
   | 'claude-3-7-sonnet-20250219'
   // OpenAI models
   | 'gpt-4'
+  | 'gpt-4.1'
   | 'gpt-4-turbo-preview'
   | 'gpt-3.5-turbo'
   | 'gpt-4o'
@@ -285,6 +286,7 @@ export interface AIState {
     tokenUsage: number;
     lastSync: number;
   };
+  pendingActions: AIAction[];
 }
 
 export interface AIHistoryItem {
@@ -292,6 +294,7 @@ export interface AIHistoryItem {
   type: string;
   timestamp: number;
   prompt?: string;
+  userContent?: MessageContent;
   result?: any;
   modelUsed: AIModelType | string | null;
   processingTime: number;
@@ -364,9 +367,9 @@ export interface AIMessage {
 
 export interface AIArtifact {
   id: string;
-  // Add 'cad_elements' to the allowed types
-  type: 'code' | 'json' | 'cad' | 'image' | 'markdown' | 'cad_elements'; 
-  content: any; // Change content to 'any' to allow storing Element[]
+  // Add 'cad_elements' and 'tool_calls' to the allowed types
+  type: 'code' | 'json' | 'cad' | 'image' | 'markdown' | 'cad_elements' | 'tool_calls'; 
+  content: any; // Change content to 'any' to allow storing Element[] or tool_calls array
   language?: string;
   title?: string;
 }

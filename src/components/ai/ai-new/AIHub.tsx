@@ -138,11 +138,17 @@ const AIHub: React.FC<AIHubProps> = ({
         })}
         className="w-full p-2 rounded border border-gray-300 dark:border-gray-600 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-200"
       >
-        {Object.entries(MODEL_CAPABILITIES).map(([model, capabilities]) => (
-          <option key={model} value={model}>
-            {model.split('-').slice(-2, -1)[0] || 'Claude'} ({capabilities.bestFor.join(', ')})
-          </option>
-        ))}
+        {Object.entries(MODEL_CAPABILITIES).map(([model, capabilities]) => {
+          const displayName = model.split('-').slice(-2, -1)[0] || 'Claude';
+          const bestForText = ('bestFor' in capabilities && Array.isArray(capabilities.bestFor))
+            ? (capabilities.bestFor as string[]).join(', ')
+            : '';
+          return (
+            <option key={model} value={model}>
+              {displayName} {bestForText && `(${bestForText})`}
+            </option>
+          );
+        })}
       </select>
     </div>
   );

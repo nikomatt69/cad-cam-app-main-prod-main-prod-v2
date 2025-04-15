@@ -16,6 +16,7 @@ export const AI_MODELS = {
   CLAUDE_SONNET_7: 'claude-3-7-sonnet-20250219',
   // OpenAI models
   GPT_4: 'gpt-4',
+  GPT_4_1: 'gpt-4.1',
   GPT_4_TURBO: 'gpt-4-turbo-preview',
   GPT_3_5_TURBO: 'gpt-3.5-turbo',
   GPT_4O: 'gpt-4o',
@@ -41,6 +42,7 @@ export const MODEL_PROVIDERS: Record<AIModelType, AIProvider> = {
   [AI_MODELS.GPT_3_5_TURBO]: 'OPENAI',
   [AI_MODELS.GPT_4O]: 'OPENAI',
   [AI_MODELS.GPT_4O_MINI]: 'OPENAI',
+  [AI_MODELS.GPT_4_1]: 'OPENAI',
 } as const;
 
 // Definizione delle modalità AI
@@ -137,8 +139,14 @@ export const MODEL_CAPABILITIES = {
     tokensPerSecond: 40,
     provider: AI_PROVIDERS.OPENAI
   },
+  [AI_MODELS.GPT_4_1]: {
+    maxTokens: 8000,
+    supportedFeatures: ['enhanced_reasoning', 'code_generation', 'technical_analysis', 'complex_reasoning'],
+    costTier: 'high',
+    tokensPerSecond: 15,
+    provider: AI_PROVIDERS.OPENAI
+  },
 } as const;
-
 // Mappatura dei costi per token per ciascun modello
 export const MODEL_COSTS: Record<AIModelType, { input: number, output: number }> = {
   // Claude models
@@ -150,7 +158,8 @@ export const MODEL_COSTS: Record<AIModelType, { input: number, output: number }>
   [AI_MODELS.GPT_4]: { input: 0.03, output: 0.06 },
   [AI_MODELS.GPT_4O]: { input: 0.03, output: 0.06 },
   [AI_MODELS.GPT_4O_MINI]: { input: 0.03, output: 0.06 },
-  [AI_MODELS.GPT_4_TURBO]: { input: 0.01, output: 0.03 },        // $ per 1K tokens
+  [AI_MODELS.GPT_4_TURBO]: { input: 0.01, output: 0.03 },  
+  [AI_MODELS.GPT_4_1]: { input: 0.03, output: 0.06 },
   [AI_MODELS.GPT_3_5_TURBO]: { input: 0.0005, output: 0.0015 },  // $ per 1K tokens
 };
 

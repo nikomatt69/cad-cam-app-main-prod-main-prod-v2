@@ -58,11 +58,24 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
               </button>
             </div>
             
-            {/* Render action-specific preview */}
+            {/* Render action-specific preview or general payload */}
+            <div className="mt-2 text-xs">
+              <div className="font-medium text-gray-600 mb-1">Payload Preview:</div>
+              <pre className="bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
+                {action.payload ? JSON.stringify(action.payload, null, 2) : '{}'}
+              </pre>
+            </div>
+            
+            {/* Specific previews (can be removed if general payload is sufficient) */}
+            {/* Example: Keep specific preview for generateCADElement if needed */}
+            {/* 
             {action.type === 'generateCADElement' && (
               <CADElementPreview action={action} />
             )}
+            */} 
             
+            {/* Remove other specific previews if general one covers them */}
+            {/*
             {action.type === 'updateCADElement' && (
               <div className="mt-2 bg-white p-2 rounded border border-gray-200 text-xs">
                 <div className="font-medium">Element ID: {action.payload.id}</div>
@@ -72,7 +85,9 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
                 </pre>
               </div>
             )}
+            */}
             
+            {/*
             {action.type === 'removeCADElement' && (
               <div className="mt-2 bg-white p-2 rounded border border-gray-200 text-xs">
                 <div className="font-medium text-red-600">
@@ -80,7 +95,9 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
                 </div>
               </div>
             )}
+            */}
             
+            {/*
             {action.type === 'groupCADElements' && (
               <div className="mt-2 bg-white p-2 rounded border border-gray-200 text-xs">
                 <div className="font-medium">
@@ -95,6 +112,7 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
                 </div>
               </div>
             )}
+            */}
           </div>
         ))}
       </div>

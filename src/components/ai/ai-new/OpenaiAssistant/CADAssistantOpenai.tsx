@@ -15,7 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useAI } from '../AIContextProvider';
 
-import { AIAction, AIModelType, AIMessage as AIMessageType, AIHistoryItem } from '@/src/types/AITypes';
+import { AIAction, AIModelType, AIMessage as AIMessageType, AIHistoryItem, MessageContent } from '@/src/types/AITypes';
 import { CADAssistantExamples } from './CADAssistantExample';
 import { AIActionHandler } from './AIActionHandler';
 import { AIMessageInput, ToolName, SelectedFileData } from './AIMessageInput';
@@ -23,6 +23,7 @@ import { FeedbackForm } from './FeedbackForm';
 import { CADAssistantSettingsPanel } from './CADAssistantSettingsPanel';
 import { AIMessage } from './AIMessage';
 import AISettingsPanel from '../AISettingsPanel';
+import AIProcessingIndicator from '../AIProcessingIndicator';
 
 interface ConstraintPreset {
   id: string;
@@ -48,7 +49,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   contextData,
   actionHandler,
   onClose,
-  availableModels = ['gpt-4o-mini' as AIModelType],
+  availableModels = ['gpt-4.1' as AIModelType],
   constraintPresets = [],
   availableElementTypes = [],
   isProcessing,
@@ -62,8 +63,8 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   
-  const [selectedModel, setSelectedModel] = useState<AIModelType>(availableModels[0] || 'gpt-4o-mini' as AIModelType);
-  const [maxTokens, setMaxTokens] = useState<number>(4000);
+  const [selectedModel, setSelectedModel] = useState<AIModelType>(availableModels[0] || 'gpt-4.1' as AIModelType);
+  const [maxTokens, setMaxTokens] = useState<number>(6000);
   const [complexity, setComplexity] = useState<number>(0.5);
   const [selectedPresetId, setSelectedPresetId] = useState<string>('custom');
   const [customMaxWidth, setCustomMaxWidth] = useState<number>(200);
@@ -140,6 +141,10 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   }, [state.history.length]);
   
   const handleSendMessage = async (messageText: string, filesData?: SelectedFileData[], activeTool?: ToolName | null) => {
+    // --- DEBUG LOG --- 
+    console.log(`[CADAssistantOpenai] handleSendMessage called. Message: "${messageText}", Active Tool:`, activeTool);
+    // --- END DEBUG LOG ---
+
     let textContents: string[] = [];
     let imageDataUrls: string[] = [];
 
@@ -160,8 +165,12 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
       activeTool === 'textToCAD' || 
       (!activeTool && generationKeywords.some(keyword => messageText.toLowerCase().trim().startsWith(keyword)));
 
+    // --- DEBUG LOG --- 
+    console.log(`[CADAssistantOpenai] useTextToCAD evaluated to: ${useTextToCAD} (Active Tool: ${activeTool})`);
+    // --- END DEBUG LOG ---
+
     if (useTextToCAD) {
-      console.log("Handling as Text-to-CAD request (Tool Active: ", !!activeTool, ")");
+      console.log("[CADAssistantOpenai] Handling as Text-to-CAD request.");
       let constraintsToSend = {};
       if (selectedPresetId === 'custom') {
         constraintsToSend = {
@@ -186,9 +195,11 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
         toast.error("An error occurred during CAD generation.");
       }
     } else {
-      console.log("Handling as general assistant message (Tool Active: ", activeTool, ")");
+      // --- DEBUG LOG --- 
+      console.log(`[CADAssistantOpenai] Handling as general assistant message or specific tool call (${activeTool || 'No specific tool'}). Passing to contextSendAssistantMessage.`);
+      // --- END DEBUG LOG ---
       if (contextSendAssistantMessage) {
-        contextSendAssistantMessage(messageText);
+        contextSendAssistantMessage(messageText, imageDataUrls, activeTool); 
       } else {
           console.error("sendAssistantMessage function from context is not available!");
           toast.error("Error: Could not send message.");
@@ -197,6 +208,9 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   };
   
   const handleExecuteAction = async (action: AIAction) => {
+    // --- ADDED LOGGING --- 
+    console.log(`[CADAssistantOpenai] >>>>>> handleExecuteAction CALLED with action: ${action.type}`);
+    // --- END ADDED LOGGING --- 
     if (!executePendingAction) {
       console.error("executePendingAction prop is not provided!");
       toast.error("Cannot execute action.");
@@ -252,26 +266,31 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
             } satisfies AIHistoryItem
          });
       }
+    } finally {
+      if (dispatch) {
+        console.log("[CADAssistantOpenai] Clearing pending actions after execution.");
+        dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
+      }
     }
   };
 
   const mapHistoryItemToAIMessage = (item: AIHistoryItem): AIMessageType | null => {
     let role: 'user' | 'assistant' | 'system' | null = null;
-    let content: any = null;
+    let content: MessageContent | null = null;
     let isError = false;
 
-    if (item.type === 'user_message' && item.prompt) {
+    if (item.type === 'user_message' && (item.userContent || item.prompt)) {
       role = 'user';
-      content = item.prompt;
+      content = item.userContent || item.prompt || "";
     } else if (item.type === 'assistant_response' && item.result) {
       role = 'assistant'; 
-      content = item.result;
+      content = typeof item.result === 'string' ? item.result : JSON.stringify(item.result);
     } else if ((item.type === 'assistant_error' || item.type === 'system_error') && item.result) {
       role = 'assistant';
-      content = item.result;
+      content = typeof item.result === 'string' ? item.result : JSON.stringify(item.result);
       isError = true;
-    } else if (item.type === 'text_to_cad' && item.result) {
-      return null;
+    } else if (item.type === 'text_to_cad') {
+      return null; 
     }
     
     if (role && content !== null) {
@@ -286,6 +305,8 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     } 
     return null;
   };
+
+  const indicatorStatus = state.isProcessing ? 'processing' : 'idle';
 
   return (
     <AnimatePresence>
@@ -347,28 +368,6 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               )}
             </AnimatePresence>
             
-            <AnimatePresence>
-              {showSettings && (
-                <motion.div
-                  key="original-settings-content"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="border-b border-gray-200 overflow-hidden bg-gray-50 dark:bg-gray-800"
-                >
-                  <div className="p-3 space-y-2 text-sm">
-                    <button
-                      onClick={clearMessages}
-                      className="flex items-center text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      <X size={12} className="mr-1" />
-                      Clear Conversation
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-            
             <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800">
               {state.history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
@@ -387,6 +386,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                       key={message.id} 
                       message={message} 
                       onFeedback={handleFeedback}
+                      onExecuteAction={handleExecuteAction}
                     />
                   )
                 })
@@ -394,18 +394,21 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               <div ref={messagesEndRef} />
             </div>
             
-            {pendingActions && pendingActions.length > 0 && (
+            {pendingActions && pendingActions.length > 0 && handleExecuteAction &&(
               <AIActionHandler
                 key="action-handler"
                 actions={pendingActions}
                 onExecute={handleExecuteAction}
-                isProcessing={isProcessing}
+                isProcessing={state.isProcessing}
               />
             )}
+             <div className="p-2 border-b border-gray-200 dark:border-gray-700"> 
+              <AIProcessingIndicator status={indicatorStatus} /> 
+            </div> 
             
             <AIMessageInput
               onSendMessage={handleSendMessage}
-              isProcessing={isProcessing}
+              isProcessing={state.isProcessing}
               placeholder="Describe what you want to create or modify..."
             />
           </div>

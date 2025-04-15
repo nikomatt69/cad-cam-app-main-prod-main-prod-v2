@@ -1,15 +1,17 @@
 // src/components/ai/AIMessage.tsx
 import React, { useState, useEffect } from 'react';
 // Import specific content types
-import { AIMessage as AIMessageType, AIArtifact, TextContentBlock, ImageContentBlock, MessageContent } from '../../../../types/AITypes';
+import { AIMessage as AIMessageType, AIArtifact, TextContentBlock, ImageContentBlock, MessageContent, AIAction } from '../../../../types/AITypes';
 import { Element } from '@/src/store/elementsStore';
 import { useAI } from '../AIContextProvider';
 import { AIArtifactRenderer } from './AIArtifactRenderer';
 import { ThumbsUp, ThumbsDown, PlusSquare, AlertCircle } from 'react-feather';
+import { CADActionHandler } from './CADActionHandler';
 
 interface AIMessageProps {
   message: AIMessageType;
   onFeedback?: (messageId: string, rating: 'good' | 'bad') => void;
+  onExecuteAction?: (action: AIAction) => void;
 }
 
 // Helper function to render message content (text and images)
@@ -49,9 +51,9 @@ const renderMessageContent = (content: MessageContent) => {
   }
 };
 
-export const AIMessage: React.FC<AIMessageProps> = ({ message, onFeedback }) => {
+export const AIMessage: React.FC<AIMessageProps> = ({ message, onFeedback, onExecuteAction }) => {
   const { id, role, content, timestamp, artifacts, isError } = message;
-  const { addElementsToCanvas } = useAI();
+  const { addElementsToCanvas, state } = useAI();
   const [elementsAdded, setElementsAdded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -109,6 +111,7 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, onFeedback }) => 
           <div className="mt-2 space-y-2">
             {artifacts.map((artifact) => {
               console.log(`[AIMessage ${id}] Mapping artifact:`, artifact.id, artifact.type);
+
               if (artifact.type === 'cad_elements') {
                 console.log(`[AIMessage ${id}] Rendering cad_elements artifact:`, artifact.id);
                 const isAdded = !!elementsAdded[artifact.id];
@@ -131,7 +134,29 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, onFeedback }) => 
                     </button>
                   </div>
                 );
+              } else if (artifact.type === 'tool_calls') {
+                  console.log(`[AIMessage ${id}] Rendering tool_calls artifact:`, artifact.id);
+                  const actionsFromArtifact: AIAction[] = artifact.content || []; 
+                  const actionsToRender: AIAction[] = actionsFromArtifact.map((action: AIAction) => { 
+                      return {
+                          type: action.type || 'unknown_action',
+                          payload: action.payload || {},
+                          description: action.description || `Execute ${action.type || 'tool call'}`,
+                      };
+                  });
+
+                  if (actionsToRender.length === 0) return null; 
+
+                  return (
+                      <CADActionHandler
+                          key={artifact.id} 
+                          actions={actionsToRender}
+                          onExecute={onExecuteAction || (() => console.error('onExecuteAction prop not provided to AIMessage'))} 
+                          isProcessing={state.isProcessing} 
+                      />
+                  );
               }
+              
               return (
                 <AIArtifactRenderer
                   key={artifact.id}

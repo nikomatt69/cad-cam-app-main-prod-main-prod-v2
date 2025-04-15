@@ -84,7 +84,7 @@ Think of each element as a precise engineering specification.`;
 
 export class OpenAIService {
   private apiEndpoint = '/api/ai/openai-proxy';
-  private defaultModel = 'gpt-4o-mini';
+  private defaultModel = 'gpt-4.1';
   
   async sendMessage(
     messages: AIMessage[],
@@ -137,8 +137,8 @@ export class OpenAIService {
     // --- End Caching Logic Modification ---
 
     try {
-      // Format messages for the OpenAI API (system prompt + history)
-      const formattedApiMessages = this.formatMessagesForApi(
+      // Get formatted messages AND system prompt
+      const { apiMessages, systemPromptString } = this.formatMessagesForApi(
         messages,
         context,
         availableActions,
@@ -155,12 +155,13 @@ export class OpenAIService {
       // Generate Tools List
       const toolsList = this.getAvailableTools(availableActions);
 
-      // Create the request body using the potentially complex messages
-      const requestBody: OpenAIRequest = {
-        messages: formattedApiMessages,
+      // Create the request body with separate system prompt
+      const requestBody: any = { // Use any temporarily for flexibility
+        messages: apiMessages, // Use the filtered/formatted messages
+        system: systemPromptString, // Add top-level system parameter
         model: this.defaultModel,
         temperature: 0.7,
-        tools: toolsList, // Use the generated list
+        tools: toolsList,
         max_tokens: 6000
       };
       
@@ -168,7 +169,6 @@ export class OpenAIService {
       if (forceToolChoice) {
         requestBody.tool_choice = forceToolChoice;
       } else if (availableActions.length > 0) {
-        // Let the model choose if actions are available but none are forced
         requestBody.tool_choice = 'auto'; 
       }
 
@@ -177,18 +177,18 @@ export class OpenAIService {
       console.log("Model:", requestBody.model);
       console.log("Tool Choice:", JSON.stringify(requestBody.tool_choice));
       console.log("Tools Provided Count:", requestBody.tools?.length);
-      console.log("Tools Provided Names:", JSON.stringify(requestBody.tools?.map(t => t.function.name)));
+      console.log("Tools Provided Names:", JSON.stringify(requestBody.tools?.map((t: { function: { name: any; }; }) => t.function.name)));
       // console.log("Full Tools Provided:", JSON.stringify(requestBody.tools)); // Optional: Log full tool definitions
       // console.log("Messages:", JSON.stringify(requestBody.messages)); // Optional: Log messages
       // --- End Debug Logging ---
 
-      // Send the request to our proxy endpoint
+      // Send the request to proxy
       const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestBody), // Send the correctly formatted body
       });
       
       if (!response.ok) {
@@ -228,7 +228,7 @@ export class OpenAIService {
     responseStyle: ResponseStyle,
     complexityLevel: ComplexityLevel,
     assistantRole: AssistantRole
-  ): OpenAIMessage[] {
+  ): { apiMessages: OpenAIMessage[], systemPromptString: string } {
     let systemContent = '';
 
     // Use specialized CAD prompt if the role is CAD Assistant or CAD Expert
@@ -250,7 +250,7 @@ export class OpenAIService {
       systemContent += `\n${context}`;
 
       if (availableActions.length > 0) {
-        systemContent += `\n\nYou have the capability to use the following tools/actions: ${availableActions.join(', ')}. Use them when appropriate to fulfill the user's request.`;
+        systemContent += `\nAvailable tools: ${availableActions.join(', ')}`;
       }
 
       switch (assistantRole) {
@@ -265,116 +265,71 @@ export class OpenAIService {
       }
     }
 
-    const systemMessage: OpenAIMessage = {
-      role: 'system',
-      content: systemContent
-    };
-    
-    const historyMessages: OpenAIMessage[] = messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
-    
-    return [systemMessage, ...historyMessages];
+    // Append available actions if any
+    // Only include if the role is more general, CAD prompt is specific
+    if (assistantRole !== "CAD Assistant" && assistantRole !== "CAD Expert") {
+      if (availableActions.length > 0) {
+        systemContent += `\n\nAvailable Actions: ${availableActions.join(', ')}`;
+      }
+    }
+
+    // Format messages, handling complex content types
+    const apiMessages = messages.map(msg => {
+      let formattedContent: any = msg.content;
+      if (typeof msg.content !== 'string') {
+        // Assume array of content blocks if not string
+        formattedContent = msg.content;
+      }
+      return { 
+        role: msg.role, 
+        content: formattedContent 
+      } as OpenAIMessage;
+    });
+
+    // Prepend system message if content exists
+    if (systemContent) {
+      return { 
+        apiMessages: [{ role: 'system', content: systemContent } as OpenAIMessage, ...apiMessages],
+        systemPromptString: "" // System prompt now handled in messages array
+      };
+    } else {
+      return { apiMessages, systemPromptString: "" };
+    }
   }
   
   private getAvailableTools(availableActions: string[]) {
-    const tools = [];
-    
-    if (availableActions.includes('generateCADElement')) {
-      tools.push({
-        type: 'function',
+    // Define all possible tools with detailed schemas and instructions
+    const allTools = {
+      generateCADElement: {
+        type: "function",
         function: {
-          name: 'generateCADElement',
-          description: 'Generate one or more CAD components based on a description',
+          name: "generateCADElement",
+          description: "Creates one or more new CAD elements based on a user description. Use the description provided by the user.",
           parameters: {
-            type: 'object',
+            type: "object",
             properties: {
-              elements: {
-                type: 'array',
-                description: 'Array of CAD elements to create',
-                items: {
-                  type: 'object',
-                  properties: {
-                    type: {
-                      type: 'string',
-                      enum: [
-                        'cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid', 'prism',
-                        'hemisphere', 'ellipsoid', 'capsule', 'circle', 'rectangle', 'triangle',
-                        'polygon', 'ellipse', 'arc', 'line', 'spline', 'bezier', 'nurbs',
-                        'boolean-union', 'boolean-subtract', 'boolean-intersect', 'extrusion',
-                        'revolution', 'sweep', 'loft', 'thread', 'chamfer', 'fillet', 'gear',
-                        'spring', 'screw', 'nut', 'bolt', 'washer', 'rivet', 'linear-dimension',
-                        'angular-dimension', 'radius-dimension', 'diameter-dimension',
-                        'drawing-pen', 'drawing-highlighter', 'drawing-text', 'drawing-eraser',
-                        'drawing-screenshot-area', 'wall', 'floor', 'roof', 'window', 'door',
-                        'stair', 'column', 'text3d', 'path3d', 'point-cloud', 'mesh', 'group'
-                      ],
-                      description: 'Type of CAD element'
-                    },
-                    x: { type: 'number', description: 'X position' },
-                    y: { type: 'number', description: 'Y position' },
-                    z: { type: 'number', description: 'Z position' },             
-                    name: {
-                      type: 'string',
-                      description: 'Optional name or label for the element'
-                    },
-                    material: {
-                      type: 'string',
-                      description: 'Material of the element (e.g., Steel, Aluminum, ABS Plastic)'
-                    },
-                    width: { type: 'number', description: 'Width (for cube, rectangle etc.)' },
-                    height: { type: 'number', description: 'Height (for cube, cylinder etc.)' },
-                    depth: { type: 'number', description: 'Depth (for cube etc.)' },
-                    radius: { type: 'number', description: 'Radius (for sphere, cylinder etc.)' },
-                    color: { type: 'string', description: 'Color in hex format (e.g., #FF0000)' },
-                    rotation: {
-                      type: 'object',
-                      description: 'Rotation in degrees',
-                      properties: {
-                        x: { type: 'number', description: 'X rotation' },
-                        y: { type: 'number', description: 'Y rotation' },
-                        z: { type: 'number', description: 'Z rotation' }
-                      }
-                    },
-                    scale: {
-                      type: 'object',
-                      description: 'Scale factor',
-                      properties: {
-                        x: { type: 'number', default: 1, description: 'X scale factor' },
-                        y: { type: 'number', default: 1, description: 'Y scale factor' },
-                        z: { type: 'number', default: 1, description: 'Z scale factor' }
-                      }
-                    },
-                    additionalProps: {
-                      type: "object",
-                      description: "Object containing type-specific parameters not covered by common properties (e.g., 'tube' for torus, 'pitch' for thread, 'points' for spline/polygon, 'sides' for prism/polygon, 'startAngle'/'endAngle' for arc, etc.). Populate based on the element 'type'.",
-                      additionalProperties: true
-                    },
-                    thickness: {  type: 'object',
-                      description: 'Thickness',
-                      properties: {
-                        x: { type: 'number', description: 'X thickness' },
-                        y: { type: 'number', description: 'Y thickness' },
-                        z: { type: 'number', description: 'Z thickness' }
-                      } }
-                  },
-                  required: ['type']
+              description: {
+                type: "string",
+                description: "Detailed text description of the element(s) to create."
+              },
+              constraints: {
+                type: "object",
+                description: "Optional constraints like dimensions or preferred types.",
+                properties: {
+                   maxDimensions: { type: "object", properties: { width: {type: "number"}, height: {type: "number"}, depth: {type: "number"} } },
+                   preferredTypes: { type: "array", items: { type: "string" } }
                 }
               }
             },
-            required: ['elements']
+            required: ["description"]
           }
         }
-      });
-    }
-    
-    if (availableActions.includes('updateCADElement')) {
-      tools.push({
-        type: 'function',
+      },
+      updateCADElement: {
+        type: "function",
         function: {
-          name: 'updateCADElement',
-          description: 'Update an existing CAD element',
+          name: "updateCADElement",
+          description: "Modifies properties of an existing CAD element. Identify the target element using the 'Current Canvas Elements' context. Match the user's description (e.g., 'the screen', 'the large cube') to an element ID in the context. Parse the user request to determine the specific properties to change (e.g., color, size, position) and format them in the 'properties' parameter. If the target element or the properties to change are ambiguous, ask the user for clarification instead of calling this tool.",
           parameters: {
             type: 'object',
             properties: {
@@ -391,6 +346,7 @@ export class OpenAIService {
                   depth: { type: 'number', description: 'Depth' },
                   radius: { type: 'number', description: 'Radius' },
                   color: { type: 'string', description: 'Color in hex format' },
+                  wireframe: { type: 'boolean', description: 'Wireframe' },
                   rotation: {
                     type: 'object',
                     description: 'Rotation in degrees',
@@ -406,128 +362,120 @@ export class OpenAIService {
             required: ['id', 'properties']
           }
         }
-      });
-    }
-    
-    if (availableActions.includes('removeCADElement')) {
-      tools.push({
-        type: 'function',
+      },
+      removeCADElement: {
+        type: "function",
         function: {
-          name: 'removeCADElement',
-          description: 'Remove a CAD element from the canvas',
+          name: "removeCADElement",
+          description: "Deletes an existing CAD element. Identify the target element using the 'Current Canvas Elements' context provided. Match the user's description (e.g., 'the screen', 'the large cube') to an element ID in the context. If the target is ambiguous or not found, ask the user for clarification instead of calling this tool.",
           parameters: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: 'ID of the element to remove' }
-            },
-            required: ['id']
-          }
-        }
-      });
-    }
-    
-    if (availableActions.includes('exportCADProjectAsZip')) {
-      tools.push({
-        type: 'function',
-        function: {
-          name: 'exportCADProjectAsZip',
-          description: 'Export the entire CAD project as a compressed .zip file, including geometry, metadata, and preview images if available',
-          parameters: {
-            type: 'object',
-            properties: {
-              includePreviews: {
-                type: 'boolean',
-                description: 'Whether to include PNG previews of each element',
-                default: false
-              },
-              fileName: {
-                type: 'string',
-                description: 'Optional name for the ZIP file (default: project-export.zip)'
-              }
-            }
-          }
-        }
-      });
-    }
-
-    if (availableActions.includes('thinkAloudMode')) {
-      tools.push({
-        type: 'function',
-        function: {
-          name: 'thinkAloudMode',
-          description: 'Enable think-aloud mode to let the assistant verbalize its reasoning during each design step',
-          parameters: {
-            type: 'object',
-            properties: {
-              enable: {
-                type: 'boolean',
-                description: 'Toggle think-aloud mode on or off',
-                default: true
+              id: { type: 'string', description: 'ID of the element to remove' },
+              properties: {
+                type: 'object',
+                description: 'Properties to remove',
+                properties: {
+                  x: { type: 'number', description: 'X position' },
+                  y: { type: 'number', description: 'Y position' },
+                  z: { type: 'number', description: 'Z position' },
+                  width: { type: 'number', description: 'Width' },
+                  height: { type: 'number', description: 'Height' },
+                  depth: { type: 'number', description: 'Depth' },
+                  radius: { type: 'number', description: 'Radius' },
+                  color: { type: 'string', description: 'Color in hex format' },
+                  wireframe: { type: 'boolean', description: 'Wireframe' },
+                  rotation: {
+                    type: 'object',
+                    description: 'Rotation in degrees',
+                    properties: {
+                      x: { type: 'number', description: 'X rotation' },
+                      y: { type: 'number', description: 'Y rotation' },
+                      z: { type: 'number', description: 'Z rotation' }
+                    }
+                  }
+                }
               }
             },
-            required: ['enable']
+            required: ['id', 'properties']
           }
         }
-      });
-    }
-
-    if (availableActions.includes('chainOfThoughtAnalysis')) {
-      tools.push({
-        type: 'function',
+      },
+      chainOfThoughtAnalysis: {
+        type: "function",
         function: {
-          name: 'chainOfThoughtAnalysis',
-          description: 'Perform a step-by-step analysis and breakdown of the CAD task or problem before executing it',
+          name: "chainOfThoughtAnalysis",
+          description: "Performs a step-by-step analysis of a user request or goal to break it down into smaller actions or provide insights.",
           parameters: {
-            type: 'object',
+            type: "object",
             properties: {
               goal: {
-                type: 'string',
-                description: 'Describe the objective or challenge to analyze logically'
-              },
-              context: {
-                type: 'object',
-                description: 'Optional additional context like current scene, constraints, or user preferences',
-                additionalProperties: true
+                type: "string",
+                description: "The user's high-level goal or request to analyze."
               }
             },
-            required: ['goal']
+            required: ["goal"]
           }
         }
-      });
+      },
+      suggestOptimizations: {
+        type: "function",
+        function: {
+          name: "suggestOptimizations",
+          description: "Analyzes the current CAD model (elements provided in context) and suggests potential design optimizations or improvements.",
+          parameters: { type: "object", properties: {} } // No specific parameters needed, uses context
+        }
+      },
+      thinkAloudMode: {
+        type: "function",
+        function: {
+           name: "thinkAloudMode",
+           description: "Enables or disables a mode where the assistant explains its reasoning process step-by-step.",
+           parameters: {
+             type: "object",
+             properties: {
+                enable: { type: "boolean", description: "Set to true to enable, false to disable." }
+             },
+             required: ["enable"]
+           }
+        }
+      },
+      exportCADProjectAsZip: {
+         type: "function",
+         function: {
+            name: "exportCADProjectAsZip",
+            description: "Exports the current CAD project elements as a downloadable ZIP archive.",
+            parameters: {
+               type: "object",
+               properties: {
+                  filename: { type: "string", description: "Optional filename for the exported ZIP file." }
+               }
+            }
+         }
+      }
+      // Add other tools here as needed
+    };
+
+    if (!availableActions || availableActions.length === 0) {
+      return undefined;
     }
 
-    if (availableActions.includes('suggestOptimizations')) {
-      tools.push({
-        type: 'function',
-        function: {
-          name: 'suggestOptimizations',
-          description: 'Suggest design or performance optimizations for the current CAD scene or selected elements',
-          parameters: {
-            type: 'object',
-            properties: {
-              target: {
-                type: 'string',
-                enum: ['geometry', 'materials', 'transformations', 'scene'],
-                description: 'Area to focus optimization suggestions on'
-              },
-              selectedIds: {
-                type: 'array',
-                description: 'Optional array of selected element IDs to focus optimization on',
-                items: { type: 'string' }
-              }
-            }
-          }
-        }
-      });
-    }
-    
-    return tools;
+    // Filter the tools based on the availableActions list
+    const tools = availableActions
+      .map(actionName => allTools[actionName as keyof typeof allTools])
+      .filter(tool => tool !== undefined);
+      
+    console.log("--- Filtered Tools Provided to AI ---");
+    console.log(JSON.stringify(tools.map(t => t.function.name), null, 2)); // Log names
+
+    return tools.length > 0 ? tools : undefined;
   }
   
   private processResponse(responseData: any): OpenAIResponse {
     const message = responseData.choices[0].message;
     
-    let content = message.content || '';
+    // Get the original content, default to empty string if null
+    let content = message.content || ''; 
     
     let actions: { type: string; payload: any; description: string }[] = [];
     if (message.tool_calls && message.tool_calls.length > 0) {
@@ -544,15 +492,13 @@ export class OpenAIService {
           description: `Execute ${call.function.name}` // Placeholder description
         };
       });
-      // If there are tool calls, often the main content is less important or null
-      content = content || `Suggested action: ${actions.map(a => a.type).join(', ')}`;
     }
     
     // Extract artifacts if any
     const artifacts = this.extractArtifacts(content);
     
     return {
-      content: content,
+      content: content, // Return the original content (which might be empty string)
       actions: actions.length > 0 ? actions : undefined,
       artifacts: artifacts.length > 0 ? artifacts : undefined,
       fromCache: false

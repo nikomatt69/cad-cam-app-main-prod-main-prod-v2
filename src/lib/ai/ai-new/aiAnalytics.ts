@@ -234,6 +234,7 @@ export class AIAnalytics {
       'claude-3-7-sonnet-20250219': 0.08,
       'gpt-4o': 0.08,
       'gpt-4o-mini': 0.08,
+      'gpt-4.1': 0.15,
       'gpt-4': 0.08,
       'gpt-4-turbo-preview': 0.08,
       'gpt-3.5-turbo': 0.08

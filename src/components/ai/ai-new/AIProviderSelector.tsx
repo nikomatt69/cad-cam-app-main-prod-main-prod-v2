@@ -104,6 +104,12 @@ const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({
   }
 
   // Rendering normale
+  const capabilities = MODEL_CAPABILITIES[state.currentModel as AIModelType];
+  // Safely check if 'bestFor' exists and is an array
+  const bestForText = capabilities && 'bestFor' in capabilities && Array.isArray(capabilities.bestFor)
+    ? capabilities.bestFor.join(', ')
+    : 'N/A';
+
   return (
     <div className={`p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
       <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center mb-3">
@@ -151,26 +157,29 @@ const AIProviderSelector: React.FC<AIProviderSelectorProps> = ({
             onChange={(e) => handleModelChange(e.target.value as AIModelType)}
             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           >
-            {availableModels.map((modelKey) => {
-              const capability = MODEL_CAPABILITIES[modelKey];
-              return (
-                <option key={modelKey} value={modelKey}>
-                  {modelKey} - {capability.costTier} ({capability.bestFor.join(', ')})
-                </option>
-              );
-            })}
+           {Object.entries(MODEL_CAPABILITIES).map(([model, capabilities]) => {
+          const displayName = model.split('-').slice(-2, -1)[0] || 'Claude';
+          const bestForText = ('bestFor' in capabilities && Array.isArray(capabilities.bestFor))
+            ? (capabilities.bestFor as string[]).join(', ')
+            : '';
+          return (
+            <option key={model} value={model}>
+              {displayName} {bestForText && `(${bestForText})`}
+            </option>
+          );
+        })}
           </select>
         </div>
         
         <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
           <p>
-            <span className="font-medium">Capacità:</span> {MODEL_CAPABILITIES[state.currentModel as AIModelType].bestFor.join(', ')}
+            <span className="font-medium">Capacità:</span> {bestForText}
           </p>
           <p>
-            <span className="font-medium">Tokens:</span> {MODEL_CAPABILITIES[state.currentModel as AIModelType].maxTokens.toLocaleString()}
+            <span className="font-medium">Tokens:</span> {capabilities?.maxTokens.toLocaleString() ?? 'N/A'}
           </p>
           <p>
-            <span className="font-medium">Costo:</span> {MODEL_CAPABILITIES[state.currentModel as AIModelType].costTier}
+            <span className="font-medium">Costo:</span> {capabilities?.costTier ?? 'N/A'}
           </p>
         </div>
       </div>
