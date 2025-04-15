@@ -628,8 +628,6 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
     const fileContextString = activeContextFiles.map(f => `--- File: ${f.name} ---\n${f.content}`).join('\n\n');
     const contextString = `${elementContextString}\n\n${fileContextString}`.trim(); 
     
-    console.log("[AIContextProvider] Combined Context String:", contextString);
-    
     const assistantActions = ['generateCADElement', 'updateCADElement', 'removeCADElement', 'suggestOptimizations', 'chainOfThoughtAnalysis', 'thinkAloudMode', 'exportCADProjectAsZip']; 
     const assistantRole: AssistantRole = "CAD Assistant"; 
     const responseStyle: ResponseStyle = "detailed"; 
@@ -756,7 +754,6 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
              content: toolCalls,
              title: 'Pending Actions' 
            });
-           console.log(`[AIContextProvider] >>>>>> DISPATCHING SET_PENDING_ACTIONS with ${toolCalls.length} actions. First action type: ${toolCalls[0]?.type}`);
            dispatch({ type: 'SET_PENDING_ACTIONS', payload: toolCalls }); 
         } else {
              console.log("[AIContextProvider] Clearing pending actions as none were returned.");

@@ -208,9 +208,9 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   };
   
   const handleExecuteAction = async (action: AIAction) => {
-    // --- ADDED LOGGING --- 
-    console.log(`[CADAssistantOpenai] >>>>>> handleExecuteAction CALLED with action: ${action.type}`);
-    // --- END ADDED LOGGING --- 
+    // --- REMOVED ADDED LOGGING --- 
+    // console.log(`[CADAssistantOpenai] >>>>>> handleExecuteAction CALLED with action: ${action.type}`);
+    // --- END REMOVED ADDED LOGGING --- 
     if (!executePendingAction) {
       console.error("executePendingAction prop is not provided!");
       toast.error("Cannot execute action.");

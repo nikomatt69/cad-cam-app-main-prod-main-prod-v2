@@ -465,8 +465,9 @@ export class OpenAIService {
       .map(actionName => allTools[actionName as keyof typeof allTools])
       .filter(tool => tool !== undefined);
       
-    console.log("--- Filtered Tools Provided to AI ---");
-    console.log(JSON.stringify(tools.map(t => t.function.name), null, 2)); // Log names
+    // --- REMOVED: Log Filtered Tools --- 
+    // console.log("--- Filtered Tools Provided to AI ---");
+    // console.log(JSON.stringify(tools.map(t => t.function.name), null, 2)); // Log names
 
     return tools.length > 0 ? tools : undefined;
   }
