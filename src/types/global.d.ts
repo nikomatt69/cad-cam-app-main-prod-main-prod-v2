@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 interface Performance {
   memory?: {
     usedJSHeapSize: number;
@@ -9,6 +11,10 @@ interface Performance {
 declare global {
   interface Window {
     __CAD_APP__: any; // Replace 'any' with a more specific type if available
+    toolpathVisualizerScene?: THREE.Scene;
+    toolpathVisualizerCamera?: THREE.Camera;
+    __THREEJS_RENDERER__?: THREE.WebGLRenderer; // For the renderer lookup
+    exposeToolpathVisualizerAPI?: boolean;
   }
   interface Performance {
     memory?: {

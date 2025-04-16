@@ -367,7 +367,10 @@ export default function CADPage() {
     );
   }
 
-  
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
  
   return (
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
@@ -439,8 +442,8 @@ export default function CADPage() {
           </div>
           
           <><PluginSidebar 
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
+            isOpen={!sidebarOpen}
+            onClose={() => setSidebarOpen(true)}
           /></>
           
           {/* Right sidebar for properties */}

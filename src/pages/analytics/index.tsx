@@ -187,19 +187,7 @@ export default function AnalyticsDashboardPage() {
           </div>
           
           {/* User History */}
-          <div className="mt-6">
-            <UserHistory limit={20} />
-            
-            <div className="mt-4 text-center">
-              <a 
-                href="/analytics/history"
-                className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                View Complete History
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </a>
-            </div>
-          </div>
+          
         </div>
       </Layout>
     </>

@@ -220,7 +220,10 @@ export default function DrawingInstrumentsPage() {
     );
   }
   
-
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
   return (
     <>
        <MetaTags 

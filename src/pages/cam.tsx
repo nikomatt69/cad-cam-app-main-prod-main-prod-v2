@@ -49,6 +49,7 @@ import FixedCyclesUIRenderer from '../components/cam/FixedCyclesUIRenderer';
 import EnhancedToolpathVisualizer from '../components/cam/EnhancedToolpathVisualizer';
 import ToolpathVisualizer from 'src/components/cam/ToolpathVisualizer2';
 import { AIAssistantOpenai } from '../components/ai/ai-new/OpenaiAssistant/AIAssistantOpenai';
+import OptimizedToolpathVisualizer from '../components/cam/OptimizedToolpathVisualizer';
 
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
@@ -185,11 +186,11 @@ export default function CAMPage() {
   }
   
 
-  
   if (status === 'unauthenticated') {
     router.push('/auth/signin');
     return null;
   }
+
 
   return (
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
@@ -348,7 +349,7 @@ export default function CAMPage() {
             
             {activeTab === 'visualizer' && (
   <div className="h-full">
-    <ToolpathVisualizer 
+    <OptimizedToolpathVisualizer 
       width="100%" 
       height="100%" 
       gcode={gcode}

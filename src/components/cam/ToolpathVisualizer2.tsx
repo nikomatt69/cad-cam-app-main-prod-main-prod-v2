@@ -633,7 +633,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       
       // Update statistics less frequently
       if (Date.now() - lastStatsUpdateRef.current > 1000) { // Update every second
-        updateStatistics();
+        // updateStatistics(); // Commented out to stop fetching performance stats
         lastStatsUpdateRef.current = Date.now();
       }
     };
@@ -1649,10 +1649,10 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       if (point.type === 'G0' || point.type === 'rapid' || point.isRapid) {
         return 5000;
       }
-      if( THREE.Points ){return 5000}
+     
       // G1 (cutting) movements are extremely slow - 10 seconds
       else if (point.type === 'G1' || point.type === 'cutting') {
-        return 10000;
+        return 5000;
       }
       
       // Default duration for other movements
@@ -2703,8 +2703,33 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
   // Get current point
   const currentPoint = getCurrentPointInfo();
   
+  // Expose scene and camera globally if requested
+  useEffect(() => {
+    if (window.exposeToolpathVisualizerAPI) {
+      console.log('ToolpathVisualizer2: Exposing scene and camera to window');
+      window.toolpathVisualizerScene = sceneRef.current ?? undefined;
+      window.toolpathVisualizerCamera = cameraRef.current ?? undefined;
+
+      return () => {
+        console.log('ToolpathVisualizer2: Cleaning up exposed scene and camera');
+        // Avoid clearing if the component is just re-rendering but API is still needed
+        if (window.exposeToolpathVisualizerAPI) {
+          // Potentially keep them if the flag is still true?
+          // Or clear them regardless on unmount.
+          // Let's clear them on unmount for safety.
+          window.toolpathVisualizerScene = undefined;
+          window.toolpathVisualizerCamera = undefined;
+        }
+      };
+    } else {
+      // Ensure they are cleared if the flag becomes false
+      window.toolpathVisualizerScene = undefined;
+      window.toolpathVisualizerCamera = undefined;
+    }
+  }, [sceneRef, cameraRef]); // Rerun if refs change, window flag is checked internally
+
   // Funzioni specifiche per visualizzare tutti i toolpath points
-  
+
   // Visualizza tutti i punti nel percorso
   const showAllToolpathPoints = useCallback(() => {
     if (!sceneRef.current || toolpathPointsRef.current.length === 0) return;

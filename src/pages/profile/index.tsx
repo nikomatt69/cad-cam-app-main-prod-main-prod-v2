@@ -196,6 +196,11 @@ export default function ProfilePage() {
       </Layout>
     );
   }
+  
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
 
   return (
     <>

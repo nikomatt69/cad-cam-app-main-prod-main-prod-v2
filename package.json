@@ -65,6 +65,7 @@
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
     "canvas": "^3.1.0",
+    "cad-optimizer": "file:public/wasm/pkg",
     "chart.js": "^4.4.8",
     "d3-drag": "^3.0.0",
     "d3-force": "^3.0.0",
