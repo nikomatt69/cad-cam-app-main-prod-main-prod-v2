@@ -8,6 +8,7 @@ import Layout from '@/src/components/layout/Layout';
 import { createProject } from '@/src/lib/api/projects';
 import { useProjects } from '@/src/hooks/useProjects';
 import Metatags from '@/src/components/layout/Metatags';
+import MetaTags from '@/src/components/layout/Metatags';
 
 
 interface Organization {
@@ -110,7 +111,8 @@ export default function CreateProjectPage() {
   
   return (
     <Layout>
-      <Metatags title={'Create New Project'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Create New Project'} />
       
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-6">

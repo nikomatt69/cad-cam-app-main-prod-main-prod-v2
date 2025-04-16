@@ -240,7 +240,8 @@ export default function ProfileSettingsPage() {
 
   return (
     <>
-      <MetaTags 
+      <MetaTags
+  ogImage="/og-default.png" 
         title="Profile Settings" 
       />
      

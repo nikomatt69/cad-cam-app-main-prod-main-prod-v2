@@ -16,7 +16,8 @@ export default function TermsPage() {
   } 
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="CAM/CAM FUN TERMS" 
      
       />
@@ -26,7 +27,7 @@ export default function TermsPage() {
             <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Terms of Service</h1>
             
             <div className="prose prose-blue max-w-none dark:prose-invert">
-              <p>Last updated: [Insert Date]</p>
+              <p>Last updated: 16/04/2025</p>
               
               <h2>1. Agreement to Terms</h2>
               <p>

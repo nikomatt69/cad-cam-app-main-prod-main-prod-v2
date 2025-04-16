@@ -247,7 +247,7 @@ const OptimizedCADCanvas: React.FC<OptimizedCADCanvasProps> = ({
 
       {/* Keep Optimize Now button, it triggers useThreeJsOptimizer */}
       <button
-        className="absolute top-4 right-20 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded"
+        className="absolute top-5 right-28 bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded"
         onClick={optimizeSceneNow} // Still call the optimizer's manual trigger
         disabled={isOptimizing}
         title="Run manual optimization cycle"

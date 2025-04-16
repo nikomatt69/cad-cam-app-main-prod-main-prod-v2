@@ -108,7 +108,8 @@ export default function SignUp() {
 
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="CAM/CAM FUN SIGNUP" 
      
       />

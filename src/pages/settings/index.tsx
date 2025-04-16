@@ -186,7 +186,8 @@ export default function Settings() {
 
   return (
     <EnhancedLayout>
-      <MetaTags 
+      <MetaTags
+  ogImage="/og-default.png" 
         title="CAM/CAM FUN IMPOSTAZIONI" 
       />
 

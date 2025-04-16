@@ -59,6 +59,7 @@ import React from 'react';
 import { useProjectDrawings } from '@/src/hooks/useDrawings';
 import { useCADStore } from '@/src/store/cadStore';
 import { ComponentCadBridge } from '@/src/lib/componentCadBridge';
+import MetaTags from '@/src/components/layout/Metatags';
 
 const Layout = dynamic(
   () => import('@/src/components/layout/Layout').then(mod => mod.default),
@@ -3610,7 +3611,8 @@ if (status === 'unauthenticated') {
 
 return (
   <MotionConfig reducedMotion="user">
-    <Metatags title={component ? `${component.name} | Component Editor` : 'Component Editor'} 
+    <MetaTags
+  
     description={component?.description || ''}
     ogImage={`/api/og-image/component/${component?.id}?title=${encodeURIComponent(component?.name || '')}`}/>
     <Layout>

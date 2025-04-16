@@ -58,13 +58,13 @@ export const AIMessage: React.FC<AIMessageProps> = ({ message, onFeedback, onExe
 
   useEffect(() => {
     if (artifacts && artifacts.length > 0) {
-      console.log(`[AIMessage ${id}] Received artifacts:`, artifacts);
+     
     }
   }, [artifacts, id]);
 
   const handleAddElements = (artifactId: string, elements: any) => {
     if (!elements || !Array.isArray(elements)) {
-      console.error("Invalid elements data in artifact:", elements);
+     
       return;
     }
     addElementsToCanvas(elements as Element[]);

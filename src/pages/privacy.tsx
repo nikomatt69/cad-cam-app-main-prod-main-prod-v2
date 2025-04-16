@@ -18,7 +18,8 @@ export default function PrivacyPage() {
   }
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="PRIVACY FUN" 
      
       />
@@ -28,7 +29,7 @@ export default function PrivacyPage() {
             <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Privacy Policy</h1>
             
             <div className="prose prose-blue max-w-none dark:prose-invert">
-              <p>Last updated: [Insert Date]</p>
+              <p>Last updated: 16/04/2025</p>
               
               <h2>1. Introduction</h2>
               <p>
@@ -75,9 +76,9 @@ export default function PrivacyPage() {
               </p>
               <ul>
                   <li><strong>Vercel:</strong> Application hosting.</li>
-                  <li><strong>[Your Database Provider, e.g., Neon, Supabase]:</strong> Database hosting.</li>
+                  <li><strong>Prisma & Neon:</strong> Database hosting.</li>
                   <li><strong>OpenAI & Anthropic:</strong> AI feature providers. Data sent may include prompts and usage metadata. Refer to their policies for details on data usage and retention.</li>
-                  <li><strong>[Your Payment Processor, e.g., Stripe, LemonSqueezy]:</strong> Payment processing.</li>
+                  <li><strong>Stripe:</strong> Payment processing.</li>
                   <li><strong>NextAuth.js (and associated OAuth providers like Google, GitHub):</strong> Authentication.</li>
               </ul>
               <p>
@@ -117,7 +118,7 @@ export default function PrivacyPage() {
               <h2>11. Contact Us</h2>
               <p>
                 If you have any questions about this Privacy Policy, please contact us at:
-                <a href="mailto:[Your Support Email Address]" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 block">[Your Support Email Address]</a>
+                <a href="mailto:nicom.19@icloud.com" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 block">nicom.19@icloud.com</a>
               </p>
             </div>
             

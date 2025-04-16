@@ -29,6 +29,7 @@ import Metatags from '@/src/components/layout/Metatags';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import ExportImportToolpathsControls from '@/src/components/cam/ToolpathControls';
+import MetaTags from '@/src/components/layout/Metatags';
 
 interface ComponentsFilterState {
   projectId?: string;
@@ -445,7 +446,8 @@ export default function ComponentsList() {
   
   return (
     <>
-      <Metatags title={'Components Library'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Components Library'}  description="Components Library for CAD/CAM FUN" /> 
       
       <Layout>
         <div className="p-4 md:p-6">

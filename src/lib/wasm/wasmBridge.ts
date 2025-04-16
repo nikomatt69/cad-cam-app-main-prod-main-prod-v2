@@ -50,6 +50,9 @@ export async function initWasmOptimizer(): Promise<void> {
       // Importa dinamicamente il modulo WASM
       wasmModule = await import('cad-optimizer');
       
+      // Add this line (adjust 'default' or 'init' based on the package)
+      await wasmModule.default(); // Or await wasmModule.init();
+      
       // Inizializza l'ottimizzatore
       optimizer = new wasmModule.CADOptimizer();
       
@@ -81,7 +84,19 @@ export async function configureOptimizer(settings: PerformanceSettings): Promise
   if (!isInitialized) await initWasmOptimizer();
   
   try {
-    optimizer!.configure(settings);
+    // Map all TypeScript camelCase names to the Rust snake_case names
+    const wasmSettings = {
+      target_fps: settings.targetFps, 
+      resolution_scale: settings.resolutionScale,
+      lod_bias: settings.lodBias,
+      max_triangles: settings.maxTriangles,
+      frustum_culling: settings.frustumCulling,
+    };
+    
+    // Note: Removed the spread operator (...settings) to ensure only
+    // the explicitly mapped snake_case keys are passed to the WASM module.
+
+    optimizer!.configure(wasmSettings);
   } catch (error) {
     console.error('Failed to configure CAD Optimizer:', error);
     throw error;

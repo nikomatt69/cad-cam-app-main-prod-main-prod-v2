@@ -9,6 +9,7 @@ import Metatags from '@/src/components/layout/Metatags';
 import { AnalyticsOverview } from 'src/components/analytics/AnalyticsOverview';
 import { ActivityChart } from '@/src/components/analytics/ActivityChart';
 import { UserHistory } from '@/src/components/analytics/UserHistory';
+import MetaTags from '@/src/components/layout/Metatags';
 
 export default function AnalyticsDashboardPage() {
   const { data: session, status } = useSession();
@@ -93,7 +94,8 @@ export default function AnalyticsDashboardPage() {
   
   return (
     <>
-      <Metatags title="Analytics Dashboard" />
+      <MetaTags
+  ogImage="/og-default.png" title="Analytics Dashboard" />
       
       <Layout>
         <div className="px-4 py-6">

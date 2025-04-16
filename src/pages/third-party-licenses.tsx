@@ -18,7 +18,11 @@ const ThirdPartyLicensesPage = () => {
       purpose: 'Database toolkit (ORM) used to interact with our database.',
       link: 'https://www.prisma.io/legal/privacy-policy',
     },
-    // { name: 'Your Database Provider (e.g., Neon, Supabase, AWS RDS)', purpose: 'Database hosting.', link: '[Link to Provider Privacy Policy]' },
+    {
+      name: 'Neon',
+      purpose: 'Database hosting.',
+      link: 'https://neon.tech/privacy-policy',
+    },
     {
       name: 'NextAuth.js',
       purpose: 'Authentication library handling user sign-in.',
@@ -34,8 +38,8 @@ const ThirdPartyLicensesPage = () => {
       purpose: 'Provides AI features within the application.',
       link: 'https://www.anthropic.com/privacy',
     },
-    // { name: 'Stripe / LemonSqueezy', purpose: 'Payment processing for subscriptions.', link: '[Link to Provider Privacy Policy]' },
-    // { name: 'Your Email Provider (e.g., Resend, Mailgun)', purpose: 'Sending transactional emails.', link: '[Link to Provider Privacy Policy]' },
+   { name: 'Stripe', purpose: 'Payment processing for subscriptions.', link: 'https://stripe.com/privacy' },
+    { name: 'Resend', purpose: 'Sending transactional emails.', link: 'https://resend.com/privacy' },
     // Add other providers as needed (Analytics, Error Tracking, etc.)
   ];
 
@@ -80,12 +84,46 @@ const ThirdPartyLicensesPage = () => {
       license: 'MIT License',
       link: 'https://github.com/feathericons/feather/blob/master/LICENSE',
     },
+    {
+      name: 'Stripe',
+      license: 'MIT License',
+      link: 'https://github.com/stripe/stripe-js/blob/main/LICENSE',
+    },
+    {
+      name: 'Resend',
+      license: 'MIT License',
+      link: 'https://github.com/resend/resend-js/blob/main/LICENSE',
+    },
+    {
+      name: 'Prisma',
+      license: 'Apache License 2.0',
+      link: 'https://github.com/prisma/prisma/blob/main/LICENSE',
+    },
+    {
+      name: 'Neon',
+      license: 'Apache License 2.0',
+      link: 'https://github.com/neondatabase/neon/blob/main/LICENSE',
+    },
+    {
+      name: 'OpenAI',
+      license: 'MIT License',
+      link: 'https://github.com/openai/openai-js/blob/main/LICENSE',
+    },
+    {
+      name: 'Anthropic',
+      license: 'MIT License',
+      link: 'https://github.com/anthropics/anthropic-sdk-typescript/blob/main/LICENSE',
+    },
+
+    
+
     // Add other significant dependencies (check package.json and use tools like license-checker)
   ];
 
   return (
     <EnhancedLayout>
-      <MetaTags title="Third-Party Services & Licenses - CAM/CAM FUN" />
+      <MetaTags
+  ogImage="/og-default.png" title="Third-Party Services & Licenses - CAM/CAM FUN" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-white dark:bg-gray-800 shadow rounded-lg">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
           Third-Party Services & Licenses
@@ -150,7 +188,7 @@ const ThirdPartyLicensesPage = () => {
 
         <div className="mt-12 border-t pt-6 border-gray-300 dark:border-gray-600">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-                Last Updated: [Insert Date]
+                Last Updated: 16/04/2025
             </p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Please review this page periodically for updates. If you have any questions, please contact us at [Your Support Email Address].

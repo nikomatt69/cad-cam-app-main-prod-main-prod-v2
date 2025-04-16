@@ -18,7 +18,8 @@ export default function PrivacyPage() {
   }
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="PRIVACY FUN" 
      
       />
@@ -28,7 +29,7 @@ export default function PrivacyPage() {
             <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Privacy Policy</h1>
             
             <div className="prose prose-blue max-w-none dark:prose-invert">
-              <p>Last updated: [Insert Date]</p>
+              <p>Last updated: 16/04/2025</p>
               
               <h2>1. Introduction</h2>
               <p>

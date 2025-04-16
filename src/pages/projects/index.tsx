@@ -11,6 +11,7 @@ import { fetchProjects } from 'src/lib/api/projects';
 import { useApi } from 'src/hooks/useApi';
 import ErrorBoundary from '@/src/components/ui/ErrorBonduary';
 import Metatags from '@/src/components/layout/Metatags';
+import MetaTags from '@/src/components/layout/Metatags';
 
 // Animation variants
 const pageTransition = {
@@ -373,7 +374,8 @@ export default function ProjectsPage() {
   return (
     <MotionConfig reducedMotion="user">
       <ErrorBoundary>
-        <Metatags title={'Projects'} />
+        <MetaTags
+  ogImage="/og-default.png" title={'Projects'} />
         <DynamicLayout>
           <motion.div 
             className="p-5 md:p-6 max-w-7xl mx-auto"

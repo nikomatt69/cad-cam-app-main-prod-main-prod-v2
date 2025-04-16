@@ -85,7 +85,8 @@ const ThirdPartyLicensesPage = () => {
 
   return (
     <EnhancedLayout>
-      <MetaTags title="Third-Party Services & Licenses - CAM/CAM FUN" />
+      <MetaTags
+  ogImage="/og-default.png" title="Third-Party Services & Licenses - CAM/CAM FUN" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 bg-white dark:bg-gray-800 shadow rounded-lg">
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
           Third-Party Services & Licenses
@@ -150,7 +151,7 @@ const ThirdPartyLicensesPage = () => {
 
         <div className="mt-12 border-t pt-6 border-gray-300 dark:border-gray-600">
             <p className="text-sm text-gray-500 dark:text-gray-400">
-                Last Updated: [Insert Date]
+                Last Updated: 16/04/2025
             </p>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 Please review this page periodically for updates. If you have any questions, please contact us at [Your Support Email Address].

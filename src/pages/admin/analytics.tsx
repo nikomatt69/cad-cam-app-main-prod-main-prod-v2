@@ -10,6 +10,7 @@ import Metatags from '@/src/components/layout/Metatags';
 import { AnalyticsOverview } from '@/src/components/analytics/AnalyticsOverview';
 import { ActivityChart } from '@/src/components/analytics/ActivityChart';
 import { UserHistory } from '@/src/components/analytics/UserHistory';
+import MetaTags from '@/src/components/layout/Metatags';
 
 export default function AdminAnalyticsDashboardPage() {
   const { data: session, status } = useSession();
@@ -150,7 +151,8 @@ export default function AdminAnalyticsDashboardPage() {
   
   return (
     <>
-      <Metatags title="Admin Analytics Dashboard" />
+      <MetaTags
+  ogImage="/og-default.png" title="Admin Analytics Dashboard" description="Admin Analytics Dashboard for CAD/CAM FUN" />
       
       <Layout>
         <div className="px-4 py-6">

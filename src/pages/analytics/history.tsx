@@ -7,6 +7,7 @@ import { ArrowLeft } from 'react-feather';
 import Loading from '@/src/components/ui/Loading';
 import Metatags from '@/src/components/layout/Metatags';
 import { UserHistory } from '@/src/components/analytics/UserHistory';
+import MetaTags from '@/src/components/layout/Metatags';
 
 export default function UserHistoryPage() {
   const { data: session, status } = useSession();
@@ -27,7 +28,8 @@ export default function UserHistoryPage() {
   
   return (
     <>
-      <Metatags title="Your Activity History" />
+      <MetaTags
+  ogImage="/og-default.png" title="Your Activity History" />
       
       <Layout>
         <div className="px-4 py-6">

@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import dynamic from 'next/dynamic';
 import ExportImportToolpathsControls from '@/src/components/cam/ToolpathControls';
+import MetaTags from '@/src/components/layout/Metatags';
 
 interface ToolFilterState {
   type: string;
@@ -379,7 +380,8 @@ export default function ToolsList() {
   
   return (
     <>
-      <Metatags title={'Tool Library'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Tool Library'} />
       
       <Layout>
         <div className="p-4 md:p-6">

@@ -23,7 +23,7 @@ const PluginSidebar: React.FC<PluginSidebarProps> = ({
   const [activePluginId, setActivePluginId] = useState<string | null>(null);
   const [sidebarPlugins, setSidebarPlugins] = useState<PluginRegistryEntry[]>([]); // Use correct type
   const [expandedWidth, setExpandedWidth] = useState(false); // Stato per larghezza
-  const [isContentVisible, setIsContentVisible] = useState(true); // Stato per visibilità contenuto (come FloatingToolbar)
+  const [isContentVisible, setIsContentVisible] = useState(false); // Stato per visibilità contenuto (come FloatingToolbar) - Changed default to false
   
   // Filter plugins that contribute to sidebar
   useEffect(() => {

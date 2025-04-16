@@ -62,7 +62,7 @@ export default function CADPage() {
   const { layers, activeLayer } = useLayerStore();
   const [showImportExportDialog, setShowImportExportDialog] = useState(false);
   const [dialogMode, setDialogMode] = useState<'import' | 'export'>('export');
-  const [showFloatingToolbar, setShowFloatingToolbar] = useState(false);
+  const [showFloatingToolbar, setShowFloatingToolbar] = useState(true);
   const [selectedLibraryComponent, setSelectedLibraryComponent] = useState<string | null>(null);
   const [showLibraryView, setShowLibraryView] = useState(false);
   // Add state for the unified library modal
@@ -374,7 +374,8 @@ export default function CADPage() {
  
   return (
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
-      <MetaTags 
+      <MetaTags
+  ogImage="/og-default.png" 
         title="CAD Editor" 
         description="Design and create 2D/3D components in our advanced CAD editor"
       />
@@ -442,8 +443,8 @@ export default function CADPage() {
           </div>
           
           <><PluginSidebar 
-            isOpen={!sidebarOpen}
-            onClose={() => setSidebarOpen(true)}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
           /></>
           
           {/* Right sidebar for properties */}
@@ -478,17 +479,6 @@ export default function CADPage() {
                   Trasform
                   Controls
                 </button>
-                <button
-                  onClick={() => setActiveRightPanel('ai')}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeRightPanel === 'ai'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                  }`}
-                >
-                  <Cpu size={16} className="mr-1" />
-                  Ai Design
-                </button>
               </div>
             </div>
 
@@ -504,11 +494,7 @@ export default function CADPage() {
                 </>
               )}
               
-              {activeRightPanel === 'ai' && (
-                <>
-                <AIDesignAssistant />
-                </>
-              )}
+              
             </div>
           </div>
           

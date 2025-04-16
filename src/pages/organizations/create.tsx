@@ -8,6 +8,7 @@ import { DynamicLayout } from 'src/components/dynamic-imports';
 import { ArrowLeft, Users } from 'react-feather';
 import Loading from '@/src/components/ui/Loading';
 import Metatags from '@/src/components/layout/Metatags';
+import MetaTags from '@/src/components/layout/Metatags';
 
 export default function CreateOrganizationPage() {
   const { data: session, status } = useSession();
@@ -76,7 +77,8 @@ export default function CreateOrganizationPage() {
 
   return (
     <>
-      <Metatags title={'Create Organization'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Create Organization'} description="Create a new organization to collaborate with your team" />
       <DynamicLayout>
         <div className="p-6">
           <div className="mb-6 flex items-center">

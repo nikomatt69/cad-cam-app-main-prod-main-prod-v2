@@ -243,7 +243,8 @@ export default function Home() {
 
   return (
     <>
-      <MetaTags />
+      <MetaTags
+  ogImage="/og-default.png" />
       <Layout>
         <div className="p-4 sm:p-6" ref={contentRef}>
           {/* Welcome section with system overview */}

@@ -16,8 +16,13 @@ export default function TermsPage() {
   } 
   return (
     <>
-       <MetaTags 
+       <MetaTags
+        ogImage="/og-default.png" 
         title="CAM/CAM FUN TERMS" 
+        description="Terms of Service for CAD/CAM FUN"
+       
+       
+       
      
       />
       <DynamicLayout>
@@ -26,7 +31,7 @@ export default function TermsPage() {
             <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Terms of Service</h1>
             
             <div className="prose prose-blue max-w-none dark:prose-invert">
-              <p>Last updated: [Insert Date]</p>
+              <p>Last updated: 16/04/2025</p>
               
               <h2>1. Agreement to Terms</h2>
               <p>
@@ -112,20 +117,17 @@ export default function TermsPage() {
                 To the fullest extent permitted by law, CAD/CAM FUN, its affiliates, and licensors shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill, arising from your use of the Service.
               </p>
 
-              <h2>11. Governing Law</h2>
-              <p>
-                These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction, e.g., State of California, Italy], without regard to its conflict of law provisions.
-              </p>
+             
 
-              <h2>12. Changes to Terms</h2>
+              <h2>11. Changes to Terms</h2>
               <p>
                 We reserve the right to modify these Terms at any time. We will provide notice of significant changes by posting the new Terms on this page and updating the &quot;Last updated&quot; date. Your continued use of the Service after changes constitutes acceptance.
               </p>
               
-              <h2>13. Contact Us</h2>
+              <h2>12. Contact Us</h2>
               <p>
                 If you have any questions about these Terms, please contact us at:
-                <a href="mailto:[Your Support Email Address]" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 block">[Your Support Email Address]</a>
+                <a href="mailto:nicom.19@icloud.com" className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 block">nicom.19@icloud.com</a>
               </p>
             </div>
             

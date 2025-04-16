@@ -11,6 +11,7 @@ import {
 } from 'react-feather';
 import Metatags from '@/src/components/layout/Metatags';
 import Loading from '@/src/components/ui/Loading';
+import MetaTags from '@/src/components/layout/Metatags';
 
 interface Organization {
   id: string;
@@ -199,7 +200,8 @@ export default function OrganizationDetailPage() {
 
   return (
     <>
-      <Metatags title={organization.name}
+      <MetaTags
+
       description={organization.description|| ''}
       ogImage={`/api/og-image/organization/${organization.id}?title=${encodeURIComponent(organization.name)}`} />
       <DynamicLayout>

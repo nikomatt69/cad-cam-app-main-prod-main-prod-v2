@@ -14,6 +14,7 @@ import Loading from '@/src/components/ui/Loading';
 import Metatags from '@/src/components/layout/Metatags';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import MetaTags from '@/src/components/layout/Metatags';
 
 interface MachineConfigFormState {
   name: string;
@@ -219,7 +220,8 @@ export default function MachineConfigDetailPage() {
   
   return (
     <>
-      <Metatags title={machineConfig ? `${machineConfig.name} | Machine Configuration` : 'Machine Configuration'} />
+      <MetaTags
+  ogImage="/og-default.png" title={machineConfig ? `${machineConfig.name} | Machine Configuration` : 'Machine Configuration'} />
       
       <Layout>
         <div className="flex flex-col h-full">

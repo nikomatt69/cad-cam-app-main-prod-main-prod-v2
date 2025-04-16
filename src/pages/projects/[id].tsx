@@ -13,6 +13,7 @@ import Modal from 'src/components/ui/Modal';
 import { Component, Drawing, Project, Toolpath } from '@prisma/client';
 import Metatags from '@/src/components/layout/Metatags';
 import { cn } from '@/src/lib/utils';
+import MetaTags from '@/src/components/layout/Metatags';
 
 // Animation variants
 const pageTransition = {
@@ -521,7 +522,8 @@ export default function ProjectDetailPage() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <Metatags 
+      <MetaTags
+   
         title={project.name}
         description={project.description || ''}
         ogImage={`/api/og-image/project/${project.id}?title=${encodeURIComponent(project.name)}`} 

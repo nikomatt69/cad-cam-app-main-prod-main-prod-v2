@@ -41,7 +41,8 @@ export default function SignIn() {
   
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="CAM/CAM FUN LOGIN" 
      
       />

@@ -1,7 +1,6 @@
 # CAD/CAM FUN - Proprietary Software License
 
 ## Copyright Notice
-# [LEGAL REVIEW REQUIRED: Ensure this accurately reflects the legal owner - individual or company name]
 Copyright © 2025 CAD/CAM FUN (Operated by nikomatt69). All Rights Reserved.
 Website: cadcamfun.xyz
 Primary Code Repository: https://github.com/nikomatt69/cad-cam-app-main-prod
@@ -9,10 +8,8 @@ Primary Code Repository: https://github.com/nikomatt69/cad-cam-app-main-prod
 ## Definitions
 - "Service" refers to the CAD/CAM FUN web application accessible at cadcamfun.xyz.
 - "Software" refers to the underlying source code, object code, algorithms, designs, documentation, and related materials that power the Service.
-# [LEGAL REVIEW REQUIRED: Specify the legal entity or individual(s) owning the copyright]
 - "Author" refers to nikomatt69 and any other designated copyright holders of the Software.
 - "User" refers to any person or entity accessing or using the Service.
-# [IMPORTANT: Replace placeholder with the actual link to your Terms of Service page]
 - "Terms of Service" refers to the terms governing the use of the Service, available at [Link to /legal/terms].
 
 ## License Terms
@@ -45,18 +42,6 @@ Primary Code Repository: https://github.com/nikomatt69/cad-cam-app-main-prod
 
 7.  **Termination**: 
     This license, along with the User's right to access the Service, shall terminate automatically if the User breaches any of these terms or the Terms of Service. Upon termination, the User must cease all use of the Service.
-
-# --- Placeholder Sections Requiring Legal Review ---
-
-8.  **Severability**:
-    # [LEGAL REVIEW REQUIRED]
-    If any provision of this license is held to be unenforceable or invalid, such provision shall be changed and interpreted to accomplish the objectives of such provision to the greatest extent possible under applicable law, and the remaining provisions shall continue in full force and effect.
-
-9.  **No Waiver**:
-    # [LEGAL REVIEW REQUIRED]
-    The failure of the Author to exercise or enforce any right or provision of this license shall not constitute a waiver of such right or provision.
-
-# --- End Placeholder Sections ---
 
 ## Ownership Declaration
 This proprietary license and the Author's ownership claim are supported by:

@@ -9,6 +9,7 @@ import Loading from '@/src/components/ui/Loading';
 import { Tool as ToolType } from '@prisma/client';
 import Metatags from '@/src/components/layout/Metatags';
 import { useLocalToolsLibraryStore } from '@/src/store/localToolsLibraryStore';
+import MetaTags from '@/src/components/layout/Metatags';
 
 export default function ToolDetailPage() {
   const { data: session, status } = useSession();
@@ -216,7 +217,8 @@ export default function ToolDetailPage() {
   }
   return (
     <>
-      <Metatags title={tool ? `${tool.name} | Tool Editor` : 'Tool Editor'} />
+      <MetaTags
+  ogImage="/og-default.png" title={tool ? `${tool.name} | Tool Editor` : 'Tool Editor'} />
       
       <Layout>
         <div className="flex flex-col h-full">

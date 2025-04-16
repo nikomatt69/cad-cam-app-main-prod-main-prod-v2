@@ -1,5 +1,5 @@
 // src/store/notificationStore.ts
-import create from 'zustand';
+import { create } from 'zustand';
 
 export interface Notification {
   id: string;

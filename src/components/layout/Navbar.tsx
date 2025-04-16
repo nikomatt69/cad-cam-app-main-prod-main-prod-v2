@@ -101,12 +101,9 @@ const Navbar = () => {
             </button>
          
             {/* Notifications - hide on smallest screens */}
-            <button
-              className=" sm:inline-flex items-center justify-center p-1 sm:p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
-              aria-label="View notifications"
-            >
+            <div className="sm:inline-flex items-center justify-center">
                <NotificationCenter />
-            </button>
+            </div>
 
             {/* Settings - hide on smallest screens */}
             <Link 
