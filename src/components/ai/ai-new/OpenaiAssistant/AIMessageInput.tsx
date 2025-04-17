@@ -31,6 +31,7 @@ const DEFAULT_MAX_FILES = 5;
 const DEFAULT_MAX_SIZE_MB = 5; // Increased default max size for images
 const DEFAULT_ACCEPTED_TEXT_TYPES = ['.txt', '.md', '.json', '.js', '.ts', 'text/plain', 'text/markdown', 'application/json', 'text/javascript', 'application/typescript'];
 const DEFAULT_ACCEPTED_IMAGE_TYPES = ['.png', '.jpg', '.jpeg', '.webp', '.gif', 'image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const TYPING_TIMEOUT_MS = 1500; // 1.5 seconds delay for showing typing indicator
 
 export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   onSendMessage,
@@ -46,6 +47,8 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   const [selectedFilesData, setSelectedFilesData] = useState<SelectedFileData[]>([]); 
   const [fileError, setFileError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<ToolName | null>(null);
+  const [isTyping, setIsTyping] = useState(false); // State for user typing
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for timeout
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Combine accepted types explicitly avoiding Set spread for compatibility
@@ -55,8 +58,19 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
 
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputMessage(event.target.value);
+    
+    // Handle auto-resize
     event.target.style.height = 'auto';
     event.target.style.height = `${event.target.scrollHeight}px`;
+
+    // Handle typing indicator
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    setIsTyping(true);
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, TYPING_TIMEOUT_MS);
   };
   
   const handleSendClick = () => {
@@ -65,6 +79,10 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
       setInputMessage('');
       setSelectedFilesData([]);
       setActiveTool(null);
+      // Reset typing state immediately on send
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      setIsTyping(false);
+      
       const textarea = document.getElementById('ai-message-textarea');
       if (textarea) textarea.style.height = 'auto';
     }
@@ -159,8 +177,25 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
     setSelectedFilesData(prevData => prevData.filter(file => file.name !== fileName));
   };
   
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   return (
     <div className="p-3 border-t rounded-b-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+      {/* User typing indicator */}
+      <div className="h-4 mb-1"> {/* Reserve space for indicator */}
+        {isTyping && (
+          <span className="text-xs text-gray-500 dark:text-gray-400 italic animate-pulse">
+            Typing...
+          </span>
+        )}
+      </div>
       {fileError && (
         <div className="mb-2 text-xs text-red-600 flex items-center">
           <AlertCircle size={14} className="mr-1" /> {fileError}
@@ -265,25 +300,26 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
         <button
           onClick={handleAttachClick}
           className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 self-end mb-1"
-          disabled={isProcessing}
-          title="Attach files"
+          disabled={isProcessing || selectedFilesData.length >= maxFiles}
+          title={`Attach files (${selectedFilesData.length}/${maxFiles})`}
         >
           <Paperclip size={18} />
+          <input
+            type="file"
+            multiple
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept={allAcceptedTypesString}
+            disabled={selectedFilesData.length >= maxFiles}
+          />
         </button>
-        <input
-          type="file"
-          multiple
-          ref={fileInputRef}
-          onChange={handleFileChange}
-          className="hidden"
-          accept={allAcceptedTypesString}
-        />
         <textarea
           id="ai-message-textarea"
           value={inputMessage}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={activeTool ? `Input for ${activeTool}...` : placeholder}
           className="flex-1 border border-gray-300 rounded-md p-2 text-sm resize-none overflow-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
           rows={1}
           style={{ maxHeight: '80px' }}

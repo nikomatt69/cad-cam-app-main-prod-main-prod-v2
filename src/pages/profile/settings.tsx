@@ -16,6 +16,7 @@ import MetaTags from '@/src/components/layout/Metatags';
 import useUserProfileStore from '@/src/store/userProfileStore';
 import ImageService from '@/src/lib/imageService';
 import toast from 'react-hot-toast';
+import Layout from '@/src/components/layout/Layout';
 
 interface ProfileSettingsForm {
   name: string;
@@ -244,7 +245,7 @@ export default function ProfileSettingsPage() {
   ogImage="/og-default.png" 
         title="Profile Settings" 
       />
-     
+     <Layout>
         <div className="p-6 max-w-2xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h1>
           
@@ -442,7 +443,7 @@ export default function ProfileSettingsPage() {
             </div>
           </form>
         </div>
-      
+        </Layout>
     </>
   );
 }

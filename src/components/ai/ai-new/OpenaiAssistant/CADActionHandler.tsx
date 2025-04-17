@@ -61,7 +61,7 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
             {/* Render action-specific preview or general payload */}
             <div className="mt-2 text-xs">
               <div className="font-medium text-gray-600 mb-1">Payload Preview:</div>
-              <pre className="bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto">
+              <pre className="bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 {action.payload ? JSON.stringify(action.payload, null, 2) : '{}'}
               </pre>
             </div>

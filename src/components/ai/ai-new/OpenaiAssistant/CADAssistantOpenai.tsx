@@ -24,6 +24,8 @@ import { CADAssistantSettingsPanel } from './CADAssistantSettingsPanel';
 import { AIMessage } from './AIMessage';
 import AISettingsPanel from '../AISettingsPanel';
 import AIProcessingIndicator from '../AIProcessingIndicator';
+import { useElementsStore } from '@/src/store/elementsStore';
+import { AIMessage as AIMessageComponent } from './AIMessage';
 
 interface ConstraintPreset {
   id: string;
@@ -58,11 +60,11 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   executePendingAction
 }) => {
   const { state, textToCAD: contextTextToCAD, sendAssistantMessage: contextSendAssistantMessage, dispatch } = useAI();
-  
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
-  
+  const [progress, setProgress] = useState(0);
   const [selectedModel, setSelectedModel] = useState<AIModelType>(availableModels[0] || 'gpt-4.1' as AIModelType);
   const [maxTokens, setMaxTokens] = useState<number>(6000);
   const [complexity, setComplexity] = useState<number>(0.5);
@@ -71,7 +73,14 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   const [customMaxHeight, setCustomMaxHeight] = useState<number>(200);
   const [customMaxDepth, setCustomMaxDepth] = useState<number>(200);
   const [customPreferredTypes, setCustomPreferredTypes] = useState<string[]>([]);
-  
+  const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'success' | 'error'>('idle');
+  const [generationHistory, setGenerationHistory] = useState<Array<{
+    id: string;
+    description: string;
+    timestamp: number;
+    elements: any[];
+  }>>([]);
+
   const submitFeedbackHandler = async (messageId: string, comment: string) => {
     console.log(`Feedback Submitted - Message ID: ${messageId}, Comment: ${comment}`);
     try {
@@ -91,6 +100,32 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
       toast.error('Could not submit feedback. Please try again.');
     }
   };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    const currentStatus = state.isProcessing ? 'processing' : 'idle';
+
+    if (currentStatus === 'processing') {
+      setProgress(prev => (prev === 100 ? 0 : prev));
+      interval = setInterval(() => {
+        setProgress(prev => {
+          const increment = prev < 30 ? 5 : prev < 60 ? 3 : prev < 80 ? 1 : 0.5;
+          return Math.min(prev + increment, 90);
+        });
+      }, 300);
+    } else {
+      setProgress(prev => (prev < 90 ? 100 : prev));
+      if (interval) {
+         clearInterval(interval);
+         interval = null;
+      }
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [state.isProcessing]);
   
   const handleFeedback = async (messageId: string, rating: 'good' | 'bad') => {
     console.log(`Feedback received for message ${messageId}: ${rating}`);
@@ -135,7 +170,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   const handleCustomMaxHeightChange = (height: number) => setCustomMaxHeight(height);
   const handleCustomMaxDepthChange = (depth: number) => setCustomMaxDepth(depth);
   const handleCustomPreferredTypesChange = (types: string[]) => setCustomPreferredTypes(types);
-  
+  const { addElements } = useElementsStore();
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [state.history.length]);
@@ -206,7 +241,9 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
       }
     }
   };
-  
+  const handleAddFromHistory = (historyItem: {id: string, elements: any[]}) => {
+    addElements(historyItem.elements);
+  };
   const handleExecuteAction = async (action: AIAction) => {
     // --- REMOVED ADDED LOGGING --- 
     // console.log(`[CADAssistantOpenai] >>>>>> handleExecuteAction CALLED with action: ${action.type}`);
@@ -306,7 +343,17 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     return null;
   };
 
+  
+
   const indicatorStatus = state.isProcessing ? 'processing' : 'idle';
+
+  // Placeholder message object for the typing indicator
+  const typingIndicatorMessage: AIMessageType = {
+    id: 'ai-typing-indicator',
+    role: 'assistant',
+    content: '', // Content is not rendered for typing indicator
+    timestamp: Date.now(),
+  };
 
   return (
     <AnimatePresence>
@@ -364,11 +411,41 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               {showSettings && (
                 <div className="overflow-y-auto max-h-96 border-b border-gray-200 dark:border-gray-700">
                   <AISettingsPanel/>
+                  {generationHistory.length > 0 && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+            <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
+              Recent Generations
+            </h3>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {generationHistory.map((item) => (
+                <div 
+                  key={item.id}
+                  className="p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                    {item.description}
+                  </p>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      {item.elements.length} elementi • {new Date(item.timestamp).toLocaleString()}
+                    </span>
+                    <button
+                      onClick={() => handleAddFromHistory(item)}
+                      className="px-2 py-1 bg-blue-50 dark:bg-blue-800/30 text-blue-600 dark:text-blue-300 rounded text-xs hover:bg-blue-100 dark:hover:bg-blue-800/50"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
                 </div>
               )}
             </AnimatePresence>
             
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800">
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800 flex flex-col">
               {state.history.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
                   <Cpu size={32} className="mb-2" />
@@ -382,7 +459,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                   const message = mapHistoryItemToAIMessage(item);
                   if (!message) return null; 
                   return (
-                    <AIMessage 
+                    <AIMessageComponent 
                       key={message.id} 
                       message={message} 
                       onFeedback={handleFeedback}
@@ -390,6 +467,14 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                     />
                   )
                 })
+              )}
+              {/* AI Typing Indicator */}
+              {state.isProcessing && (
+                <AIMessageComponent 
+                  key="typing-indicator"
+                  message={typingIndicatorMessage} 
+                  isTypingIndicator={true} 
+                />
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -403,7 +488,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               />
             )}
              <div className="p-2 border-b border-gray-200 dark:border-gray-700"> 
-              <AIProcessingIndicator status={indicatorStatus} /> 
+              <AIProcessingIndicator status={indicatorStatus} progress={progress} />
             </div> 
             
             <AIMessageInput
