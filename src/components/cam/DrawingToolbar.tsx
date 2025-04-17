@@ -68,11 +68,9 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
   // Create a tool button component
   const ToolButton = ({ 
     tool, 
-   
     label 
   }: { 
     tool: DrawingToolType; 
-  
     label: string;
   }) => (
     <div className="relative">
@@ -82,19 +80,18 @@ const DrawingToolbar: React.FC<DrawingToolbarProps> = ({
         }`}
         onClick={() => {
           onSelectTool(tool);
-          toggleExpandTool(tool);
+          if (tool !== 'select') { 
+            toggleExpandTool(tool);
+          }
         }}
         title={label}
       >
-        <div className="flex flex-col items-center">
-         
-          <span className="text-xs mt-1">{label}</span>
-          {(tool === 'pen' || tool === 'eraser' || tool === 'highlighter' || 
-            tool === 'text' || tool === 'dimension' || tool === 'colorPicker' ||
-            tool === 'screenshot') && (
-            <ChevronDown size={12} className="ml-1" />
-          )}
-        </div>
+        <span className="text-xs">{label}</span>
+        {(tool === 'pen' || tool === 'eraser' || tool === 'highlighter' || 
+          tool === 'text' || tool === 'dimension' || tool === 'colorPicker' ||
+          tool === 'screenshot') && (
+          <ChevronDown size={12} className="ml-1" />
+        )}
       </button>
       
       {/* Tool Options Panel */}

@@ -29,7 +29,7 @@ const nextConfig = {
   
  
   // Configurazione di webpack per Next.js
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, buildId, dev }) => {
     // Imposta il fallback di risoluzione dei moduli per il modulo fs su false
     config.resolve.fallback = { fs: false, tls: false, net: false };
 
@@ -44,6 +44,22 @@ const nextConfig = {
         },
       ],
     });
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+      layers: true,
+    };
+
+    // Fix for specific WASM issues if they arise later (keep commented for now)
+    // config.output.webassemblyModuleFilename = (
+    //   isServer ? '../' : ''
+    // ) + 'static/wasm/[modulehash].wasm'
+    
+    // Rule to handle WASM files (might be needed if experiments flag isn't enough)
+    // config.module.rules.push({
+    //   test: /\.wasm$/,
+    //   type: 'webassembly/async',
+    // });
 
     // Handle plugin TypeScript files
     config.module.rules.push({

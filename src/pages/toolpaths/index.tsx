@@ -28,6 +28,7 @@ import ExportImportToolpathsControls from 'src/components/cam/ToolpathControls';
 import Metatags from '@/src/components/layout/Metatags';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import MetaTags from '@/src/components/layout/Metatags';
 
 
 
@@ -439,7 +440,8 @@ export default function ToolpathsList() {
   
   return (
     <>
-      <Metatags title={'Toolpaths Library'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Toolpaths Library'} />
       
       <Layout>
         <div className="p-4 md:p-6">

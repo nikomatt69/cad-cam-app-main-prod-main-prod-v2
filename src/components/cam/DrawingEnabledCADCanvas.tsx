@@ -16,6 +16,7 @@ import { useElementsStore } from '../../store/elementsStore';
 import { useCADStore } from '../../store/cadStore';
 import { useLayerStore } from '../../store/layerStore';
 import CADCanvas from '../cad/CADCanvas';
+import OptimizedCADCanvas from '../cad/OptimizedCADCanvas';
 
 interface DrawingEnabledCADCanvasProps {
   width?: string | number;
@@ -447,7 +448,7 @@ const DrawingEnabledCADCanvas: React.FC<DrawingEnabledCADCanvasProps> = (props) 
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp} // Treat mouse leave as mouse up to end drawing
       >
-        <CADCanvas {...props} />
+        <OptimizedCADCanvas {...props} />
         
         {/* Text input overlay */}
         {showTextInput && (

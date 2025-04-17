@@ -1,5 +1,5 @@
 // src/store/chatStore.ts
-import create from 'zustand';
+import { create } from 'zustand';
 import { SoundEffects } from '@/src/lib/soundEffects';
 import { sendTypingStatus } from '@/src/lib/websocket';
 

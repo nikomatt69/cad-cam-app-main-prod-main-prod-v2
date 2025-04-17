@@ -11,6 +11,7 @@ import { useLocalMaterialsLibraryStore } from '@/src/store/localMaterialsLibrary
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { cn } from '@/src/lib/utils';
+import MetaTags from '@/src/components/layout/Metatags';
 
 // Animation variants
 const fadeIn = {
@@ -263,7 +264,8 @@ export default function MaterialDetailPage() {
   
   return (
     <MotionConfig reducedMotion="user">
-      <Metatags title={material ? `${material.name} | Material Editor` : 'Material Editor'} />
+      <MetaTags
+  ogImage="/og-default.png" title={material ? `${material.name} | Material Editor` : 'Material Editor'} />
       
       <Layout>
         <div className="flex flex-col h-full">

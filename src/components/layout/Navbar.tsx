@@ -15,7 +15,7 @@ const Navbar = () => {
   const { profileImage } = useUserProfileStore(); // Get image from global store
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   // Close any open dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -94,19 +94,16 @@ const Navbar = () => {
               {isDarkMode ? <Sun className="h-5 w-5 sm:h-6 sm:w-6" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6" />}
             </button>
             <button
-            onClick={() => setSidebarOpen(sidebarOpen)}
-            className="flex items-center px-4 py-2  text-emerald-400  transition-colors"
-          >
-            
-            <ToggleLeft size={18} className="ml-1" />
-          </button>
-            {/* Notifications - hide on smallest screens */}
-            <button
-              className=" sm:inline-flex items-center justify-center p-1 sm:p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
-              aria-label="View notifications"
+              onClick={() => setSidebarOpen(sidebarOpen)}
+              className="flex items-center px-4 py-2 text-emerald-400 transition-colors"
             >
-               <NotificationCenter />
+              <ToggleLeft size={18} className="ml-1" />
             </button>
+         
+            {/* Notifications - hide on smallest screens */}
+            <div className="sm:inline-flex items-center justify-center">
+               <NotificationCenter />
+            </div>
 
             {/* Settings - hide on smallest screens */}
             <Link 

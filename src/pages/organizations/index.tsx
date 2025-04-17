@@ -9,6 +9,7 @@ import router, { useRouter } from 'next/router';
 import Layout from '@/src/components/layout/Layout';
 import Metatags from '@/src/components/layout/Metatags';
 import { useSession } from 'next-auth/react';
+import MetaTags from '@/src/components/layout/Metatags';
 
 
 export default function OrganizationsList() {
@@ -94,7 +95,8 @@ export default function OrganizationsList() {
   return (
     
     <Layout>
-      <Metatags title={'Organizations'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Organizations'} />
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Your Organizations</h1>

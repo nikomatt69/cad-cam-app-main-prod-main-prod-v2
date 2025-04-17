@@ -5637,7 +5637,7 @@ useEffect(() => {
       
       {/* Pannello degli strumenti di trasformazione */}
       {selectedElement && (
-        <div className="absolute top-4 right-4 flex space-x-2 bg-[#F8FBFF] dark:bg-gray-800 p-2 rounded-md shadow-md z-10">
+        <div className="absolute top-14 right-4 flex space-x-2 bg-[#F8FBFF] dark:bg-gray-800 p-2 rounded-md shadow-md z-10">
           <button 
             onClick={() => {
               setTransformMode('translate');

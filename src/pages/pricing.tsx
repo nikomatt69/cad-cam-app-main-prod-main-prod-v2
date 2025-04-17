@@ -78,7 +78,7 @@ export default function PricingPage() {
                       Is there a free trial?
                     </dt>
                     <dd className="mt-2 text-base text-gray-500">
-                      We offer a 14-day free trial of the Pro plan for all new users. After the trial period, you can choose to subscribe to a paid plan or continue with the free plan.
+                      We offer a 7-day free trial of the Pro plan for all new users. After the trial period, you can choose to subscribe to a paid plan or continue with the free plan.
                     </dd>
                   </div>
                   

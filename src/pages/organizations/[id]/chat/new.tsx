@@ -6,6 +6,7 @@ import Layout from '@/src/components/layout/Layout';
 import Metatags from '@/src/components/layout/Metatags';
 import ConversationList from '@/src/components/chat/ConversationList';
 import NewConversation from '@/src/components/chat/NewConversation';
+import MetaTags from '@/src/components/layout/Metatags';
 
 const NewDirectMessagePage = () => {
   const router = useRouter();
@@ -64,7 +65,8 @@ const NewDirectMessagePage = () => {
   
   return (
     <Layout>
-      <Metatags title="Nuovo messaggio diretto" />
+      <MetaTags
+  ogImage="/og-default.png" title="Nuovo messaggio diretto" />
       
       <div className="p-4 h-[calc(100vh-64px)]">
         <div className="flex h-full gap-4">

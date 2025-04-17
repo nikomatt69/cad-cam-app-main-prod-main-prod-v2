@@ -36,6 +36,7 @@ import toast from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistance } from 'date-fns';
 import { debounce } from 'lodash';
+import MetaTags from '@/src/components/layout/Metatags';
 
 interface MachineConfigFilterState {
   type: string;
@@ -375,7 +376,8 @@ export default function MachineConfigsPage() {
   
   return (
     <>
-      <Metatags title="Machine Configurations" />
+      <MetaTags
+  ogImage="/og-default.png" title="Machine Configurations" />
       
       <Layout>
         <div className="p-4 md:p-6">

@@ -14,7 +14,6 @@ import SW from '../contexts/ServiceWorker';
 import { AuthProvider } from '../contexts/AuthContext';
 import { LanguageProvider } from '../contexts/LanguageContext';
 import { camFont } from 'src/lib/camFont';
-
 import { useEffect } from 'react';
 import ErrorBoundary from '../components/ui/ErrorBonduary';
 import { SubscriptionProvider } from '../contexts/SubscriptionContext';
@@ -28,19 +27,11 @@ import { AIContextProvider } from '../components/ai/ai-new/AIContextProvider';
 import { CursorProvider } from '../contexts/CursorContext';
 import { PluginClientProvider } from '../context/PluginClientContext';
 import Layout from '@/src/components/layout/Layout';
-
-// --- Plugin System Imports ---
-// Assume createPluginRegistry exists and potentially needs adjustment for client-side storage
-// Removed unused PluginRegistry import here, used below explicitly
-// Import the function to set the global instance for the hook
 import { initializePluginRegistry } from '@/src/hooks/usePluginRegistry';
-// Import client-side storage and registry implementation
-import { PluginRegistry, PluginStorage } from '@/src/plugins/core/registry'; // Get Registry and main Storage class from index
-import { InMemoryPluginStorage } from '@/src/plugins/core/registry/pluginStorage'; // Import InMemory from its definition file
-// --- End Plugin System Imports ---
-
+import { PluginRegistry, PluginStorage } from '@/src/plugins/core/registry';
+import { InMemoryPluginStorage } from '@/src/plugins/core/registry/pluginStorage';
+import MetaTags from '../components/layout/Metatags';
 import { useElementsStore } from 'src/store/elementsStore';
-
 
 // Ensure this initialization runs only once client-side
 let pluginSystemInitialized = false;
@@ -78,8 +69,6 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
 
       console.log('[_app] Initializing Plugin System...');
       try {
-        // --- Removed PluginManager Initialization Block --- 
-
         // === Initialize Client-Side Plugin Registry ===
         // Use explicit client-side storage (e.g., in-memory for now)
         // In a real app, you might create a LocalStorage based provider
@@ -90,8 +79,6 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
         // Set the global instance for the usePluginRegistry hook
         initializePluginRegistry(registry);
         console.log('[_app] Client-side PluginRegistry initialized and set for hook.');
-
-        // --- Removed Auto-Enabling Logic --- 
 
       } catch (error) {
         console.error('[_app] Failed to initialize plugin system:', error);
@@ -113,6 +100,8 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
       >
         <AuthProvider>
           <LanguageProvider>
+            <MetaTags
+  ogImage="/og-default.png" />
             <main className={`${camFont.style.fontFamily} antialiased`}>
               <NotificationProvider>
                 <ToastProvider>

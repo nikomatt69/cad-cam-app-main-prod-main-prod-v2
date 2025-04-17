@@ -32,6 +32,7 @@ import Split from 'react-split';
 import { format } from 'date-fns';
 import { useDebounce } from 'use-debounce';
 import ReactMarkdown from 'react-markdown';
+import MetaTags from '@/src/components/layout/Metatags';
 
 export default function ToolpathDetail() {
   const { data: session, status } = useSession();
@@ -421,7 +422,8 @@ export default function ToolpathDetail() {
   
   return (
     <>
-      <Metatags title={toolpath?.name || 'Toolpath Details'} />
+      <MetaTags
+  ogImage="/og-default.png" title={toolpath?.name || 'Toolpath Details'} />
       
       <Layout>
         <div className="p-4 md:p-6">

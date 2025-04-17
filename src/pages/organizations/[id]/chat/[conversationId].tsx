@@ -7,6 +7,7 @@ import Metatags from '@/src/components/layout/Metatags';
 import ConversationList from 'src/components/chat/ConversationList';
 import ConversationDetail from 'src/components/chat/ConversationDetail';
 import useChatStore from '@/src/store/chatStore';
+import MetaTags from '@/src/components/layout/Metatags';
 
 const ConversationPage = () => {
   const router = useRouter();
@@ -74,7 +75,8 @@ const ConversationPage = () => {
   
   return (
     <Layout>
-      <Metatags title={activeConversation?.name || 'Chat della conversazione'} />
+      <MetaTags
+  ogImage="/og-default.png" title={activeConversation?.name || 'Chat della conversazione'} description="Chat della conversazione" />
       
       <div className="p-4 h-[calc(100vh-84px)]">
         <div className="flex h-full gap-4">

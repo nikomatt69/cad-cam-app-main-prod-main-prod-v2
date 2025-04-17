@@ -1,7 +1,7 @@
 import React, { useState, useRef, ChangeEvent, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import useUserProfileStore from 'src/store/userProfileStore';
@@ -18,6 +18,8 @@ import ProfileSettingsPage from '../profile/settings';
 import { SubscriptionProvider } from '@/src/contexts/SubscriptionContext';
 
 export default function Settings() {
+
+
   // Funzioni per la gestione dell'immagine del profilo
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,6 +88,53 @@ export default function Settings() {
   // Accesso allo store globale per la condivisione dell'immagine profilo
   const { profileImage: storeProfileImage, setProfileImage: setStoreProfileImage } = useUserProfileStore();
   
+  // Deletion State
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  
+  // Account Deletion Handler
+  const handleDeleteAccount = async () => {
+    setDeleteError(null);
+
+    // Confirmation dialog
+    if (!window.confirm('Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile e tutti i tuoi dati verranno persi.')) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch('/api/user/delete-account', {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+           errorData = await response.json();
+        } catch (jsonError) {
+            // Handle cases where the response is not valid JSON
+            throw new Error(response.statusText || 'Failed to delete account. Server returned an invalid response.');
+        }
+        throw new Error(errorData.message || 'Failed to delete account');
+      }
+
+      // Account deleted successfully
+      toast.success("Account eliminato con successo.");
+
+      // Sign out and redirect
+      await signOut({ redirect: false, callbackUrl: '/' });
+      router.push('/'); // Redirect to home page
+
+    } catch (error) {
+      console.error('Account deletion error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during deletion.';
+      setDeleteError(errorMessage);
+      toast.error(`Errore Eliminazione Account: ${errorMessage}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   // Inizializza l'immagine profilo dallo store o dal localStorage
   useEffect(() => {
     if (storeProfileImage) {
@@ -123,20 +172,22 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', name: 'Profilo', icon: <User size={18} /> },
     { id: 'account', name: 'Account', icon: <Shield size={18} /> },
+    { id: 'billing', name: 'Abbonamento', icon: <Tag size={18} /> },
     { id: 'notifications', name: 'Notifiche', icon: <Bell size={18} /> },
     { id: 'ai', name: 'AI', icon: <Cpu size={18} /> },
     { id: 'language', name: 'Lingua', icon: <Globe size={18} /> },
-    { id: 'security', name: 'Sicurezza', icon: <Key size={18} /> },
-    { id: 'billing', name: 'Abbonamento', icon: <Tag size={18} /> },
+   
+   
    
   ];
-
+  
   // Mobile tabs - show only the most important ones on small screens
   const mobileTabs = tabs.slice(0, 4);
 
   return (
     <EnhancedLayout>
-      <MetaTags 
+      <MetaTags
+  ogImage="/og-default.png" 
         title="CAM/CAM FUN IMPOSTAZIONI" 
       />
 
@@ -147,17 +198,17 @@ export default function Settings() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 shadow flex-1 rounded-lg overflow-hidden">
         {/* Tabs - Desktop */}
         <div className="hidden sm:block bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
           <div className="px-4 sm:px-6 lg:px-8">
-            <nav className="-mb-px flex space-x-8 overflow-x-auto">
+            <nav className="-mb-px flex space-x-8 text-center overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                    whitespace-nowrap py-4 flex-1 text-center px-1 border-b-2 font-medium text-sm
                     ${activeTab === tab.id 
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400' 
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'}
@@ -397,21 +448,41 @@ export default function Settings() {
                   Gestisci le impostazioni del tuo account.
                 </p>
               </div>
-              
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Security</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Configura le impostazioni di sicurezza.
+                  </p>
+                </div>
+                <div className="mt-6">
+                  <fieldset>
+                    <legend className="text-base font-medium text-gray-900 dark:text-white">Security Settings</legend>
+                    <div className="mt-4 space-y-4">
+                      <ProfileSettingsPage />
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h4 className="text-base font-medium text-gray-900 dark:text-white">Eliminazione account</h4>
                 <div className="mt-2">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Una volta che hai eliminato il tuo account, non potrai più tornare indietro. Per favore, sii certo.
+                    Una volta che hai eliminato il tuo account, non potrai più tornare indietro. Tutti i tuoi dati verranno rimossi permanentemente. Per favore, sii certo.
                   </p>
                 </div>
                 <div className="mt-4">
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Elimina account
+                    {isDeleting ? 'Eliminazione...' : 'Elimina account'}
                   </button>
+                  {deleteError && (
+                    <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -634,28 +705,7 @@ export default function Settings() {
             </div>
             
           )}
-          {activeTab === 'security' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Security</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Configura le impostazioni di sicurezza.
-                </p>
-              </div>
-              
-              {/* Notifiche email */}
-              <div className="mt-6">
-                <fieldset>
-                  <legend className="text-base font-medium text-gray-900 dark:text-white">Security</legend>
-                  <div className="mt-4 space-y-4">
-                  <ProfileSettingsPage />
-                    
-                  </div>
-                </fieldset>
-              </div>
-            </div>
-            
-          )}
+          
 
           {/* Tab placeholder per le altre sezioni */}
           {['billing'].includes(activeTab) && (

@@ -10,6 +10,7 @@ import Metatags from '@/src/components/layout/Metatags';
 import { cn } from '@/src/lib/utils';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
+import MetaTags from '@/src/components/layout/Metatags';
 
 // Animation variants
 const containerVariants = {
@@ -149,7 +150,8 @@ export default function ProjectDrawingsList({ projectId }: ProjectDrawingsListPr
   return (
     <MotionConfig reducedMotion="user">
       <div className="my-6 px-4 md:px-0 max-w-7xl mx-auto">
-        <Metatags title={'Drawings'} />
+        <MetaTags
+  ogImage="/og-default.png" title={'Drawings'} />
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
           <motion.h2 
             className="text-xl font-semibold text-gray-900 dark:text-white"

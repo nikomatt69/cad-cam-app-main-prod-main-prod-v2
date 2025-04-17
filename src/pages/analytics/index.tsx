@@ -3,12 +3,32 @@ import React, { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
 import Layout from '@/src/components/layout/Layout';
-import { Calendar, BarChart2, Users, ArrowRight } from 'react-feather';
+import { Calendar, BarChart2, Users, ArrowRight, ChevronDown } from 'react-feather';
 import Loading from '@/src/components/ui/Loading';
 import Metatags from '@/src/components/layout/Metatags';
 import { AnalyticsOverview } from 'src/components/analytics/AnalyticsOverview';
-import { ActivityChart } from '@/src/components/analytics/ActivityChart';
+import { ActivityChart, ChartMetric } from '@/src/components/analytics/ActivityChart';
 import { UserHistory } from '@/src/components/analytics/UserHistory';
+import MetaTags from '@/src/components/layout/Metatags';
+
+// Define the metric options for the dropdown
+type MetricOption = {
+  value: ChartMetric;
+  label: string;
+};
+
+const metricOptions: MetricOption[] = [
+  { value: 'activityCount', label: 'Activity Count' },
+  { value: 'aiRequests', label: 'AI Requests' },
+  { value: 'cadDrawings', label: 'CAD Drawings' },
+  { value: 'projects', label: 'Projects' },
+  { value: 'components', label: 'Components' },
+  { value: 'toolpaths', label: 'Toolpaths' },
+  { value: 'storageUsage', label: 'Storage Usage (MB)' },
+  { value: 'toolpathsGenerated', label: 'Toolpaths Generated' },
+  { value: 'connections', label: 'Connections' },
+  { value: 'programRuns', label: 'Program Runs' },
+];
 
 export default function AnalyticsDashboardPage() {
   const { data: session, status } = useSession();
@@ -25,6 +45,9 @@ export default function AnalyticsDashboardPage() {
   
   // Chart type state
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
+  
+  // Selected metric state
+  const [selectedMetric, setSelectedMetric] = useState<ChartMetric>('activityCount');
   
   // Handle date range changes
   const handleDateChange = (type: 'start' | 'end', value: string) => {
@@ -75,6 +98,11 @@ export default function AnalyticsDashboardPage() {
     setChartType(prev => prev === 'line' ? 'bar' : 'line');
   };
   
+  // Handle metric change
+  const handleMetricChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedMetric(e.target.value as ChartMetric);
+  };
+  
   if (status === 'loading') {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -93,7 +121,8 @@ export default function AnalyticsDashboardPage() {
   
   return (
     <>
-      <Metatags title="Analytics Dashboard" />
+      <MetaTags
+  ogImage="/og-default.png" title="Analytics Dashboard" />
       
       <Layout>
         <div className="px-4 py-6">
@@ -169,37 +198,47 @@ export default function AnalyticsDashboardPage() {
           
           {/* Activity Chart */}
           <div className="mt-6">
-            <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Activity Trends</h2>
-              <button
-                onClick={toggleChartType}
-                className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-              >
-                <BarChart2 className="h-4 w-4 mr-1" />
-                {chartType === 'line' ? 'Show Bar Chart' : 'Show Line Chart'}
-              </button>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-2 sm:mb-0">Activity Trends</h2>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 items-start sm:items-center w-full sm:w-auto">
+                {/* Metric Selector */}
+                <div className="relative w-full sm:w-56">
+                  <select
+                    value={selectedMetric}
+                    onChange={handleMetricChange}
+                    className="form-select appearance-none block w-full pr-10 py-2 text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-900 focus:border-blue-500 dark:focus:border-blue-400 focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  >
+                    {metricOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <ChevronDown className="h-4 w-4" />
+                  </div>
+                </div>
+                
+                {/* Chart Type Toggle */}
+                <button
+                  onClick={toggleChartType}
+                  className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <BarChart2 className="h-4 w-4 mr-1" />
+                  {chartType === 'line' ? 'Show Bar Chart' : 'Show Line Chart'}
+                </button>
+              </div>
             </div>
             <ActivityChart 
               startDate={dateRange.startDate}
               endDate={dateRange.endDate}
               chartType={chartType}
+              metric={selectedMetric}
             />
           </div>
           
           {/* User History */}
-          <div className="mt-6">
-            <UserHistory limit={20} />
-            
-            <div className="mt-4 text-center">
-              <a 
-                href="/analytics/history"
-                className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-              >
-                View Complete History
-                <ArrowRight className="h-4 w-4 ml-1" />
-              </a>
-            </div>
-          </div>
+          
         </div>
       </Layout>
     </>

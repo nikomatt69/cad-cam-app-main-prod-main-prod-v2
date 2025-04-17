@@ -26,6 +26,7 @@ import Metatags from '@/src/components/layout/Metatags';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import ExportImportToolpathsControls from '@/src/components/cam/ToolpathControls';
+import MetaTags from '@/src/components/layout/Metatags';
 
 interface MaterialsFilterState {
   search: string;
@@ -319,7 +320,8 @@ export default function MaterialsList() {
   
   return (
     <>
-      <Metatags title={'Materials Library'} />
+      <MetaTags
+  ogImage="/og-default.png" title={'Materials Library'} />
       
       <Layout>
         <div className="p-4 md:p-6">

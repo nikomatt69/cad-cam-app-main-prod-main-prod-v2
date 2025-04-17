@@ -220,10 +220,14 @@ export default function DrawingInstrumentsPage() {
     );
   }
   
-
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="CAM/CAM FUN DRAWING INSTRUMENTS" 
      
       />

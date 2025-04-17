@@ -9,13 +9,11 @@ import { useSession } from 'next-auth/react';
 export default function Offline() {
   const { data: session, status } = useSession();
   const router = useRouter(); 
-  if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
-  } 
+
   return (
     <>
-      <MetaTags title="You're Offline - CAM/CAM FUN" />
+      <MetaTags
+  ogImage="/og-default.png" title="You're Offline - CAM/CAM FUN" />
       
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
         <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg text-center">

@@ -11,7 +11,8 @@ export default function Custom404() {
 
   return (
     <>
-       <MetaTags 
+       <MetaTags
+  ogImage="/og-default.png" 
         title="CAM ERROR" 
      
       />

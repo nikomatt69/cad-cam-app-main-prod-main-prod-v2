@@ -5,6 +5,7 @@ import { ArrowUp, ArrowDown } from 'react-feather';
 interface StatCardProps {
   title: string;
   value: number | string;
+  subValue?: string | number;
   icon: ReactNode;
   change?: number;
   changeLabel?: string;
@@ -13,6 +14,7 @@ interface StatCardProps {
 export const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
+  subValue,
   icon,
   change,
   changeLabel
@@ -34,6 +36,11 @@ export const StatCard: React.FC<StatCardProps> = ({
                 <div className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">
                   {typeof value === 'number' ? value.toLocaleString() : value}
                 </div>
+                {subValue !== undefined && subValue !== '' && (
+                  <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {subValue}
+                  </div>
+                )}
               </dd>
             </dl>
           </div>

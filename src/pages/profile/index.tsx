@@ -196,10 +196,16 @@ export default function ProfilePage() {
       </Layout>
     );
   }
+  
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
 
   return (
     <>
-      <MetaTags 
+      <MetaTags
+  ogImage="/og-default.png" 
         title={`${profile.name || 'User'} | Profile`}
         description={`View ${profile.name || 'User'}'s profile, projects and components.`}
       />

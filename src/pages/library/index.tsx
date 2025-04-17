@@ -26,6 +26,7 @@ import {
 } from '@/src/lib/api/libraries';
 import Metatags from '@/src/components/layout/Metatags';
 import toast from 'react-hot-toast';
+import MetaTags from '@/src/components/layout/Metatags';
 
 const LibraryPage: NextPage = () => {
   const { data: session, status } = useSession();
@@ -231,7 +232,8 @@ const LibraryPage: NextPage = () => {
   
   return (
     <>
-      <Metatags title="Library Manager" />
+      <MetaTags
+  ogImage="/og-default.png" title="Library Manager" description="Library Manager for CAD/CAM FUN" />
       
       <Layout>
         <div className="container mx-auto px-4 py-8">

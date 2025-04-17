@@ -27,6 +27,8 @@ import { useDrawingTools } from '@/src/hooks/useDrawingTools';
 import LibraryMenu from './LibraryMenu';
 import { AIHub } from '../ai/ai-new';
 import ToolPanel from './ToolPanel';
+import UnifiedLibrary from '../library/UnifiedLibrary';
+import LibraryManager from '../library/LibraryManager';
 
 interface Position {
   x: number;
@@ -38,7 +40,7 @@ interface FloatingToolbarProps {
   onClose?: () => void;
 }
 
-const TOOLBAR_MODES = ['create', 'transform', 'library', 'ai','drawing'] as const;
+const TOOLBAR_MODES = ['create', 'transform', 'library', 'ai'] as const;
 type ToolbarMode = typeof TOOLBAR_MODES[number];
 
 const LIBRARY_CATEGORIES = [
@@ -633,37 +635,10 @@ const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
       case 'library':
         return (
           <div className="p-2 flex flex-col">
-            <LibraryMenu onSelectComponent={(component) => {
-            setSelectedLibraryComponent(component);
-            // Se la prop onSelectComponent esiste, chiamala
-            if (selectedElement) {
-              (component);
-            }
-          }} />
+           <LibraryManager />
           </div>
         );
-        case 'drawing':
-        return (
-          <div className="p-2 flex  h-full">
-            <DrawingToolbar
-             
-             onSelectTool={setActiveTool}
-             activeTool={toolState.activeTool}
-             color={toolState.color}
-             onColorChange={setColor}
-             penSize={toolState.penSize}
-             onPenSizeChange={setPenSize}
-             eraserSize={toolState.eraserSize}
-             onEraserSizeChange={setEraserSize}
-             highlighterSize={toolState.highlighterSize}
-             onHighlighterSizeChange={setHighlighterSize}
-             textSize={toolState.textSize}
-             onTextSizeChange={setTextSize}
-             dimensionStyle={toolState.dimensionStyle}
-             onDimensionStyleChange={setDimensionStyle}
-           /> 
-          </div>
-        );
+       
       case 'ai':
         return (
           <div className="p-2">
