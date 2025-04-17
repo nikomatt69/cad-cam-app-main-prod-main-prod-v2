@@ -50,6 +50,9 @@ import EnhancedToolpathVisualizer from '../components/cam/EnhancedToolpathVisual
 import ToolpathVisualizer from 'src/components/cam/ToolpathVisualizer2';
 import { AIAssistantOpenai } from '../components/ai/ai-new/OpenaiAssistant/AIAssistantOpenai';
 import OptimizedToolpathVisualizer from '../components/cam/OptimizedToolpathVisualizer';
+import FanucCncControl from '../components/cam/FanucCncControl';
+import FanucMachineControl from '../components/cam/FanucMachineController';
+import CNCControlPage from '../components/cam/FanucCncControl';
 
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
@@ -186,10 +189,7 @@ export default function CAMPage() {
   }
   
 
-  if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
-  }
+  
 
 
   return (
@@ -479,13 +479,19 @@ export default function CAMPage() {
                   onCycleCodeGenerated={handleCycleCodeGenerated} 
                 />
                 <FixedCyclesUIRenderer gCodeLine={gcode} />
-                <AIToolpathOptimizer  />
+               
                 
                 </>
               )}
               
               {activeRightPanel === 'control' && (
-                <><MachineControl gcode={activeTab === 'post-processor' && processedGcode ? processedGcode : gcode} /><OriginControls /></>
+                <><MachineControl gcode={activeTab === 'post-processor' && processedGcode ? processedGcode : gcode} />
+                <div className='disabled:block'>
+                  <h1 className='text-lg font-bold'>CNC Control</h1>
+                  <p className='text-sm text-red-500'>This is a placeholder for the CNC control page not a real one server is a fake implementation for testing purposes.</p>
+                  <p className='text-red-500 text-sm'>No FOCAS is implemented, no real connection to the machine.</p>
+                <CNCControlPage /></div>
+                </>
               )}
             </div>
           </div>

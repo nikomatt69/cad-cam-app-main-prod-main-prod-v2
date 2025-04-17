@@ -21,7 +21,8 @@ plugins-data
 .cursorrules
 .cursorignore
 .cursor/rules
-
+cad-optimizer-wasm
+server-control-cnc
 
 
 

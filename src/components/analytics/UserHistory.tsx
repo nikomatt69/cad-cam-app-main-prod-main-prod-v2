@@ -5,6 +5,22 @@ import { Calendar, Filter, ChevronDown, Activity } from 'react-feather';
 import Loading from '@/src/components/ui/Loading';
 import { ActivityItemType, ActivityAction } from '@/src/lib/activityTracking';
 
+// Define the expected structure of an activity log item from the API/hook
+interface ActivityLogItem {
+    id: string;
+    timestamp: string; // ISO string format
+    userId: string;
+    itemType: ActivityItemType;
+    action: ActivityAction;
+    itemId: string;
+    details?: Record<string, any>; // Keep details flexible
+    user?: {
+        id: string;
+        name?: string | null;
+        email?: string | null;
+    };
+}
+
 interface UserHistoryProps {
   limit?: number;
 }
@@ -98,7 +114,7 @@ export const UserHistory: React.FC<UserHistoryProps> = ({
   ];
   
   // Get badge color based on action
-  const getActionBadgeColor = (action: string) => {
+  const getActionBadgeColor = (action: ActivityAction) => {
     switch (action) {
       case 'created':
         return 'bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100';
@@ -212,7 +228,9 @@ export const UserHistory: React.FC<UserHistoryProps> = ({
       
       {/* Activity history list */}
       <div className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white shadow rounded-lg">
-        {history.logs?.length === 0 ? (
+        {isLoading && history.logs?.length === 0 ? (
+          <div className="p-6 text-center"><Loading /></div>
+        ) : history.logs?.length === 0 ? (
           <div className="p-6 text-center">
             <Activity className="h-12 w-12 text-gray-400 mx-auto mb-2" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">No activity found</h3>
@@ -225,59 +243,50 @@ export const UserHistory: React.FC<UserHistoryProps> = ({
         ) : (
           <div className="overflow-hidden">
             <ul className="divide-y divide-gray-200 dark:divide-gray-600">
-              {history.logs?.map((activity: any) => (
-                <li key={activity.id} className="px-4 py-4 sm:px-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className={`px-2 py-1 rounded-md text-xs font-medium ${getActionBadgeColor(activity.action)}`}>
+              {history.logs?.map((activity: ActivityLogItem) => (
+                <li key={activity.id} className="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center space-x-2">
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${getActionBadgeColor(activity.action)} capitalize`}>
                         {activity.action.replace('_', ' ')}
-                      </div>
-                      <p className="ml-2 text-sm font-medium text-gray-900 dark:text-white capitalize">
+                      </span>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white capitalize">
                         {activity.itemType.replace('_', ' ')}
                       </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">ID: {activity.itemId}</p>
                     </div>
-                    <div className="text-sm text-gray-500 dark:text-gray-300">
+                    <div className="text-xs text-gray-500 dark:text-gray-300 whitespace-nowrap">
                       {new Date(activity.timestamp).toLocaleString()}
                     </div>
                   </div>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-300">
-                      Item ID: {activity.itemId}
-                    </p>
-                    {activity.details && Object.keys(activity.details).length > 0 && (
-                      <div className="mt-1 text-sm text-gray-500 dark:text-gray-300">
-                        <details>
-                          <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-                            View details
-                          </summary>
-                          <pre className="mt-2 p-2 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-40">
-                            {JSON.stringify(activity.details, null, 2)}
-                          </pre>
-                        </details>
-                      </div>
-                    )}
-                  </div>
+                  {activity.details && Object.keys(activity.details).length > 0 && (
+                    <details className="mt-2 text-xs">
+                      <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Details</summary>
+                      <pre className="mt-1 p-2 bg-gray-100 dark:bg-gray-900 rounded text-gray-700 dark:text-gray-300 overflow-x-auto">
+                        {JSON.stringify(activity.details, null, 2)}
+                      </pre>
+                    </details>
+                  )}
                 </li>
               ))}
             </ul>
             
             {hasMore && (
-              <div className="px-4 py-4 sm:px-6 border-t border-gray-200 dark:border-gray-600">
+              <div className="p-4 text-center">
                 <button
                   onClick={loadMore}
                   disabled={isLoading}
-                  className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 flex items-center justify-center mx-auto"
                 >
-                  {isLoading ? 'Loading...' : 'Load More'}
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <Loading />
+                      <span className="ml-2">Loading...</span>
+                    </span>
+                  ) : 'Load More'}
                 </button>
               </div>
             )}
-          </div>
-        )}
-        
-        {isLoading && (
-          <div className="flex justify-center items-center p-4">
-            <Loading />
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ import {
   Legend as ChartJSLegend,
   ChartData
 } from 'chart.js';
+import { UserMetricDataPoint } from './UserMetricsChart'; // Keep using this unified interface
 
 // Register ChartJS components
 ChartJS.register(
@@ -27,20 +28,46 @@ ChartJS.register(
   ChartJSLegend
 );
 
+// Define possible metrics (ensure this matches the API's validMetrics)
+export type ChartMetric = 
+  | 'activityCount' 
+  | 'toolpathsGenerated' 
+  | 'connections' 
+  | 'programRuns'
+  | 'aiRequests'
+  | 'cadDrawings'
+  | 'storageUsage'
+  | 'projects'
+  | 'components'
+  | 'toolpaths';
+
 interface ActivityChartProps {
   startDate?: Date;
   endDate?: Date;
   groupBy?: 'day' | 'week' | 'month';
-  itemType?: string[];
-  action?: string[];
+  itemType?: string[]; // For filtering ActivityLog based metrics
+  action?: string[];   // For filtering ActivityLog based metrics
   userFilter?: string;
   chartType?: 'line' | 'bar';
+  metric?: ChartMetric; // Use the defined type
 }
 
-interface ActivityData {
-  date: string;
-  count: number;
-}
+// ChartDataPoint is effectively UserMetricDataPoint now
+// We use UserMetricDataPoint directly where needed
+
+// Define colors for each metric (Consolidated)
+const metricColors = {
+  activityCount: '#4f46e5',      // Indigo
+  aiRequests: '#8884d8',         // Purple
+  cadDrawings: '#82ca9d',        // Green
+  storageUsage: '#ffc658',      // Yellow/Orange
+  projects: '#ff7300',         // Orange
+  components: '#00C49F',        // Teal
+  toolpaths: '#0088FE',         // Blue
+  toolpathsGenerated: '#fbbf24', // Amber (assuming this is distinct from toolpaths count)
+  connections: '#a855f7',       // Purple (different shade)
+  programRuns: '#ec4899',       // Pink
+};
 
 export const ActivityChart: React.FC<ActivityChartProps> = ({
   startDate,
@@ -49,53 +76,72 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
   itemType,
   action,
   userFilter,
-  chartType = 'line'
+  chartType = 'line',
+  metric = 'activityCount'
 }) => {
-  const [data, setData] = useState<ActivityData[]>([]);
+  const [data, setData] = useState<UserMetricDataPoint[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   
   const fetchActivityData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    let currentError: Error | null = null; // Variable to hold error within scope
     try {
-      setIsLoading(true);
-      setError(null);
+      const endpoint = '/api/analytics/user-metrics';
 
-      const response = await axios.get('/api/analytics/chart', {
-        timeout: 10000, // 10 second timeout
-        headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+      const response = await axios.get(endpoint, {
+        params: {
+          startDate: startDate?.toISOString(),
+          endDate: endDate?.toISOString(),
+          groupBy,
+          itemType,
+          action,
+          userFilter,
+          metric
         },
+        timeout: 15000, 
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         withCredentials: true
       });
 
-      if (response.data) {
-        setData(response.data);
+      if (response.data && response.data.chartData) {
+        setData(response.data.chartData);
+        setRetryCount(0); 
       } else {
-        throw new Error('No data received from the server');
+        throw new Error('Invalid data structure received from the server');
       }
     } catch (err) {
       console.error('Error fetching activity data:', err);
+      currentError = err as Error; // Assign error to variable
       const errorMessage = err instanceof Error ? err.message : 'Failed to load chart data';
       setError(errorMessage);
       
-      // Retry logic for specific errors
-      if (retryCount < 3 && axios.isAxiosError(err) && (err.response?.status === 500 || !err.response)) {
+      if (retryCount < 3 && axios.isAxiosError(err) && (err.response?.status === 500 || err.response?.status === 504 || !err.response)) {
+        const delay = 2000 * Math.pow(2, retryCount);
         setRetryCount(prev => prev + 1);
-        setTimeout(() => {
-          fetchActivityData();
-        }, 2000 * Math.pow(2, retryCount)); // Exponential backoff
+        console.log(`Retrying fetch in ${delay}ms (attempt ${retryCount + 1})`);
+        setTimeout(() => fetchActivityData(), delay); 
+      } else {
+         setRetryCount(0);
       }
     } finally {
-      setIsLoading(false);
+       // Check currentError captured in the catch block
+      if (!(axios.isAxiosError(currentError) && (currentError.response?.status === 500 || currentError.response?.status === 504 || !currentError.response) && retryCount < 3)) {
+           setIsLoading(false);
+       }
     }
-  }, [retryCount]);
+  // Dependencies for useCallback: include everything read from props/state inside the callback
+  }, [retryCount, startDate, endDate, groupBy, itemType, action, userFilter, metric]); 
 
   useEffect(() => {
+    setRetryCount(0);
     fetchActivityData();
-  }, [fetchActivityData]);
+  // Dependencies for useEffect: when should the fetch be re-triggered?
+  }, [startDate, endDate, groupBy, itemType, action, userFilter, metric, fetchActivityData]);
   
+  // --- Loading, Error, No Data states remain largely the same --- 
   if (isLoading) {
     return (
       <motion.div 
@@ -129,7 +175,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
     );
   }
   
-  if (error) {
+  if (error && retryCount === 0) { // Only show error if not retrying
     return (
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -165,7 +211,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              setRetryCount(0);
+              setRetryCount(0); // Reset retries before manual attempt
               fetchActivityData();
             }}
             className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg"
@@ -177,6 +223,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
     );
   }
   
+  // Check for data *after* loading and error checks
   if (!data || data.length === 0) {
     return (
       <motion.div 
@@ -191,7 +238,7 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
           animate={{ y: 0 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
         >
-          <p className="text-sm text-gray-500 dark:text-gray-400">No data available</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">No data available for the selected period or metric.</p>
         </motion.div>
       </motion.div>
     );
@@ -200,28 +247,40 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
   // Format date label based on groupBy
   const formatDate = (date: string) => {
     try {
-      const d = new Date(date);
+      const d = new Date(date + 'T00:00:00Z'); // Assume UTC date from API
       if (isNaN(d.getTime())) {
-        throw new Error('Invalid date');
+        return 'Invalid date'; // Handle potential invalid date strings
       }
       
       switch (groupBy) {
         case 'day':
-          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+          return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
         case 'week':
-          return `Week ${d.toLocaleDateString(undefined, { day: 'numeric' })}`;
+           // Display the start date of the week
+           return `Wk ${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' })}`;
         case 'month':
-          return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+          return d.toLocaleDateString(undefined, { month: 'short', year: 'numeric', timeZone: 'UTC' });
         default:
           return date;
       }
     } catch (e) {
-      console.error('Date formatting error:', e);
-      return 'Invalid date';
+      console.error('Date formatting error:', date, e);
+      return 'Date Error';
     }
   };
   
-  // Render the appropriate chart type
+  // Determine the data key based on the metric prop
+  // The API now returns data with the correct metric field populated
+  const dataKey = metric as keyof UserMetricDataPoint; // Use the metric directly as the key
+    
+  const chartLabel = metric
+    .replace(/([A-Z])/g, ' $1') // Add space before capitals
+    .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+    .trim();
+    
+  const metricColor = metricColors[metric as keyof typeof metricColors] || '#4f46e5'; // Fallback color
+  
+  // Render the appropriate chart type (Line or Bar)
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -230,6 +289,14 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
       transition={{ duration: 0.5 }}
       className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
     >
+      <motion.h3
+        className="text-sm sm:text-base font-medium text-gray-600 dark:text-gray-400 mb-4 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+      >
+        {chartLabel} Trend ({groupBy})
+      </motion.h3>
       <motion.div 
         className="h-64"
         whileHover={{ scale: 1.01 }}
@@ -239,103 +306,83 @@ export const ActivityChart: React.FC<ActivityChartProps> = ({
           {chartType === 'line' ? (
             <LineChart
               data={data}
-              margin={{ top: 5, right: 10, left: 0, bottom: 20 }}
+              margin={{ top: 5, right: 10, left: -20, bottom: 20 }} // Adjusted margins
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis 
-                dataKey="date" 
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" />
+              <XAxis
+                dataKey="date"
                 tickFormatter={formatDate}
                 angle={-45}
                 textAnchor="end"
                 height={60}
-                tick={{ fontSize: 10 }}
-                padding={{ left: 10, right: 10 }}
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: '0.7rem' }}
+                stroke="var(--color-border-default)"
+                interval="preserveStartEnd" // Ensure start/end labels are shown
               />
-              <YAxis 
-                tick={{ fontSize: 10 }}
-                width={30}
+              <YAxis
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: '0.7rem' }}
+                stroke="var(--color-border-default)"
+                allowDecimals={false} // Assuming counts are integers
               />
               <Tooltip
-                formatter={(value: number) => [`${value} activities`, 'Count']}
-                labelFormatter={(label: string) => formatDate(label)}
-                contentStyle={{ 
-                  fontSize: '12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                  border: 'none',
-                  padding: '8px'
+                contentStyle={{
+                  backgroundColor: 'var(--color-canvas-subtle)',
+                  borderColor: 'var(--color-border-default)',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
+                  color: 'var(--color-text-primary)'
                 }}
+                labelFormatter={formatDate}
+                formatter={(value: number, name: string) => [value, chartLabel]} // Use consistent label
               />
-              <Legend 
-                wrapperStyle={{ 
-                  fontSize: '12px', 
-                  marginTop: '10px',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)'
-                }} 
-              />
-              <Line 
-                type="monotone" 
-                dataKey="count" 
-                name="Activity Count"
-                stroke="#3B82F6" 
-                strokeWidth={3}
-                dot={{ strokeWidth: 2 }}
-                activeDot={{ 
-                  r: 8,
-                  strokeWidth: 2,
-                  stroke: '#3B82F6',
-                  fill: '#fff'
-                }} 
+              <Line
+                type="monotone"
+                dataKey={dataKey} // Use the metric key directly
+                name={chartLabel} // Set name for tooltip
+                stroke={metricColor}
+                strokeWidth={2}
+                dot={{ r: 3, fill: metricColor }}
+                activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--color-accent-emphasis)' }}
+                connectNulls={false} // Don't connect lines across missing data points (0 values)
               />
             </LineChart>
-          ) : (
+          ) : ( // Bar Chart
             <BarChart
               data={data}
-              margin={{ top: 5, right: 10, left: 0, bottom: 20 }}
+              margin={{ top: 5, right: 10, left: -20, bottom: 20 }} // Adjusted margins
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-              <XAxis 
-                dataKey="date" 
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-subtle)" />
+              <XAxis
+                dataKey="date"
                 tickFormatter={formatDate}
                 angle={-45}
                 textAnchor="end"
                 height={60}
-                tick={{ fontSize: 10 }}
-                padding={{ left: 10, right: 10 }}
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: '0.7rem' }}
+                stroke="var(--color-border-default)"
+                interval="preserveStartEnd"
               />
-              <YAxis 
-                tick={{ fontSize: 10 }}
-                width={30}
+              <YAxis
+                tick={{ fill: 'var(--color-text-secondary)', fontSize: '0.7rem' }}
+                stroke="var(--color-border-default)"
+                allowDecimals={false}
               />
               <Tooltip
-                formatter={(value: number) => [`${value} activities`, 'Count']}
-                labelFormatter={(label: string) => formatDate(label)}
-                contentStyle={{ 
-                  fontSize: '12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                  border: 'none',
-                  padding: '8px'
+                contentStyle={{
+                  backgroundColor: 'var(--color-canvas-subtle)',
+                  borderColor: 'var(--color-border-default)',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.75rem',
+                  color: 'var(--color-text-primary)'
                 }}
+                labelFormatter={formatDate}
+                 formatter={(value: number, name: string) => [value, chartLabel]}
               />
-              <Legend 
-                wrapperStyle={{ 
-                  fontSize: '12px', 
-                  marginTop: '10px',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.03)'
-                }} 
-              />
-              <Bar 
-                dataKey="count" 
-                name="Activity Count"
-                fill="#3B82F6"
-                radius={[4, 4, 0, 0]}
+              <Bar
+                dataKey={dataKey} // Use the metric key directly
+                name={chartLabel} // Set name for tooltip
+                fill={metricColor}
+                radius={[4, 4, 0, 0]} // Rounded top corners
               />
             </BarChart>
           )}
