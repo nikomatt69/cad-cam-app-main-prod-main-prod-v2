@@ -189,9 +189,9 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   return (
     <div className="p-3 border-t rounded-b-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
       {/* User typing indicator */}
-      <div className="h-4 mb-1"> {/* Reserve space for indicator */}
+      <div className="h-6 mb-2 p-0.5"> {/* Reserve space for indicator */}
         {isTyping && (
-          <span className="text-xs text-gray-500 dark:text-gray-400 italic animate-pulse">
+          <span className="text-xs p-5 m-0.5 text-gray-500 dark:text-gray-400 italic animate-pulse">
             Typing...
           </span>
         )}
