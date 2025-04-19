@@ -95,45 +95,42 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
   
   return (
     <ErrorBoundary>
-    <SessionProvider 
-      session={session}
-      >
+      <SessionProvider session={session}>
         <AuthProvider>
           <LanguageProvider>
-            <MetaTags
-  ogImage="/og-default.png" />
+            <MetaTags ogImage="/og-default.png" />
             <main className={`${camFont.style.fontFamily} antialiased`}>
-              <NotificationProvider>
-                <ToastProvider>
-                  <AnimatePresence mode="wait">
-                    <PageTransition key={router.route}>
-                      <PageViewTracker />
-                      <AnalyticsProvider>
-                        <CursorProvider>
-                          <AIContextProvider addElementsToCanvas={addElements}>
-                            <style jsx global>{`
-                              body {
-                                font-family: ${camFont.style.fontFamily};
-                              }
-                            `}</style>
-                            <ViewportMeta />
-                            <PluginClientProvider>
-                             
+              <SubscriptionProvider>
+                <NotificationProvider>
+                  <ToastProvider>
+                    <AnimatePresence mode="wait">
+                      <PageTransition key={router.route}>
+                        <PageViewTracker />
+                        <AnalyticsProvider>
+                          <CursorProvider>
+                            <AIContextProvider addElementsToCanvas={addElements}>
+                              <style jsx global>{`
+                                body {
+                                  font-family: ${camFont.style.fontFamily};
+                                }
+                              `}</style>
+                              <ViewportMeta />
+                              <PluginClientProvider>
                                 <Component {...pageProps} />
-                              
-                            </PluginClientProvider>
-                          </AIContextProvider>
-                        </CursorProvider>
-                      </AnalyticsProvider>
-                      <PWAInstallPrompt />
-                    </PageTransition>
-                  </AnimatePresence>
-                </ToastProvider>
-              </NotificationProvider>
+                              </PluginClientProvider>
+                            </AIContextProvider>
+                          </CursorProvider>
+                        </AnalyticsProvider>
+                        <PWAInstallPrompt />
+                      </PageTransition>
+                    </AnimatePresence>
+                  </ToastProvider>
+                </NotificationProvider>
+              </SubscriptionProvider>
             </main>
           </LanguageProvider>
         </AuthProvider>
-    </SessionProvider>
+      </SessionProvider>
     </ErrorBoundary>
   );
 }
