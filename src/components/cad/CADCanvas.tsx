@@ -2056,40 +2056,40 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
        // ======= MEASUREMENT ELEMENTS =======
     case 'linear-dimension':
       // Create a linear dimension between two points
-      if (!element.startPoint || !element.endPoint) return null;
-      
+      if (!element.startPoint || !element.endPoint) return null; // Checks startPoint/endPoint
+
       const dimensionGroup = new THREE.Group();
-      
-      // Start and end points
-      const startPoint2 = new THREE.Vector3(
-        element.startPoint2.x + originOffset.x,
-        element.startPoint2.y + originOffset.y,
-        (element.startPoint2.z || 0) + originOffset.z
+
+      // Start and end points - Use startPoint/endPoint consistently
+      const startPointVec = new THREE.Vector3(
+        element.startPoint.x + originOffset.x,
+        element.startPoint.y + originOffset.y,
+        (element.startPoint.z || 0) + originOffset.z
       );
-      
-      const endPoint2 = new THREE.Vector3(
-        element.endPoint2.x + originOffset.x,
-        element.endPoint2.y + originOffset.y,
-        (element.endPoint2.z || 0) + originOffset.z
+
+      const endPointVec = new THREE.Vector3(
+        element.endPoint.x + originOffset.x,
+        element.endPoint.y + originOffset.y,
+        (element.endPoint.z || 0) + originOffset.z
       );
-      
+
       // Calculate dimension line offset
       const offsetDirection = element.offsetDirection || 'y';
       const offsetAmount = element.offsetAmount || 10;
-      
+
       // Create dimension line
-      const directionVector = new THREE.Vector3().subVectors(endPoint2, startPoint2);
+      const directionVector = new THREE.Vector3().subVectors(endPointVec, startPointVec);
       const length = directionVector.length();
-      
-      const dimensionLineMaterial = new THREE.LineBasicMaterial({ 
+
+      const dimensionLineMaterial = new THREE.LineBasicMaterial({
         color: element.color || 0x000000,
         linewidth: element.linewidth || 1
       });
-      
+
       // Create offset points for dimension line
-      const startOffset = startPoint2.clone();
-      const endOffset = endPoint2.clone();
-      
+      const startOffset = startPointVec.clone();
+      const endOffset = endPointVec.clone();
+
       if (offsetDirection === 'y') {
         startOffset.y += offsetAmount;
         endOffset.y += offsetAmount;
@@ -2100,7 +2100,7 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
         startOffset.z += offsetAmount;
         endOffset.z += offsetAmount;
       }
-      
+
       // Main dimension line
       const dimensionLineGeometry = new THREE.BufferGeometry().setFromPoints([
         startOffset,
@@ -2108,23 +2108,23 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
       ]);
       const dimensionLine = new THREE.Line(dimensionLineGeometry, dimensionLineMaterial);
       dimensionGroup.add(dimensionLine);
-      
+
       // Extension lines
       const extensionLine1Geometry = new THREE.BufferGeometry().setFromPoints([
-        startPoint2,
+        startPointVec, // Use startPointVec
         startOffset
       ]);
       const extensionLine2Geometry = new THREE.BufferGeometry().setFromPoints([
-        endPoint2,
+        endPointVec, // Use endPointVec
         endOffset
       ]);
-      
+
       const extensionLine1 = new THREE.Line(extensionLine1Geometry, dimensionLineMaterial);
       const extensionLine2 = new THREE.Line(extensionLine2Geometry, dimensionLineMaterial);
-      
+
       dimensionGroup.add(extensionLine1);
       dimensionGroup.add(extensionLine2);
-      
+
       // Add dimension text (requires TextGeometry which needs font loading)
       // For now, we'll create a placeholder for the text
       const textPosition = new THREE.Vector3(
@@ -2132,12 +2132,12 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
         (startOffset.y + endOffset.y) / 2,
         (startOffset.z + endOffset.z) / 2
       );
-      
+
       // Format display value
       const dimensionValue = element.value || length.toFixed(2);
       const dimensionUnit = element.unit || 'mm';
       const dimensionText = `${dimensionValue} ${dimensionUnit}`;
-      
+
       // Create text placeholder as a small plane
       const textPlaceholder2 = new THREE.Mesh(
         new THREE.PlaneGeometry(dimensionText.length * 0.8, 1),
@@ -2147,21 +2147,21 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
           opacity: 0.7
         })
       );
-      
+
       textPlaceholder2.position.copy(textPosition);
       textPlaceholder2.userData.text = dimensionText;
       textPlaceholder2.userData.isDimensionText = true;
-      
+
       dimensionGroup.add(textPlaceholder2);
-      
+
       // Add arrows at the ends of the dimension line
       // This would require custom geometry for proper arrows
-      
+
       dimensionGroup.userData.isDimension = true;
       dimensionGroup.userData.dimensionType = 'linear';
       dimensionGroup.userData.dimensionValue = dimensionValue;
       dimensionGroup.userData.dimensionUnit = dimensionUnit;
-      
+
       return dimensionGroup;
       
     case 'angular-dimension':
@@ -4182,15 +4182,35 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
               componentThreeGroup.add(childThreeObject);
             }
           });
+        } else if (element.data?.elements && Array.isArray(element.data.elements)) {
+          // Try to get elements from element.data if available
+          element.data.elements.forEach((childElement: any) => {
+            const childThreeObject = createThreeObject({
+              ...childElement,
+              x: childElement.x || 0,
+              y: childElement.y || 0,
+              z: childElement.z || 0
+            });
+            
+            if (childThreeObject) {
+              childThreeObject.userData.isCADElement = true;
+              childThreeObject.userData.elementId = element.id;
+              childThreeObject.userData.isComponentChild = true;
+              childThreeObject.userData.parentComponentId = element.id;
+              componentThreeGroup.add(childThreeObject);
+            }
+          });
         } else {
-          // If no elements are provided or array is empty, create a visual placeholder
+          // If no elements are found, create a visual placeholder
+          console.log('Creating placeholder for component with no elements:', element.id);
+          
           const placeholderGeometry = new THREE.BoxGeometry(
-            element.width || 1,
-            element.height || 1,
-            element.depth || 1
+            element.width || 50,
+            element.height || 50,
+            element.depth || 50
           );
           
-          const placeholderMaterial = new THREE.MeshBasicMaterial({
+          const placeholderMaterial = new THREE.MeshStandardMaterial({
             color: element.color || 0x3f51b5,
             wireframe: true,
             opacity: 0.7,
@@ -5149,35 +5169,43 @@ useEffect(() => {
 
   // Funzione per evidenziare elementi
   const highlightElement = useCallback((threeObject: THREE.Object3D, element: any) => {
+    // Hover Highlight
     if (element.id === hoveredElementId) {
       if (threeObject instanceof THREE.Line) {
-        (threeObject.material as THREE.LineBasicMaterial).color.set(0x4a90e2);
-        (threeObject.material as THREE.LineBasicMaterial).linewidth = (element.linewidth || 1) + 1;
+        const material = threeObject.material as THREE.LineBasicMaterial;
+        material.color.setHex(0x4a90e2);
+        material.linewidth = (element.linewidth || 1) + 1;
       } else if (threeObject instanceof THREE.Mesh) {
-        if ((threeObject.material as THREE.MeshBasicMaterial).wireframe) {
-          (threeObject.material as THREE.MeshBasicMaterial).color.set(0x4a90e2);
-        } else {
-          const material = threeObject.material as THREE.MeshStandardMaterial;
-          material.emissive.set(0x4a90e2);
+        const material = threeObject.material as THREE.Material;
+        if (material instanceof THREE.MeshStandardMaterial && !material.wireframe) {
+          material.emissive.setHex(0x4a90e2);
           material.emissiveIntensity = 0.3;
+        } else if ('color' in material && material.color instanceof THREE.Color) {
+          material.color.setHex(0x4a90e2);
         }
       }
     }
-    
+
+    // Selection Highlight
     if (selectedElement && element.id === selectedElement.id) {
       if (threeObject instanceof THREE.Line) {
-        (threeObject.material as THREE.LineBasicMaterial).color.set(0xff3366);
-        (threeObject.material as THREE.LineBasicMaterial).linewidth = (element.linewidth || 1) + 2;
+        const material = threeObject.material as THREE.LineBasicMaterial;
+        material.color.setHex(0xff3366);
+        material.linewidth = (element.linewidth || 1) + 2;
       } else if (threeObject instanceof THREE.Mesh) {
-        if ((threeObject.material as THREE.MeshBasicMaterial).wireframe) {
-          (threeObject.material as THREE.MeshBasicMaterial).color.set(0xff3366);
-        } else {
-          const material = threeObject.material as THREE.MeshStandardMaterial;
-          material.emissive?.set(0xff3366);
+        const material = threeObject.material as THREE.Material;
+        if (material instanceof THREE.MeshStandardMaterial && !material.wireframe) {
+          material.emissive?.setHex(0xff3366); // Use optional chaining for safety
           material.emissiveIntensity = 0.5;
+        } else if ('color' in material && material.color instanceof THREE.Color) {
+          material.color.setHex(0xff3366);
         }
       }
     }
+
+    // Reset if not hovered or selected (This part needs careful implementation)
+    // Consider storing original material properties if complex highlighting is needed
+
   }, [hoveredElementId, selectedElement]);
 
   // Inizializzazione dei TransformControls

@@ -1946,6 +1946,44 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     toolpathGroup.add(arcGroup);
     toolpathGroup.add(shapeGroup);
     
+    // If no points were rendered, add a placeholder visualization
+    if (points.length === 0 || (rapidGroup.children.length === 0 && cutGroup.children.length === 0 
+                               && arcGroup.children.length === 0 && shapeGroup.children.length === 0)) {
+      console.log('Creating placeholder for toolpath with no elements');
+      
+      // Create a visual placeholder - a simple cube with text
+      const placeholderGeometry = new THREE.BoxGeometry(50, 50, 10);
+      const placeholderMaterial = new THREE.MeshStandardMaterial({
+        color: 0x3f51b5,
+        wireframe: true,
+        opacity: 0.7,
+        transparent: true
+      });
+      
+      const placeholder = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
+      placeholder.position.set(0, 0, 5); // Position at origin, slightly elevated
+      placeholder.userData.isToolpathPlaceholder = true;
+      toolpathGroup.add(placeholder);
+      
+      // Add an axial cross to mark the position
+      const axisHelper = new THREE.AxesHelper(30);
+      toolpathGroup.add(axisHelper);
+      
+      // Create a plane with circular pattern
+      const gridGeometry = new THREE.CircleGeometry(40, 32);
+      const gridMaterial = new THREE.MeshBasicMaterial({
+        color: 0x4caf50,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3
+      });
+      
+      const gridPlane = new THREE.Mesh(gridGeometry, gridMaterial);
+      gridPlane.rotation.x = -Math.PI / 2; // Lay flat on XY plane
+      gridPlane.position.set(0, 0, -0.1); // Position just under the origin
+      toolpathGroup.add(gridPlane);
+    }
+    
     return toolpathGroup;
   };
 

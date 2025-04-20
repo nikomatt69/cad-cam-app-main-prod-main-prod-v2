@@ -303,27 +303,71 @@ export class OpenAIService {
       generateCADElement: {
         type: "function",
         function: {
-          name: "generateCADElement",
-          description: "Creates one or more new CAD elements based on a user description. Use the description provided by the user.",
+          name: 'generateCADElement',
+          description: 'Generate one or more CAD components based on a description use mm for dimensions',
           parameters: {
-            type: "object",
+            type: 'object',
             properties: {
-              description: {
-                type: "string",
-                description: "Detailed text description of the element(s) to create."
-              },
-              constraints: {
-                type: "object",
-                description: "Optional constraints like dimensions or preferred types.",
-                properties: {
-                   maxDimensions: { type: "object", properties: { width: {type: "number"}, height: {type: "number"}, depth: {type: "number"} } },
-                   preferredTypes: { type: "array", items: { type: "string" } }
+              elements: {
+                type: 'array',
+                description: 'Array of CAD elements to create use mm for dimensions',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      enum: [
+                        'cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid', 'prism',
+                        'hemisphere', 'ellipsoid', 'capsule', 'circle', 'rectangle', 'triangle',
+                        'polygon', 'ellipse', 'arc', 'line', 'spline', 'bezier', 'nurbs',
+                        'boolean-union', 'boolean-subtract', 'boolean-intersect', 'extrusion',
+                        'revolution', 'sweep', 'loft', 'thread', 'chamfer', 'fillet', 'gear',
+                        'spring', 'screw', 'nut', 'bolt', 'washer', 'rivet', 'linear-dimension',
+                        'angular-dimension', 'radius-dimension', 'diameter-dimension',
+                        'drawing-pen', 'drawing-highlighter', 'drawing-text', 'drawing-eraser',
+                        'drawing-screenshot-area', 'wall', 'floor', 'roof', 'window', 'door',
+                        'stair', 'column', 'text3d', 'path3d', 'point-cloud', 'mesh', 'group'
+                      ],
+                      description: 'Type of CAD element'
+                    },
+                    x: { type: 'number', description: 'X position' },
+                    y: { type: 'number', description: 'Y position' },
+                    z: { type: 'number', description: 'Z position' },
+                    name: {
+                      type: 'string',
+                      description: 'Optional name or label for the element'
+                    },
+                    material: {
+                      type: 'string',
+                      description: 'Material of the element (e.g., Steel, Aluminum, ABS Plastic)'
+                    },
+                    segments: {
+                      type: 'integer',
+                      description: 'Number of segments for curved surfaces (controls smoothness)'
+                    },
+                    width: { type: 'number', description: 'Width (for cube, rectangle etc.)' },
+                    height: { type: 'number', description: 'Height (for cube, cylinder etc.)' },
+                    depth: { type: 'number', description: 'Depth (for cube etc.)' },
+                    radius: { type: 'number', description: 'Radius (for sphere, cylinder etc.)' },
+                    color: { type: 'string', description: 'Color in hex format (e.g., #FF0000)' },
+                    rotation: {
+                      type: 'object',
+                      description: 'Rotation in degrees',
+                      properties: {
+                        x: { type: 'number', description: 'X rotation' },
+                        y: { type: 'number', description: 'Y rotation' },
+                        z: { type: 'number', description: 'Z rotation' }
+                      }
+                    }
+                  },
+                  required: ['type','id', 'properties']
                 }
               }
             },
-            required: ["description"]
+            required: ['elements','id', 'properties']
           }
         }
+        
       },
       updateCADElement: {
         type: "function",
@@ -333,33 +377,59 @@ export class OpenAIService {
           parameters: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: 'ID of the element to update' },
-              properties: {
-                type: 'object',
-                description: 'Properties to update',
-                properties: {
-                  x: { type: 'number', description: 'X position' },
-                  y: { type: 'number', description: 'Y position' },
-                  z: { type: 'number', description: 'Z position' },
-                  width: { type: 'number', description: 'Width' },
-                  height: { type: 'number', description: 'Height' },
-                  depth: { type: 'number', description: 'Depth' },
-                  radius: { type: 'number', description: 'Radius' },
-                  color: { type: 'string', description: 'Color in hex format' },
-                  wireframe: { type: 'boolean', description: 'Wireframe' },
-                  rotation: {
-                    type: 'object',
-                    description: 'Rotation in degrees',
-                    properties: {
-                      x: { type: 'number', description: 'X rotation' },
-                      y: { type: 'number', description: 'Y rotation' },
-                      z: { type: 'number', description: 'Z rotation' }
+              elements: {
+                type: 'array',
+                description: 'Array of CAD elements to update use mm for dimensions',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      enum: [
+                        'cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid', 'prism',
+                        'hemisphere', 'ellipsoid', 'capsule', 'circle', 'rectangle', 'triangle',
+                        'polygon', 'ellipse', 'arc', 'line', 'spline', 'bezier', 'nurbs',
+                        'boolean-union', 'boolean-subtract', 'boolean-intersect', 'extrusion',
+                        'revolution', 'sweep', 'loft', 'thread', 'chamfer', 'fillet', 'gear',
+                        'spring', 'screw', 'nut', 'bolt', 'washer', 'rivet', 'linear-dimension',
+                        'angular-dimension', 'radius-dimension', 'diameter-dimension',
+                        'drawing-pen', 'drawing-highlighter', 'drawing-text', 'drawing-eraser',
+                        'drawing-screenshot-area', 'wall', 'floor', 'roof', 'window', 'door',
+                        'stair', 'column', 'text3d', 'path3d', 'point-cloud', 'mesh', 'group'
+                      ],
+                      description: 'Type of CAD element'
+                    },
+                    x: { type: 'number', description: 'X position' },
+                    y: { type: 'number', description: 'Y position' },
+                    z: { type: 'number', description: 'Z position' },
+                    name: {
+                      type: 'string',
+                      description: 'Optional name or label for the element'
+                    },
+                    segments: {
+                      type: 'integer',
+                      description: 'Number of segments for curved surfaces (controls smoothness)'
+                    },
+                    width: { type: 'number', description: 'Width (for cube, rectangle etc.)' },
+                    height: { type: 'number', description: 'Height (for cube, cylinder etc.)' },
+                    depth: { type: 'number', description: 'Depth (for cube etc.)' },
+                    radius: { type: 'number', description: 'Radius (for sphere, cylinder etc.)' },
+                    color: { type: 'string', description: 'Color in hex format (e.g., #FF0000)' },
+                    rotation: {
+                      type: 'object',
+                      description: 'Rotation in degrees',
+                      properties: {
+                        x: { type: 'number', description: 'X rotation' },
+                        y: { type: 'number', description: 'Y rotation' },
+                        z: { type: 'number', description: 'Z rotation' }
+                      }
                     }
-                  }
+                  },
+                  required: ['type', 'id', 'properties']
                 }
               }
             },
-            required: ['id', 'properties']
+            required: ['elements','id', 'properties']
           }
         }
       },
@@ -367,37 +437,63 @@ export class OpenAIService {
         type: "function",
         function: {
           name: "removeCADElement",
-          description: "Deletes an existing CAD element. Identify the target element using the 'Current Canvas Elements' context provided. Match the user's description (e.g., 'the screen', 'the large cube') to an element ID in the context. If the target is ambiguous or not found, ask the user for clarification instead of calling this tool.",
+          description: "Deletes one or more existing CAD elements. Identify the target element using the 'Current Canvas Elements' context provided. Match the user's description (e.g., 'the screen', 'the large cube') to an element ID in the context. If the target is ambiguous or not found, ask the user for clarification instead of calling this tool.",
           parameters: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: 'ID of the element to remove' },
-              properties: {
-                type: 'object',
-                description: 'Properties to remove',
-                properties: {
-                  x: { type: 'number', description: 'X position' },
-                  y: { type: 'number', description: 'Y position' },
-                  z: { type: 'number', description: 'Z position' },
-                  width: { type: 'number', description: 'Width' },
-                  height: { type: 'number', description: 'Height' },
-                  depth: { type: 'number', description: 'Depth' },
-                  radius: { type: 'number', description: 'Radius' },
-                  color: { type: 'string', description: 'Color in hex format' },
-                  wireframe: { type: 'boolean', description: 'Wireframe' },
-                  rotation: {
-                    type: 'object',
-                    description: 'Rotation in degrees',
-                    properties: {
-                      x: { type: 'number', description: 'X rotation' },
-                      y: { type: 'number', description: 'Y rotation' },
-                      z: { type: 'number', description: 'Z rotation' }
+              elements: {
+                type: 'array',
+                description: 'Array of CAD elements to delete',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      enum: [
+                        'cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid', 'prism',
+                        'hemisphere', 'ellipsoid', 'capsule', 'circle', 'rectangle', 'triangle',
+                        'polygon', 'ellipse', 'arc', 'line', 'spline', 'bezier', 'nurbs',
+                        'boolean-union', 'boolean-subtract', 'boolean-intersect', 'extrusion',
+                        'revolution', 'sweep', 'loft', 'thread', 'chamfer', 'fillet', 'gear',
+                        'spring', 'screw', 'nut', 'bolt', 'washer', 'rivet', 'linear-dimension',
+                        'angular-dimension', 'radius-dimension', 'diameter-dimension',
+                        'drawing-pen', 'drawing-highlighter', 'drawing-text', 'drawing-eraser',
+                        'drawing-screenshot-area', 'wall', 'floor', 'roof', 'window', 'door',
+                        'stair', 'column', 'text3d', 'path3d', 'point-cloud', 'mesh', 'group'
+                      ],
+                      description: 'Type of CAD element'
+                    },
+                    x: { type: 'number', description: 'X position' },
+                    y: { type: 'number', description: 'Y position' },
+                    z: { type: 'number', description: 'Z position' },
+                    name: {
+                      type: 'string',
+                      description: 'Optional name or label for the element'
+                    },
+                    segments: {
+                      type: 'integer',
+                      description: 'Number of segments for curved surfaces (controls smoothness)'
+                    },
+                    width: { type: 'number', description: 'Width (for cube, rectangle etc.)' },
+                    height: { type: 'number', description: 'Height (for cube, cylinder etc.)' },
+                    depth: { type: 'number', description: 'Depth (for cube etc.)' },
+                    radius: { type: 'number', description: 'Radius (for sphere, cylinder etc.)' },
+                    color: { type: 'string', description: 'Color in hex format (e.g., #FF0000)' },
+                    rotation: {
+                      type: 'object',
+                      description: 'Rotation in degrees',
+                      properties: {
+                        x: { type: 'number', description: 'X rotation' },
+                        y: { type: 'number', description: 'Y rotation' },
+                        z: { type: 'number', description: 'Z rotation' }
+                      }
                     }
-                  }
+                  },
+                  required: ['type', 'id', 'properties']
                 }
               }
             },
-            required: ['id', 'properties']
+            required: ['elements','id', 'properties']
           }
         }
       },

@@ -16,7 +16,8 @@ import {
   Package,
   Settings,
   ExternalLink,
-  ToggleLeft
+  ToggleLeft,
+  Maximize
 } from 'react-feather';
 import { useRouter } from 'next/router';
 import { useElementsStore } from 'src/store/elementsStore';
@@ -32,6 +33,7 @@ import AIBottomSheet from '../components/AIBottomSheet';
 import { useToolState } from '@/src/store/toolStore';
 import { usePluginClient } from '@/src/context/PluginClientContext';
 import PluginToolbarButton from '../plugins/PluginToolbarButton';
+import { useCADStore } from 'src/store/cadStore';
 
 interface EnhancedToolbarProps {
   sidebarOpen: boolean;
@@ -66,6 +68,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
 }) => {
   const router = useRouter();
   const { elements, selectedElement, undo, redo, selectedElements } = useElementsStore();
+  const { showDimensions, toggleDimensions } = useCADStore();
   const [showPluginsMenu, setShowPluginsMenu] = useState(false);
   const pluginsMenuRef = useRef<HTMLDivElement>(null);
   const [showPluginSidebar, setShowPluginSidebar] = useState(false);
@@ -227,9 +230,23 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
             <ArrowRight size={16} className="text-gray-600 dark:text-gray-400" />
           </button>
           <div className="h-5 border-l border-gray-300 dark:border-gray-700 mx-1"></div>
+          
+          {/* Toggle Dimensions Button */}
+          <button
+            onClick={toggleDimensions}
+            className={`p-1.5 border shadow-sm rounded-md flex items-center ${
+              showDimensions 
+                ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+            title={showDimensions ? "Hide Dimensions" : "Show Dimensions"}
+          >
+            <Maximize size={16} className="" />
+          </button>
+
           <button
             onClick={() => setShowFloatingToolbar(!showFloatingToolbar)}
-            className={`px-3 py-1.5 border shadow-sm rounded-md flex items-center ${
+            className={`p-1.5 border shadow-sm rounded-md flex items-center ml-1 ${
               showFloatingToolbar 
                 ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
                 : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'

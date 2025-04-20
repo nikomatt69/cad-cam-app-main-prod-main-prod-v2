@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/router';
+import { toast } from 'react-hot-toast';
 
 import GCodeViewer from 'src/components/cam/GCodeViewer';
 import GCodeEditor from 'src/components/cam/GCodeEditor';
@@ -91,6 +92,125 @@ export default function CAMPage() {
   const [showLibrary, setShowLibrary] = useState(false);
   // Add state for the unified library modal
   const [showUnifiedLibrary, setShowUnifiedLibrary] = useState(false);
+  
+  // Add useEffect to load toolpath from localStorage when URL contains loadToolpath parameter
+  useEffect(() => {
+    const loadToolpathFromStorage = async () => {
+      // Only proceed if we have the loadToolpath query parameter
+      if (!router.query.loadToolpath) return;
+      
+      const toolpathId = router.query.loadToolpath as string;
+      console.log('Loading toolpath with ID:', toolpathId);
+      
+      try {
+        // Get the stored toolpath data
+        const storedToolpath = localStorage.getItem('toolpathToLoadInCAM');
+        if (!storedToolpath) {
+          console.error('No toolpath data found in localStorage');
+          toast.error('Toolpath data not found');
+          return;
+        }
+        
+        console.log('Retrieved toolpath data from localStorage');
+        const toolpathData = JSON.parse(storedToolpath);
+        console.log('Parsed toolpath data:', toolpathData);
+        
+        // Validate the toolpath data
+        if (!toolpathData || !toolpathData.id || toolpathData.id !== toolpathId) {
+          console.error('Invalid toolpath data or ID mismatch');
+          toast.error('Invalid toolpath data');
+          return;
+        }
+        
+        // Set the toolpath data in the CAM state
+        if (toolpathData.gcode) {
+          console.log('Setting G-code in CAM editor');
+          setGcode(toolpathData.gcode);
+          // Switch to the editor tab to show the loaded code first
+          setActiveTab('editor');
+          
+          // Show a toast message suggesting to check the visualizer
+          setTimeout(() => {
+            toast.success('Switch to the "Percorso Utensile" tab to view the toolpath visualization', {
+              duration: 5000
+            });
+          }, 1500);
+        }
+        
+        toast.success(`Toolpath '${toolpathData.name}' loaded successfully`);
+        
+        // Clear the localStorage data
+        localStorage.removeItem('toolpathToLoadInCAM');
+        
+        // Remove the query parameter
+        const { loadToolpath, ...otherParams } = router.query;
+        router.replace({
+          pathname: router.pathname,
+          query: otherParams
+        }, undefined, { shallow: true });
+        
+      } catch (error) {
+        console.error('Error loading toolpath from localStorage:', error);
+        toast.error('Failed to load toolpath data. See console for details.');
+      }
+    };
+    
+    loadToolpathFromStorage();
+  }, [router.query.loadToolpath, router]);
+  
+  // Add useEffect to load tool from localStorage when URL contains loadTool parameter
+  useEffect(() => {
+    const loadToolFromStorage = async () => {
+      // Only proceed if we have the loadTool query parameter
+      if (!router.query.loadTool) return;
+      
+      const toolId = router.query.loadTool as string;
+      console.log('Loading tool with ID:', toolId);
+      
+      try {
+        // Get the stored tool data
+        const storedTool = localStorage.getItem('toolToLoadInCAM');
+        if (!storedTool) {
+          console.error('No tool data found in localStorage');
+          toast.error('Tool data not found');
+          return;
+        }
+        
+        console.log('Retrieved tool data from localStorage');
+        const toolData = JSON.parse(storedTool);
+        console.log('Parsed tool data:', toolData);
+        
+        // Validate the tool data
+        if (!toolData || !toolData.id || toolData.id !== toolId) {
+          console.error('Invalid tool data or ID mismatch');
+          toast.error('Invalid tool data');
+          return;
+        }
+        
+        // Set the selected tool
+        setSelectedLibraryTool(toolData.id);
+        setActiveRightPanel('generator'); // Switch to generator panel where the tool will be used
+        
+        toast.success(`Tool '${toolData.name}' loaded successfully`);
+        
+        // Clear the localStorage data
+        localStorage.removeItem('toolToLoadInCAM');
+        
+        // Remove the query parameter
+        const { loadTool, ...otherParams } = router.query;
+        router.replace({
+          pathname: router.pathname,
+          query: otherParams
+        }, undefined, { shallow: true });
+        
+      } catch (error) {
+        console.error('Error loading tool from localStorage:', error);
+        toast.error('Failed to load tool data. See console for details.');
+      }
+    };
+    
+    loadToolFromStorage();
+  }, [router.query.loadTool, router]);
   
   // Handler for tool selection from unified library
   const handleToolSelection = (tool: ToolLibraryItem) => {
@@ -189,7 +309,11 @@ export default function CAMPage() {
   }
   
 
-  
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
+ 
 
 
   return (

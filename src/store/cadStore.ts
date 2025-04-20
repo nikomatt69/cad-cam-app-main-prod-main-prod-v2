@@ -68,6 +68,10 @@ interface CADState {
   setOriginOffset: (offset: OriginOffset) => void;
   resetOrigin: () => void;
   setOriginPreset: (preset: OriginPreset) => void;
+
+  // State and action for dimension visibility
+  showDimensions: boolean;
+  toggleDimensions: () => void;
 }
 
 export const useCADStore = create<CADState>((set, get) => ({
@@ -90,6 +94,7 @@ export const useCADStore = create<CADState>((set, get) => ({
   isCtrlKeyPressed: false,
   isShiftKeyPressed: false,
   isAltKeyPressed: false,
+  showDimensions: false, // Default to false
   
   // Nuovi action
   setLayerPanelVisible: (visible) => set({ layerPanelVisible: visible }),
@@ -132,5 +137,8 @@ export const useCADStore = create<CADState>((set, get) => ({
         set({ originOffset: { x: halfWidth, y: halfHeight, z: halfDepth } });
         break;
     }
-  }
+  },
+
+  // Action to toggle dimension visibility
+  toggleDimensions: () => set((state) => ({ showDimensions: !state.showDimensions })),
 }));

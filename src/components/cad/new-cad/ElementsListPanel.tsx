@@ -287,166 +287,81 @@ const ElementsListPanel: React.FC<ElementsListPanelProps> = ({
         </div>
       </div>
       
-      {/* Search and filter */}
-      <div className="p-3 border-b">
+      {/* Search Input */}
+      <div className="p-2 border-b border-gray-200 dark:border-gray-600">
         <div className="relative">
           <input
             type="text"
             placeholder="Search elements..."
-            className="w-full px-3 py-2 pl-8 border rounded"
+            className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 dark:border-gray-500 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-black dark:text-white"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-          <Search size={16} className="absolute left-2.5 top-3 text-gray-400" />
-          {filter && (
-            <button 
-              className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
-              onClick={() => setFilter('')}
-              title="Clear Search"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-        
-        {showSettings && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="mt-3 p-3 bg-white dark:bg-gray-700 rounded border overflow-hidden"
-          >
-            <div className="text-sm font-medium mb-2">View Settings</div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm">Group by Layer</label>
-                <input 
-                  type="checkbox" 
-                  checked={groupByLayer}
-                  onChange={(e) => setGroupByLayer(e.target.checked)}
-                  className="h-4 w-4 text-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="text-sm block mb-1">Sort By</label>
-                <div className="flex space-x-2">
-                  <select 
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as any)}
-                    className="text-sm border rounded p-1 flex-1"
-                  >
-                    <option value="name">Name</option>
-                    <option value="type">Type</option>
-                    <option value="layer">Layer</option>
-                  </select>
-                  
-                  <select 
-                    value={sortDirection}
-                    onChange={(e) => setSortDirection(e.target.value as any)}
-                    className="text-sm border rounded p-1 w-20"
-                  >
-                    <option value="asc">Asc</option>
-                    <option value="desc">Desc</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="flex justify-end">
-                <button 
-                  className="text-xs flex items-center text-gray-600 hover:text-gray-800"
-                  onClick={resetSorting}
-                >
-                  <RefreshCw size={12} className="mr-1" />
-                  Reset
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-        
-        <div className="flex mt-2 space-x-2 overflow-x-auto scrollbar-thin">
-          <button
-            className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
-              !selectedLayer ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'
-            }`}
-            onClick={() => setSelectedLayer(null)}
-          >
-            All Layers
-          </button>
-          
-          {layers.map(layer => (
-            <button
-              key={layer.id}
-              className={`px-3 py-1 text-xs rounded-full whitespace-nowrap ${
-                selectedLayer === layer.id ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-700'
-              }`}
-              onClick={() => setSelectedLayer(layer.id)}
-              style={{ borderColor: layer.color }}
-            >
-              <div className="flex items-center">
-                <div 
-                  className="w-2 h-2 rounded-full mr-1" 
-                  style={{ backgroundColor: layer.color }} 
-                />
-                {layer.name}
-              </div>
-            </button>
-          ))}
+          <Search size={16} className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
         </div>
       </div>
       
-      {/* Elements list */}
-      <div className="flex-1 overflow-y-auto p-2">
-        {processedElements.length === 0 ? (
-          <div className="text-center p-4 text-gray-500 dark:text-gray-400">
-            No elements found.
-          </div>
-        ) : !groupByLayer ? (
-          // Flat list view
-          <AnimatePresence>
-            {processedElements.map(element => renderElementItem(element))}
-          </AnimatePresence>
-        ) : (
-          // Grouped by layer
-          <div>
-            {Object.entries(processedLayerGroups).map(([layerId, layerElements]) => {
-              const layer = layers.find(l => l.id === layerId);
-              if (!layer) return null;
-              
-              const isExpanded = expandedLayers[layerId];
-              
-              return (
-                <div key={layerId} className="mb-3">
-                  <button
-                    className="w-full flex items-center p-2 bg-gray-100 dark:bg-gray-700 rounded text-left"
-                    onClick={() => toggleLayerExpansion(layerId)}
-                  >
-                    <div className="mr-1 text-gray-500">
+      {/* Layer/Sort Controls */}
+      <div className="p-2 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between text-xs">
+        <div>
+          <label className="mr-2">Group by:</label>
+          <button 
+            className={`px-2 py-1 rounded ${groupByLayer ? 'bg-blue-500 text-white' : 'bg-gray-200 dark:bg-gray-600'}`}
+            onClick={() => setGroupByLayer(!groupByLayer)}
+          >
+            Layer
+          </button>
+        </div>
+        <button 
+          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+          onClick={resetSorting}
+          title="Reset filters & sorting"
+        >
+          <RefreshCw size={14} />
+        </button>
+      </div>
+      
+      {/* Elements List */}
+      <div className="flex-grow overflow-y-auto p-2">
+        <AnimatePresence>
+          {groupByLayer 
+            ? Object.entries(processedLayerGroups).map(([layerId, layerElements]) => {
+                const layer = layers.find(l => l.id === layerId);
+                const isExpanded = expandedLayers[layerId];
+                
+                if (!layer || layerElements.length === 0) return null;
+                
+                return (
+                  <div key={layerId} className="mb-2">
+                    <div 
+                      className="flex items-center justify-between p-1.5 bg-gray-100 dark:bg-gray-700 rounded cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600"
+                      onClick={() => toggleLayerExpansion(layerId)}
+                    >
+                      <div className="flex items-center">
+                        <div 
+                          className="w-3 h-3 rounded-full mr-2" 
+                          style={{ backgroundColor: layer.color || '#ccc' }} 
+                        />
+                        <span className="font-semibold text-sm">{layer.name} ({layerElements.length})</span>
+                      </div>
                       {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </div>
-                    <div 
-                      className="w-3 h-3 rounded-full mr-2" 
-                      style={{ backgroundColor: layer.color }} 
-                    />
-                    <div className="text-sm font-medium">
-                      {layer.name} ({layerElements.length})
-                    </div>
-                  </button>
-                  
-                  {isExpanded && (
-                    <div className="ml-4 mt-1">
-                      <AnimatePresence>
-                        {layerElements.map(element => renderElementItem(element))}
-                      </AnimatePresence>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    {isExpanded && (
+                      <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="pl-3 pt-1"
+                      >
+                        {layerElements.map(renderElementItem)}
+                      </motion.div>
+                    )}
+                  </div>
+                );
+            })
+            : processedElements.map(renderElementItem)
+          }
+        </AnimatePresence>
       </div>
       
       {/* Actions for multiple selection */}

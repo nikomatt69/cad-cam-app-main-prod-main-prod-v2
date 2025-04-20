@@ -1,21 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useCADStore } from '@/src/store/cadStore';
+import { useCAMStore } from '@/src/store/camStore';
+import { useElementsStore, Element } from '@/src/store/elementsStore';
 import axios from 'axios';
-import { Layers, Circle } from 'react-feather';
-
-// Define the CAMStore interface and create a stub implementation
-interface CAMStoreState {
-  setWorkpieceParameters?: (params: { stockAllowance: number, isLathe?: boolean, diameter?: number }) => void;
-}
-
-// Create a simple hook for the CAM store
-const useCAMStore = (): CAMStoreState => {
-  return {
-    setWorkpieceParameters: (params: { stockAllowance: number, isLathe?: boolean, diameter?: number }) => {
-      console.log('CAM workpiece parameters updated:', params);
-    }
-  };
-};
+import { Layers, Circle, Box } from 'react-feather';
 
 interface MachineConfig {
   id: string;
@@ -36,7 +24,11 @@ type WorkpieceType = 'rectangular' | 'cylindrical';
 
 const CAMWorkpieceSetup: React.FC = () => {
   const { workpiece, setWorkpiece, selectedMachine, setSelectedMachine } = useCADStore();
-  const camStore = useCAMStore();
+  const { elements } = useElementsStore();
+  const { 
+    selectedWorkpieceElementId,
+    setSelectedWorkpieceElementId
+  } = useCAMStore();
 
   const [machineConfigs, setMachineConfigs] = useState<MachineConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,12 +53,19 @@ const CAMWorkpieceSetup: React.FC = () => {
     const fetchMachineConfigs = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get('/api/machine-configs');
-        if (response.data) {
-          setMachineConfigs(response.data);
+        // Specificare il tipo atteso nella risposta Axios
+        const response = await axios.get<{ data: MachineConfig[] }>('/api/machine-configs');
+        
+        // Controllo robusto: verifica che 'data' esista e sia un array
+        if (response.data && Array.isArray(response.data.data)) {
+          setMachineConfigs(response.data.data);
+        } else {
+          console.warn('API /api/machine-configs non ha restituito un array in response.data.data');
+          setMachineConfigs([]); // Imposta array vuoto se i dati non sono nel formato atteso
         }
       } catch (error) {
         console.error('Error loading machine configurations:', error);
+        setMachineConfigs([]); // Imposta array vuoto in caso di errore
       } finally {
         setIsLoading(false);
       }
@@ -141,7 +140,6 @@ const CAMWorkpieceSetup: React.FC = () => {
   // Apply changes to the workpiece
   const handleApplyWorkpiece = () => {
     if (workpieceType === 'rectangular') {
-      // Update CAD store for rectangular workpiece
       setWorkpiece({
         width: formState.width,
         height: formState.height,
@@ -149,17 +147,7 @@ const CAMWorkpieceSetup: React.FC = () => {
         material: formState.material,
         units: formState.units as 'mm' | 'inch'
       });
-
-      // Update any CAM specific parameters
-      if (camStore.setWorkpieceParameters) {
-        camStore.setWorkpieceParameters({
-          stockAllowance: formState.stockAllowance,
-          isLathe: false
-        });
-      }
     } else {
-      // For cylindrical workpiece, convert to equivalent rectangular for CAD store
-      // but keep the lathe parameters for CAM
       setWorkpiece({
         width: formState.diameter,
         height: formState.diameter,
@@ -167,32 +155,23 @@ const CAMWorkpieceSetup: React.FC = () => {
         material: formState.material,
         units: formState.units as 'mm' | 'inch'
       });
-
-      // Update CAM specific parameters
-      if (camStore.setWorkpieceParameters) {
-        camStore.setWorkpieceParameters({
-          stockAllowance: formState.stockAllowance,
-          isLathe: true,
-          diameter: formState.diameter
-        });
-      }
     }
   };
 
   return (
-    <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white shadow-md rounded-lg p-4 space-y-4">
-      <h3 className="text-lg font-medium text-gray-900">Workpiece Configuration for CAM</h3>
+    <div className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white shadow-md rounded-lg p-4 space-y-4">
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Workpiece Configuration for CAM</h3>
       
       {/* Machine selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           Machine Configuration
         </label>
         <select
           name="machine"
           value={selectedMachine?.id || ''}
           onChange={handleMachineChange}
-          className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
         >
           <option value="">Select a machine</option>
           {machineConfigs.map((config) => (
@@ -203,10 +182,59 @@ const CAMWorkpieceSetup: React.FC = () => {
         </select>
       </div>
       
+      {/* Element Selection for Workpiece */}
+      <div className="mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
+        <h4 className="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">Select Workpiece Element</h4>
+        {elements && elements.length > 0 ? (
+          <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-700">
+            {elements.map((element: Element) => (
+              <button
+                key={element.id}
+                onClick={() => setSelectedWorkpieceElementId(element.id)}
+                className={`w-full text-left p-2 rounded-md flex items-center justify-between ${
+                  selectedWorkpieceElementId === element.id 
+                    ? 'bg-blue-100 dark:bg-blue-900 ring-1 ring-blue-500' 
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-600'
+                } ${
+                  selectedWorkpieceElementId === element.id 
+                    ? 'border-l-4 border-green-500 font-semibold'
+                    : '' 
+                }`}
+              >
+                <span className="flex items-center">
+                  <Box size={16} className="mr-2 text-gray-500 dark:text-gray-400" /> 
+                  {element.name || `Element ${element.id.substring(0, 6)}`}
+                </span>
+                {selectedWorkpieceElementId === element.id && (
+                   <span className="text-xs font-semibold text-green-600 dark:text-green-400 ml-auto">(Workpiece)</span>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No selectable elements found.</p>
+        )}
+        
+        {selectedWorkpieceElementId && (
+            <button
+              type="button"
+              onClick={() => setSelectedWorkpieceElementId(null)}
+              className="mt-3 w-full inline-flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-500 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Clear Workpiece Selection
+            </button>
+        )}
+      </div>
+
+      <h4 className="text-md font-medium text-gray-800 dark:text-gray-200 pt-4 border-t border-gray-200 dark:border-gray-600">Define Raw Stock (Optional)</h4>
+      <p className="text-sm text-gray-600 dark:text-gray-400">
+        Define the raw material dimensions if different from the selected workpiece element, or if no element is selected.
+      </p>
+      
       {/* Workpiece type selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Workpiece Type
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Stock Type
         </label>
         <div className="flex space-x-2">
           <button
@@ -214,9 +242,9 @@ const CAMWorkpieceSetup: React.FC = () => {
             onClick={() => handleWorkpieceTypeChange('rectangular')}
             className={`flex-1 flex items-center justify-center px-4 py-2 border ${
               workpieceType === 'rectangular' 
-                ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                : 'border-gray-300 bg-white text-gray-700'
-            } rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500' 
+                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            } rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
           >
             <Layers size={16} className="mr-2" />
             Rectangular
@@ -226,9 +254,9 @@ const CAMWorkpieceSetup: React.FC = () => {
             onClick={() => handleWorkpieceTypeChange('cylindrical')}
             className={`flex-1 flex items-center justify-center px-4 py-2 border ${
               workpieceType === 'cylindrical' 
-                ? 'border-blue-500 bg-blue-50 text-blue-700' 
-                : 'border-gray-300 bg-white text-gray-700'
-            } rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500' 
+                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            } rounded-md shadow-sm text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
           >
             <Circle size={16} className="mr-2" />
             Cylindrical
@@ -240,256 +268,151 @@ const CAMWorkpieceSetup: React.FC = () => {
       {workpieceType === 'rectangular' ? (
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Width
+            <label htmlFor="width" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Width (X)
             </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <input
-                type="number"
-                name="width"
-                value={formState.width}
-                onChange={handleInputChange}
-                className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">{formState.units}</span>
-              </div>
-            </div>
+            <input
+              type="number"
+              name="width"
+              id="width"
+              value={formState.width}
+              onChange={handleInputChange}
+              step="0.1"
+              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Height
+            <label htmlFor="height" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Height (Y)
             </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <input
-                type="number"
-                name="height"
-                value={formState.height}
-                onChange={handleInputChange}
-                className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">{formState.units}</span>
-              </div>
-            </div>
+            <input
+              type="number"
+              name="height"
+              id="height"
+              value={formState.height}
+              onChange={handleInputChange}
+              step="0.1"
+              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Depth
+            <label htmlFor="depth" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Depth (Z)
             </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <input
-                type="number"
-                name="depth"
-                value={formState.depth}
-                onChange={handleInputChange}
-                className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">{formState.units}</span>
-              </div>
-            </div>
+            <input
+              type="number"
+              name="depth"
+              id="depth"
+              value={formState.depth}
+              onChange={handleInputChange}
+              step="0.1"
+              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
           </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Diameter
+            <label htmlFor="diameter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Diameter (X)
             </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <input
-                type="number"
-                name="diameter"
-                value={formState.diameter}
-                onChange={handleInputChange}
-                className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">{formState.units}</span>
-              </div>
-            </div>
+            <input
+              type="number"
+              name="diameter"
+              id="diameter"
+              value={formState.diameter}
+              onChange={handleInputChange}
+              step="0.1"
+              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Length
+            <label htmlFor="length" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Length (Z)
             </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <input
-                type="number"
-                name="length"
-                value={formState.length}
-                onChange={handleInputChange}
-                className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">{formState.units}</span>
-              </div>
-            </div>
+            <input
+              type="number"
+              name="length"
+              id="length"
+              value={formState.length}
+              onChange={handleInputChange}
+              step="0.1"
+              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            />
           </div>
         </div>
       )}
       
-      {/* Material and units */}
+      {/* Material and Units */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label htmlFor="material" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Material
           </label>
           <select
             name="material"
+            id="material"
             value={formState.material}
             onChange={handleInputChange}
-            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           >
-            <option value="aluminum">Aluminum</option>
-            <option value="steel">Steel</option>
-            <option value="wood">Wood</option>
-            <option value="plastic">Plastic</option>
-            <option value="brass">Brass</option>
-            <option value="titanium">Titanium</option>
-            <option value="copper">Copper</option>
-            <option value="composite">Composite</option>
-            <option value="custom">Other</option>
+            <option value="Aluminum">Aluminum</option>
+            <option value="Steel">Steel</option>
+            <option value="Titanium">Titanium</option>
+            <option value="Plastic">Plastic</option>
+            {/* Add more materials as needed */}
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700">
+          <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             Units
           </label>
           <select
             name="units"
+            id="units"
             value={formState.units}
             onChange={handleInputChange}
-            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           >
             <option value="mm">Millimeters (mm)</option>
-            <option value="inch">Inches (inch)</option>
+            <option value="inch">Inches (in)</option>
           </select>
         </div>
       </div>
       
-      {/* CAM specific parameters */}
+      {/* Stock Allowance */}
       <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Stock Allowance
+        <label htmlFor="stockAllowance" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Stock Allowance ({formState.units})
         </label>
-        <div className="mt-1 relative rounded-md shadow-sm">
-          <input
-            type="number"
-            name="stockAllowance"
-            value={formState.stockAllowance}
-            onChange={handleInputChange}
-            step="0.1"
-            min="0"
-            className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          />
-          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-            <span className="text-gray-500 sm:text-sm">{formState.units}</span>
-          </div>
-        </div>
-        <p className="mt-1 text-xs text-gray-500">
-          Additional material to leave for finishing or subsequent operations
-        </p>
+        <input
+          type="number"
+          name="stockAllowance"
+          id="stockAllowance"
+          value={formState.stockAllowance}
+          onChange={handleInputChange}
+          step="0.1"
+          min="0"
+          className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          placeholder="e.g., 1.0"
+        />
+         <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Amount of extra material around the workpiece for machining.</p>
       </div>
       
-      {/* Workpiece Preview - Simple visual representation */}
-      <div className="p-4 border border-gray-200 rounded-md">
-        <h4 className="text-sm font-medium text-gray-700 mb-3">Workpiece Preview</h4>
-        <div className="flex justify-center">
-          {workpieceType === 'rectangular' ? (
-            <div 
-              className="bg-blue-100 border-2 border-blue-400 rounded"
-              style={{
-                width: `${Math.min(200, formState.width / 2)}px`,
-                height: `${Math.min(120, formState.height / 2)}px`,
-              }}
-            >
-              <div className="h-full w-full flex items-center justify-center text-xs text-blue-700">
-                {formState.width} x {formState.height} x {formState.depth} {formState.units}
-              </div>
-            </div>
-          ) : (
-            <div className="relative">
-              <div 
-                className="bg-blue-100 border-2 border-blue-400 rounded-full"
-                style={{
-                  width: `${Math.min(150, formState.diameter)}px`,
-                  height: `${Math.min(150, formState.diameter)}px`,
-                }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center text-xs text-blue-700">
-                  Ø {formState.diameter} {formState.units}
-                </div>
-              </div>
-              <div className="mt-2 text-center text-xs text-blue-700">
-                Length: {formState.length} {formState.units}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Selected machine info */}
-      {selectedMachine && (
-        <div className="bg-gray-50 p-3 rounded-md">
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Machine Information</h4>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div>Type: <span className="font-medium">{selectedMachine.config.type}</span></div>
-            {selectedMachine.config.maxSpindleSpeed && (
-              <div>Max spindle speed: <span className="font-medium">{selectedMachine.config.maxSpindleSpeed} rpm</span></div>
-            )}
-            {selectedMachine.config.maxFeedRate && (
-              <div>Max feed rate: <span className="font-medium">{selectedMachine.config.maxFeedRate} mm/min</span></div>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {workpieceExists && (
-        <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-700 mb-4">
-          <p>È stato rilevato un pezzo grezzo creato nel CAD. Le dimensioni sono state importate automaticamente.</p>
-        </div>
-      )}
-      
-      {/* Action buttons */}
-      <div className="flex justify-end space-x-3 pt-3">
-        <button
-          type="button"
-          onClick={() => {
-            if (workpieceType === 'rectangular') {
-              setFormState({
-                ...formState,
-                width: workpiece.width,
-                height: workpiece.depth,
-                depth: workpiece.height,
-                material: workpiece.material,
-                units: workpiece.units,
-                stockAllowance: 1.0
-              });
-            } else {
-              setFormState({
-                ...formState,
-                diameter: 50,
-                length: 100,
-                material: workpiece.material,
-                units: workpiece.units,
-                stockAllowance: 1.0
-              });
-            }
-          }}
-          className="px-4 py-2 text-sm font-medium text-gray-700 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Reset
-        </button>
-        <button
-          type="button"
-          onClick={handleApplyWorkpiece}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          Apply
-        </button>
-      </div>
+      {/* Apply button for stock definition */}
+      <button
+        type="button"
+        onClick={handleApplyWorkpiece}
+        disabled={selectedWorkpieceElementId !== null}
+        className="mt-4 w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {workpieceExists && selectedWorkpieceElementId === null ? 'Update Defined Stock' : 'Define Raw Stock'}
+      </button>
+       {selectedWorkpieceElementId !== null && (
+         <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
+           Workpiece is set from a selected element. Clear selection above to define stock manually.
+         </p>
+       )}
       
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white bg-opacity-75">

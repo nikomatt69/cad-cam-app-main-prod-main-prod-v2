@@ -381,7 +381,7 @@ const renderSidebarContent = () => {
         <>
         
         <OriginControls/>
-          <WorkpieceSetup />
+          <CAMWorkpieceSetup/>
           
           
           <div className="mt-6 pt-4 border-t border-gray-200">
