@@ -373,9 +373,7 @@ export default function ProfileSettingsPage() {
             
             {/* Security Section */}
             <div className="border-t border-gray-200 pt-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Security Settings
-              </h2>
+              
               <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="sm:col-span-3">
                   <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">

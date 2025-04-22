@@ -5,7 +5,6 @@ import { useSession, signOut } from 'next-auth/react';
 import { Sun, Moon, Bell, Settings, User, LogOut, Menu, X, Users, Globe, BookOpen, ToggleLeft, Star, Zap } from 'react-feather';
 import useUserProfileStore from 'src/store/userProfileStore';
 import NotificationCenter from '../notifications/NotificationCenter';
-import OrganizationChatPage from '@/src/pages/organizations/[id]/chat';
 import { useSubscription } from '../../contexts/SubscriptionContext';
 
 const Navbar = () => {
@@ -81,7 +80,7 @@ const Navbar = () => {
 
   return (
     <header className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white border-0 dark:bg-gray-800 rounded-b-xl shadow-sm">
-      <div className="px-3 sm:px-6 lg:px-8 rounded-b-xl border-2 border-gray-200">
+      <div className="px-3 sm:px-6 lg:px-8 rounded-b-xl ">
         <div className="flex rounded-b-xl items-center  justify-between h-14 sm:h-16">
           {/* Left section */}
           <div className="flex items-center">
@@ -129,12 +128,7 @@ const Navbar = () => {
             >
               {isDarkMode ? <Sun className="h-5 w-5 sm:h-6 sm:w-6" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6" />}
             </button>
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex items-center px-4 py-2 text-emerald-400 transition-colors"
-            >
-              <ToggleLeft size={18} className="ml-1" />
-            </button>
+           
          
             {/* Notifications - hide on smallest screens */}
             <div className="sm:inline-flex items-center justify-center">
@@ -331,15 +325,26 @@ const Navbar = () => {
               Organizations
             </Link>
             <Link
-              href={`/organizations/${OrganizationChatPage}`}
+              href={`/ai`}
               className={`block px-3 py-2 rounded-md text-base font-medium ${
-                router.pathname === '/chat' 
+                router.pathname === '/ai'  
                   ? 'bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              Chat
+              AI Assistant
+            </Link>
+            <Link
+              href={`/analytics`}
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                router.pathname === '/analytics' 
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Analytics
             </Link>
           </div>
         </div>

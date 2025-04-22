@@ -24,6 +24,8 @@ const nextConfig = {
       'cadcamfun.xyz/icon.png',
     ], // Domini consentiti per il caricamento delle immagini
   },
+
+  
   
   // Abilita l'utilizzo dell'attributo script-src nella policy di Content Security
   

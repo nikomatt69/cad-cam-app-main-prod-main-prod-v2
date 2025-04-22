@@ -99,7 +99,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
         <AuthProvider>
           <LanguageProvider>
             <MetaTags ogImage="/og-default.png" />
-            <main className={`${camFont.style.fontFamily} antialiased`}>
+            <main className={`${camFont.style.fontFamily} antialiased bg-white dark:bg-gray-900`}>
               <SubscriptionProvider>
                 <NotificationProvider>
                   <ToastProvider>

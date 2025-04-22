@@ -32,7 +32,7 @@ import {
   Folder,
   X
 } from 'react-feather';
-import EnhancedSidebar from '../components/cad/EnanchedSidebar';
+import EnhancedSidebarCam from '../components/cam/EnanchedSidebarCam';
 
 import AIToolpathOptimizer from '../components/ai/AIToolpathOptimizer';
 import Loading from '../components/ui/Loading';
@@ -330,10 +330,10 @@ export default function CAMPage() {
         <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border-b rounded-xl w-full px-4 py-2 flex items-center justify-between">
           <div className="flex rounded-xl w-max items-center">
             <button
-              className="mr-2 p-2 rounded-md hover:bg-gray-100 focus:outline-none"
+              className="mr-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              <Menu size={20} className="text-gray-600" />
+              <Menu size={20} className="text-gray-600 dark:text-gray-400" />
             </button>
             {isMobile ? (
   <Link href="/" className="">
@@ -354,7 +354,7 @@ export default function CAMPage() {
             <div className="ml-6 flex items-center space-x-2">
               <button
                 onClick={handleSaveGcode}
-                className="btn btn-sm btn-outline flex items-center cursor-pointer"
+                className="btn btn-sm btn-outline dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 flex items-center cursor-pointer"
                 title="Salva G-Code"
                 disabled={!(activeTab === 'post-processor' ? processedGcode : gcode)}
               >
@@ -362,7 +362,7 @@ export default function CAMPage() {
                 
               </button>
               <label className="btn btn-sm btn-outline flex items-center cursor-pointer" title="Importa G-Code">
-                <Upload size={16} className="mr-1" />
+                <Upload size={16} className="mr-1 dark:text-gray-300" />
                 
                 <input 
                   type="file" 
@@ -373,7 +373,7 @@ export default function CAMPage() {
               </label>
               <button
                 onClick={toggleSimulation}
-                className={`btn btn-sm ${isSimulating ? 'btn-danger' : 'btn-success'} flex items-center`}
+                className={`btn btn-sm ${isSimulating ? 'btn-danger dark:bg-red-600 dark:hover:bg-red-700' : 'btn-success dark:bg-green-600 dark:hover:bg-green-700'} flex items-center`}
                 title={isSimulating ? "Arresta Simulazione" : "Avvia Simulazione"}
               >
                 {isSimulating ? <Pause size={16} /> : <Play size={16} />}
@@ -382,7 +382,7 @@ export default function CAMPage() {
               {/* Unified Library button */}
               <button
                 onClick={() => setShowUnifiedLibrary(true)}
-                className="btn btn-sm btn-outline flex items-center"
+                className="btn btn-sm btn-outline dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 flex items-center"
                 title="Unified Library"
               >
                 <Folder size={16} className="mr-1" />
@@ -398,18 +398,18 @@ export default function CAMPage() {
               className={`flex items-center px-3 py-1 rounded-md text-sm font-medium ${
                 activeTab === 'preview' 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Eye size={16} className="mr-1" />
-              Anteprima
+              Preview
             </button>
             <button
               onClick={() => setActiveTab('editor')}
               className={`flex items-center px-3 py-1 rounded-md text-sm font-medium ${
                 activeTab === 'editor' 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Code size={16} className="mr-1" />
@@ -420,18 +420,18 @@ export default function CAMPage() {
               className={`flex items-center px-3 py-1 rounded-md text-sm font-medium ${
                 activeTab === 'visualizer' 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Tool size={16} className="mr-1" />
-              Percorso Utensile
+              Toolpath
             </button>
             <button
               onClick={() => setActiveTab('post-processor')}
               className={`flex items-center px-3 py-1 rounded-md text-sm font-medium ${
                 activeTab === 'post-processor' 
                   ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               <Settings size={16} className="mr-1" />
@@ -442,7 +442,7 @@ export default function CAMPage() {
 
         <div className="flex flex-1 bg-gradient-to-b from-[#2A2A2A] to-[#303030] p-0.5 overflow-hidden w-full">
           {/* Enhanced left sidebar */}
-          <EnhancedSidebar 
+          <EnhancedSidebarCam 
             isOpen={sidebarOpen} 
             setIsOpen={setSidebarOpen}
             activeSidebarTab={activeSidebarTab}
@@ -497,14 +497,14 @@ export default function CAMPage() {
               <div className="h-full rounded-xl overflow-y-auto">
                 {/* Selettore del tipo di post-processor */}
                 <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border-b p-4 flex items-center justify-between">
-                  <h2 className="text-lg font-medium text-gray-900">Post-Processor</h2>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Post-Processor</h2>
                   <div className="flex items-center space-x-2">
-                    <label htmlFor="post-processor-type" className="text-sm font-medium text-gray-700">
-                      Tipo di controller:
+                    <label htmlFor="post-processor-type" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Controller Type:
                     </label>
                     <select
                       id="post-processor-type"
-                      className="ml-2 block w-48 pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                      className="ml-2 block w-48 pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-blue-500 dark:focus:border-blue-500 sm:text-sm rounded-md"
                       value={selectedPostProcessor}
                       onChange={(e) => setSelectedPostProcessor(e.target.value as PostProcessorType)}
                     >
@@ -520,7 +520,7 @@ export default function CAMPage() {
                 </div>
                 
                 {/* Componente post-processor in base alla selezione */}
-                <div className="p-4 rounded-b-xl bg-gray-50">
+                <div className="p-4 rounded-b-xl bg-gray-50 dark:bg-gray-900">
                   {selectedPostProcessor === 'fanuc' && (
                     <DynamicPostProcessors.Fanuc 
                       initialGcode={gcode}
@@ -560,34 +560,34 @@ export default function CAMPage() {
                   onClick={() => setActiveRightPanel('generator')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                     activeRightPanel === 'generator'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
                   <Tool size={16} className="mr-1" />
-                  Generatore
+                  Generator
                 </button>
                 <button
                   onClick={() => setActiveRightPanel('cycles')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                     activeRightPanel === 'cycles'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
                   <Box size={16} className="mr-1" />
-                  Cicli
+                  Fixed Cycles
                 </button>
                 <button
                   onClick={() => setActiveRightPanel('control')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                     activeRightPanel === 'control'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
                   <Settings size={16} className="mr-1" />
-                  Controllo
+                  Control
                 </button>
               </div>
             </div>
@@ -614,7 +614,7 @@ export default function CAMPage() {
                   <h1 className='text-lg font-bold'>CNC Control</h1>
                   <p className='text-sm text-red-500'>This is a placeholder for the CNC control page not a real one server is a fake implementation for testing purposes.</p>
                   <p className='text-red-500 text-sm'>No FOCAS is implemented, no real connection to the machine.</p>
-                <CNCControlPage /></div>
+                </div>
                 </>
               )}
             </div>
@@ -636,14 +636,14 @@ export default function CAMPage() {
       {/* Modal della libreria CAM */}
       {showLibrary && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-          <div className="w-full max-w-6xl max-h-[90vh] flex flex-col bg-white rounded-lg shadow-xl">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="text-xl font-bold">Libreria CAM</h2>
+          <div className="w-full max-w-6xl max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-bold dark:text-white">Libreria CAM</h2>
               <button 
                 onClick={() => setShowLibrary(false)}
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <X size={20} />
+                <X size={20} className="dark:text-gray-300" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto">

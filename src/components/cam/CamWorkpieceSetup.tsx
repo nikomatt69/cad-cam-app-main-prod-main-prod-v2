@@ -240,7 +240,7 @@ const CAMWorkpieceSetup: React.FC = () => {
           <button
             type="button"
             onClick={() => handleWorkpieceTypeChange('rectangular')}
-            className={`flex-1 flex items-center justify-center px-4 py-2 border ${
+            className={`flex-1 flex items-center justify-center px-2 py-1  border ${  
               workpieceType === 'rectangular' 
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500' 
                 : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -252,7 +252,7 @@ const CAMWorkpieceSetup: React.FC = () => {
           <button
             type="button"
             onClick={() => handleWorkpieceTypeChange('cylindrical')}
-            className={`flex-1 flex items-center justify-center px-4 py-2 border ${
+            className={`flex-1 flex items-center justify-center px-2 py-1 border ${
               workpieceType === 'cylindrical' 
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500' 
                 : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300'

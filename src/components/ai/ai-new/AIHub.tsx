@@ -252,7 +252,7 @@ const AIHub: React.FC<AIHubProps> = ({
             animate={{ width: 160, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-gray-50 dark:bg-gray-900 flex-shrink-0 overflow-hidden"
+            className="bg-gray-50 dark:bg-gray-900 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div className="p-2 flex flex-col h-full">
               <div className="flex items-center justify-between mb-6">
@@ -306,7 +306,7 @@ const AIHub: React.FC<AIHubProps> = ({
       </AnimatePresence>
       
       {/* Area contenuto */}
-      <div className="flex-grow p-4 bg-gray-50 rounded-xl  overflow-auto">
+      <div className="flex-grow p-4  rounded-xl  overflow-auto">
         {renderTool()}
       </div>
     </div>

@@ -71,7 +71,7 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
     return (
       <button
         type="button"
-        className={`w-full flex items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 ${className}`}
+        className={`w-full flex items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 ${className}`}
         onClick={() => setOpen(!open)}
         ref={ref}
         {...props}
@@ -79,7 +79,7 @@ export const SelectTrigger = forwardRef<HTMLButtonElement, SelectTriggerProps>(
         {children}
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''} stroke-gray-500 dark:stroke-blue-400`}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -126,8 +126,8 @@ export function SelectItem({ value, children, className = '', disabled = false, 
 
   return (
     <div
-      className={`px-3 py-2 cursor-pointer flex items-center hover:bg-gray-100 dark:hover:bg-gray-700 
-        ${isSelected ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : ''} 
+      className={`px-3 py-2 cursor-pointer flex items-center hover:bg-gray-100 dark:hover:bg-blue-900/30 
+        ${isSelected ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400' : ''} 
         ${disabled ? 'opacity-50 pointer-events-none' : ''} 
         ${className}`}
       onClick={() => !disabled && onValueChange(value)}
@@ -136,7 +136,7 @@ export function SelectItem({ value, children, className = '', disabled = false, 
       {isSelected && (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-4 w-4 mr-2"
+          className="h-4 w-4 mr-2 stroke-blue-600 dark:stroke-blue-400"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

@@ -23,16 +23,13 @@ import LayerManager from '../cad/LayerManager';
 import WorkpieceSetup from '../cad/WorkpieceSetup';
 
 
-import { fetchOrganizationById } from '@/src/lib/api/organizations';
-import LibrarySection from '../ui/LibrarySection';
 
-import LibraryBrowser from './LibraryBrowser';
 
 import OriginControls from '../cad/OriginControls';
 import ComponentsBrowserLocal from '../cad/ComponentBroswerLocal';
 import { ComponentBrowser } from '../cad/ComponentBroswer';
 import SnapSettings from '../cad/SnapSettings';
-import UnifiedComponentsBrowser from './UnifiedComponentBrowser';
+
 import { ComponentLibraryItem } from '@/src/hooks/useUnifiedLibrary';
 import ToolOptionsPanel from '../cad/panels/ToolOptionsPanel';
 import { CadTool } from '@/src/types/cad';
@@ -57,7 +54,7 @@ interface NavItem {
   children?: NavItem[];
 }
 
-const EnhancedSidebar2: React.FC<EnhancedSidebarProps> = ({ 
+const EnhancedSidebarCad: React.FC<EnhancedSidebarProps> = ({ 
   isOpen, 
   setIsOpen, 
   activeSidebarTab, 
@@ -424,7 +421,7 @@ const EnhancedSidebar2: React.FC<EnhancedSidebarProps> = ({
                 <div className="space-y-2">
                   <button
                     onClick={toggleGrid}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
+                        className="w-full flex items-center dark:text-blue-400 justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
                   >
                     <span className="flex items-center">
                       <Grid size={16} className="mr-2" />
@@ -436,7 +433,7 @@ const EnhancedSidebar2: React.FC<EnhancedSidebarProps> = ({
                   </button>
                   <button
                     onClick={toggleAxis}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
+                    className="w-full flex items-center dark:text-blue-400 justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
                   >
                     <span className="flex items-center">
                       {axisVisible ? <Eye size={16} className="mr-2" /> : <EyeOff size={16} className="mr-2" />}
@@ -470,7 +467,7 @@ const EnhancedSidebar2: React.FC<EnhancedSidebarProps> = ({
         }`}
       >
         {/* Sidebar tabs */}
-        <div className="w-full border-b rounded-xl border-gray-200 bg-gray-50">
+        <div className="w-full border-b rounded-xl  bg-gray-50 dark:bg-gray-800">
           {isOpen ? (
             <>
               <button
@@ -600,4 +597,4 @@ const EnhancedSidebar2: React.FC<EnhancedSidebarProps> = ({
   );
 };
 
-export default EnhancedSidebar2;
+export default EnhancedSidebarCad;

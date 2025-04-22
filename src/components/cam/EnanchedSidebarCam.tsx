@@ -18,21 +18,14 @@ import {
 
 } from 'react-feather';
 import { useCADStore } from 'src/store/cadStore';
-import ToolPanel from './ToolPanel';
-import LayerManager from './LayerManager';
-import WorkpieceSetup from './WorkpieceSetup';
-import MachineConfigManager from './MachineConfigManager';
-import SettingsPanel from './SettingPanel';
+
 import CAMWorkpieceSetup from '../cam/CamWorkpieceSetup';
 import LibrarySection from '../ui/LibrarySection';
-import OriginControls from './OriginControls';
+import OriginControls from '../cad/OriginControls';
 import ToolBrowser from '../cam/ToolBroswer';
 import MaterialBrowser from '../cam/MaterialBroswer';
-import SnapSettings from './SnapSettings';
-import { fetchOrganizationById } from '@/src/lib/api/organizations';
-import LibraryMenu from './LibraryMenu';
-import UnifiedLibraryBrowser from './UnifiedLibraryBrowser';
-import UnifiedToolsBrowser, { ToolLibraryItem } from './UnifiedToolsBrowser';
+import SnapSettings from '../cad/SnapSettings';
+
 import ToolMenus from '../cam/ToolMenus';
 import { Puzzle } from 'lucide-react';
 
@@ -53,7 +46,7 @@ interface NavItem {
   children?: NavItem[];
 }
 
-const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({ 
+const EnhancedSidebarCam: React.FC<EnhancedSidebarProps> = ({ 
   isOpen, 
   setIsOpen, 
   activeSidebarTab, 
@@ -424,7 +417,7 @@ const renderSidebarContent = () => {
               <div className="space-y-2">
                 <button
                   onClick={toggleGrid}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
+                  className="w-full flex items-center dark:text-blue-400 justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
                 >
                   <span className="flex items-center">
                     <Grid size={16} className="mr-2" />
@@ -436,7 +429,7 @@ const renderSidebarContent = () => {
                 </button>
                 <button
                   onClick={toggleAxis}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
+                  className="w-full flex items-center dark:text-blue-400  justify-between px-3 py-2 rounded-md text-sm bg-gray-100 hover:bg-gray-200"
                 >
                   <span className="flex items-center">
                     {axisVisible ? <Eye size={16} className="mr-2" /> : <EyeOff size={16} className="mr-2" />}
@@ -603,4 +596,4 @@ return (
 );
 };
 
-export default EnhancedSidebar; 
+export default EnhancedSidebarCam; 

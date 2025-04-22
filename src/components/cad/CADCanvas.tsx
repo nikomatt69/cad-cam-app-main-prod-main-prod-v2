@@ -1380,8 +1380,8 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     // Aumenta il range di zoom permettendo sia un livello molto ravvicinato che molto distante
-    controls.minDistance = 0.1;  // Zoom ravvicinato molto più vicino (era 5)
-    controls.maxDistance = 500;  // Zoom molto più lontano (era 100)
+    controls.minDistance = 0.01;  // Zoom ravvicinato molto più vicino (era 5)
+    controls.maxDistance = 5000;  // Zoom molto più lontano (era 100)
     // Aggiungi la velocità di zoom per un controllo più preciso
     controls.zoomSpeed = 1.5;
     // Attiva il pannello sensibile alla rotella del mouse per uno zoom più intuitivo
@@ -1428,24 +1428,39 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
 
       // Add labels for axes
       const addAxisLabel = (text: string, position: [number, number, number], color: THREE.Color) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        const canvasWidth = 64;
+        const canvasHeight = 64;
+        // Use pooled canvas
+        const canvas = getTemporaryCanvas(`axisLabel-${text}`, canvasWidth, canvasHeight);
         const context = canvas.getContext('2d');
+        
         if (context) {
+          // Clear canvas before drawing
+          context.clearRect(0, 0, canvasWidth, canvasHeight);
           context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
           context.font = 'Bold 48px Arial';
           context.textAlign = 'center';
           context.textBaseline = 'middle';
           context.fillText(text, 32, 32);
           
-          const texture = new THREE.CanvasTexture(canvas);
+          // Use pooled texture
+          const texture = getTextureFromPool(`axisLabelTexture-${text}`, canvasWidth, canvasHeight);
+          texture.image = canvas; // Assign the drawn canvas to the texture
+          texture.needsUpdate = true; // Mark texture for update
+          
           const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
           const sprite = new THREE.Sprite(spriteMaterial);
           sprite.position.set(...position);
           sprite.scale.set(2, 2, 2);
+          
+          // Release canvas back to pool (optional, pool manages reuse)
+          // CanvasPool.releaseCanvas(canvas); 
+          
           return sprite;
         }
+        // Release canvas if context failed or sprite wasn't created
+        const canvasKey = `temp-axisLabel-${text}`;
+        CanvasPool.releaseCanvas(canvasKey);
         return null;
       };
 
@@ -1468,7 +1483,7 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
     };
 
     // Create and add custom axes to the scene
-    const customAxes = createCustomAxes(20);  // Assi più lunghi (era 10)
+    const customAxes = createCustomAxes(30);  // Assi più lunghi (era 10)
     customAxes.visible = axisVisible;
     customAxes.userData.isCustomAxes = true;
     scene.add(customAxes);
@@ -1660,13 +1675,48 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
     
     switch (viewMode) {
       case '2d':
-        // Position camera for top-down 2D view
-        cameraRef.current.position.set(0, 0, 10);
+        // Set dark background for 2D mode
+        if (sceneRef.current) {
+          sceneRef.current.background = new THREE.Color('#2A2A2A');
+        }
+        
+        // Position camera to look at XY plane (from Z axis)
+        cameraRef.current.position.set(0, 0, 50);
+        cameraRef.current.up.set(0, 1, 0); // Set Y as the up direction 
         cameraRef.current.lookAt(0, 0, 0);
+        
+        // Update grid for XY plane view
+        const gridHelper = sceneRef?.current?.children.find(
+          child => child instanceof THREE.GridHelper
+        ) as THREE.GridHelper | undefined;
+        
+        if (gridHelper) {
+          gridHelper.material.opacity = 0.2;
+          gridHelper.material.transparent = true;
+          // Align grid with XY plane (flat on the ground)
+          gridHelper.rotation.x = Math.PI / 2;
+        }
+        
+        // Disable rotation in 2D mode
         controlsRef.current.enableRotate = false;
         controlsRef.current.enablePan = true;
-        controlsRef.current.minDistance = 0.1;   // Ridotto per permettere uno zoom ravvicinato
-        controlsRef.current.maxDistance = 1000;  // Aumentato per permettere una visione d'insieme più ampia
+        
+        // Show only X and Y axes in 2D mode
+        const customAxes = sceneRef?.current?.children.find(
+          child => child.userData.isCustomAxes
+        );
+        
+        if (customAxes) {
+          customAxes.visible = axisVisible;
+          customAxes.children.forEach((child, index) => {
+            // Show X (index 0) and Y (index 1), hide Z (index 2)
+            if (index === 2) {
+              child.visible = false;
+            } else {
+              child.visible = true;
+            }
+          });
+        }
         break;
       case '3d':
         // Position camera for 3D view
@@ -1674,13 +1724,13 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
         cameraRef.current.lookAt(0, 0, 0);
         controlsRef.current.enableRotate = true;
         controlsRef.current.enablePan = true;
-        controlsRef.current.minDistance = 0.1;   // Ridotto per permettere uno zoom ravvicinato
-        controlsRef.current.maxDistance = 1000;  // Aumentato per permettere una visione d'insieme più ampia
+        controlsRef.current.minDistance = 0.01;   // Ridotto per permettere uno zoom ravvicinato
+        controlsRef.current.maxDistance = 5000;  // Aumentato per permettere una visione d'insieme più ampia
         break;
       default:
         break;
     }
-  }, [viewMode]);
+  }, [viewMode, axisVisible]);
 
   // Handle preview component changes
   useEffect(() => {
@@ -4729,12 +4779,12 @@ useEffect(() => {
         // Set dark background for 2D mode
         sceneRef.current.background = new THREE.Color('#2A2A2A');
         
-        // Position camera to look at XZ plane (from Y axis)
-        cameraRef.current.position.set(0, 50, 0);
-        cameraRef.current.up.set(0, 1, 0); // Set Z as the up direction
+        // Position camera to look at XY plane (from Z axis)
+        cameraRef.current.position.set(0, 0, 50);
+        cameraRef.current.up.set(0, 1, 0); // Set Y as the up direction 
         cameraRef.current.lookAt(0, 0, 0);
         
-        // Update grid for XZ plane view
+        // Update grid for XY plane view
         const gridHelper = sceneRef.current.children.find(
           child => child instanceof THREE.GridHelper
         ) as THREE.GridHelper | undefined;
@@ -4742,15 +4792,15 @@ useEffect(() => {
         if (gridHelper) {
           gridHelper.material.opacity = 0.2;
           gridHelper.material.transparent = true;
-          // Align grid with XZ plane
-          gridHelper.rotation.x = 0;
+          // Align grid with XY plane (flat on the ground)
+          gridHelper.rotation.x = Math.PI / 2;
         }
         
         // Disable rotation in 2D mode
         controlsRef.current.enableRotate = false;
         controlsRef.current.enablePan = true;
         
-        // Show only X and Z axes in 2D mode
+        // Show only X and Y axes in 2D mode
         const customAxes = sceneRef.current.children.find(
           child => child.userData.isCustomAxes
         );
@@ -5581,7 +5631,7 @@ useEffect(() => {
         width: width,
         height: height
       }}
-      className={`relative bg-gray-200 overflow-hidden ${isPlacingComponent || isDraggingComponent ? 'cursor-cell' : ''}`}
+      className={`relative bg-gradient-to-b from-[#2A2A2A] to-[#303030] overflow-hidden ${isPlacingComponent || isDraggingComponent ? 'cursor-cell' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}

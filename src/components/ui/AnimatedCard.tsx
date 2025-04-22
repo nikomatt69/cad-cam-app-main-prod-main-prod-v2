@@ -40,7 +40,7 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
     <motion.div
       {...animationSettings}
       onClick={onClick}
-      className={`bg-[#F8FBFF] dark:bg-gray-700 dark:text-white shadow-md rounded-md overflow-hidden ${className}`}
+      className={`bg-[#F8FBFF] dark:bg-gray-800 shadow-md rounded-md overflow-hidden ${className}`}
     >
       {children}
     </motion.div>

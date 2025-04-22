@@ -185,8 +185,8 @@ export default function OrganizationDetailPage() {
     return (
       <DynamicLayout>
         <div className="p-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Organizzazione non trovata</h1>
-          <p className="text-gray-600 mb-6">L&apos;organizzazione che stai cercando non esiste o non hai accesso a essa.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Organization not found</h1>
+          <p className="text-gray-600 mb-6">The organization you are looking for does not exist or you do not have access to it.</p>
           <button
             onClick={() => router.push('/profile')}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -481,7 +481,6 @@ export default function OrganizationDetailPage() {
                         <button
                           type="button"
                           onClick={handleCreateProject}
-// src/pages/organizations/[id].tsx (continued)
                           className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                           Create Project

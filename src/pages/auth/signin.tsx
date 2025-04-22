@@ -42,22 +42,22 @@ export default function SignIn() {
   return (
     <>
        <MetaTags
-  ogImage="/og-default.png" 
-        title="CAM/CAM FUN LOGIN" 
-     
+        ogImage="/og-default.png" 
+        title="CAD/CAM FUN" 
+        description="A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI."
       />
       <Navbar/>
       <div className="min-h-screen flex items-center justify-center bg-gray  py-8 sm:p-1 lg:px-8">
         <div className="max-w-lg w-full border-2 flex-col flex rounded-xl xs:p-0 p-20 sm:p-3 space-y-8">
           <div className='  items-center'>
             <img src={'/logo.png'} className=' h-40 items-center mb-10 sm:mb-2 xs:mb-1' />
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-center text-3xl font-extrabold  text-gray-900 dark:text-white">
               Sign in to your account
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600"> Or{' '}</p>
             <p className="mt-2 text-center text-sm text-gray-600">
               
-              <a href="/auth/signup" className="font-bold text-blue-600 text-xl hover:text-blue-500">
+              <a href="/auth/signup" className="font-bold text-blue-600 text-xl hover:text-blue-500 dark:text-blue-400">
                 Create Account
               </a>
             </p>
@@ -108,15 +108,15 @@ export default function SignIn() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:text-blue-400 dark:focus:ring-blue-500 dark:border-gray-600"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-white">
                   Remember me
                 </label>
               </div>
               
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="#" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-500">
                   Forgot your password?
                 </a>
               </div>

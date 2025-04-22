@@ -16,7 +16,7 @@ import { useLayerStore } from 'src/store/layerStore';
 import EnhancedSidebar from '../components/cad/EnanchedSidebar';
 import AIDesignAssistant from '../components/ai/AIDesignAssistant';
 import Loading from '../components/ui/Loading';
-import EnhancedSidebar2 from '../components/cam/EnanchedSidebar2';
+import EnhancedSidebarCad from '../components/cad/EnanchedSidebarCad';
 import MetaTags from '../components/layout/Metatags';
 import { useLocalLibrary } from '../hooks/useLocalLibrary';
 import UnifiedLibraryModal from '../components/library/UnifiedLibraryModal';
@@ -379,7 +379,7 @@ export default function CADPage() {
         title="CAD Editor" 
         description="Design and create 2D/3D components in our advanced CAD editor"
       />
-      <div className="flex rounded-xl flex-col h-full w-full">
+      <div className="flex rounded-xl flex-col bg-gradient-to-b from-[#2A2A2A] to-[#303030] h-full w-full">
         {/* Enhanced Top Toolbar */}
         <EnhancedToolbar
           sidebarOpen={sidebarOpen}
@@ -396,9 +396,9 @@ export default function CADPage() {
           setIsPlacingComponent={setIsPlacingComponent}
         />
 
-        <div className="flex flex-1 p-0.5 bg-gradient-to-b from-[#2A2A2A] to-[#303030] overflow-hidden w-full">
+        <div className="flex flex-1 p-0.5 bg-gradient-to-b from-[#2A2A2A] to-[#303030] border-b border-gray-200 dark:border-gray-700 overflow-hidden w-full">
           {/* Enhanced left sidebar */}
-          <EnhancedSidebar2 
+          <EnhancedSidebarCad 
             isOpen={sidebarOpen} 
             setIsOpen={setSidebarOpen}
             activeSidebarTab={activeSidebarTab}
@@ -406,7 +406,7 @@ export default function CADPage() {
           />
           
           {/* Main content */}
-          <div className="flex-1 flex rounded-xl bg-gradient-to-b from-[#2A2A2A] to-[#303030] relative">
+            <div className="flex-1 flex rounded-xl bg-gradient-to-b from-[#2A2A2A] to-[#303030] relative">
             <DrawingEnabledCADCanvas 
               width="100%" 
               height="100%" 
@@ -454,14 +454,14 @@ export default function CADPage() {
             } flex-shrink-0 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-xl border-2 border-l ml-0.5 transition-all duration-300 ease-in-out overflow-y-auto`}
           >
             {/* Tabs for right sidebar */}
-            <div className="px-2 pt-1 pb-1 border-b">
+            <div className="px-2 pt-1 pb-1 border-b border-gray-200 dark:border-gray-700">
               <div className="flex space-x-1">
                 <button
                   onClick={() => setActiveRightPanel('proprieties')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                     activeRightPanel === 'proprieties'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100  border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
                   <Tool size={16} className="mr-1" />
@@ -471,8 +471,8 @@ export default function CADPage() {
                   onClick={() => setActiveRightPanel('trasform')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                     activeRightPanel === 'trasform'
-                      ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100  border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
                   <Box size={16} className="mr-1" />
@@ -522,7 +522,7 @@ export default function CADPage() {
       {/* Library View Modal */}
       {showLibraryView && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] overflow-auto">
             <LocalCadLibraryView 
               onClose={() => setShowLibraryView(false)}
               onSelectDrawing={handleSelectDrawing}

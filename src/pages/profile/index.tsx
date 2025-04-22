@@ -211,7 +211,7 @@ export default function ProfilePage() {
       />
       <DynamicLayout>
         {/* Profile Header */}
-        <div className="bg-[#F8FBFF] border-b border-gray-200">
+        <div className="bg-[#F8FBFF] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="md:flex md:items-center md:justify-between">
               <div className="flex items-center space-x-5">
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                           </svg>
                         )}
                 </div>
-                <div>
+                <div className="flex bg-white dark:bg-gray-800 flex-col rounded-xl">
                   <h1 className="text-2xl font-bold text-gray-900 sm:truncate">
                     {profile.name || 'User'}
                   </h1>
@@ -284,7 +284,7 @@ export default function ProfilePage() {
         </div>
         
         {/* Stats Bar */}
-        <div className="bg-white shadow-sm">
+        <div className="bg-white dark:bg-gray-800 shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex overflow-x-auto py-4 space-x-8">
               <div className="min-w-0 flex-1">
@@ -355,9 +355,9 @@ export default function ProfilePage() {
                 {projects.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {projects.map((project) => (
-                      <div key={project.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-300">
+                      <div key={project.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-300">
                         <Link href={`/projects/${project.id}`}>
-                          <div className="h-48 bg-gray-200 relative">
+                          <div className="h-48 bg-gray-200  relative">
                             {project.thumbnail ? (
                               <img 
                                 src={project.thumbnail} 

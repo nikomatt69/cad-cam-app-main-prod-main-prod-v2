@@ -140,7 +140,7 @@ export default function CreateProjectPage() {
           </div>
         )}
         
-        <div className="bg-white shadow rounded-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800  shadow rounded-lg overflow-hidden">
           <form onSubmit={handleSubmit}>
             <div className="p-6 space-y-6">
               <div>

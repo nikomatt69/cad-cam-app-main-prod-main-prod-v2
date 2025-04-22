@@ -112,21 +112,22 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
   
   return (
     <div className="mb-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} ({value.length || 0} colori)
+      <label className="block text-sm font-medium text-gray-700 dark:text-blue-400 mb-1">
+        {label} ({value.length || 0} colors)
       </label>
       <button
         type="button"
         onClick={openDialog}
         disabled={disabled}
-        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm 
-                 bg-[#F8FBFF] hover:bg-gray-50 flex justify-between items-center"
+        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm 
+                 bg-[#F8FBFF] dark:bg-gray-700 dark:hover:bg-gray-600 hover:bg-gray-50 flex justify-between items-center
+                 text-gray-700 dark:text-blue-400"
       >
-        <span>Modifica Colori</span>
+        <span>Edit Colors</span>
         <Droplet size={16} />
       </button>
 
-      {/* Dialog per la modifica della lista di colori */}
+      {/* Dialog for editing the color list */}
       <AnimatePresence>
         {isDialogOpen && (
           <motion.div
@@ -140,33 +141,33 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-auto"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Modifica Colori</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-blue-400">Edit Colors</h3>
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="text-gray-400 hover:text-gray-500"
+                  className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Lista colori */}
-                <div className="border rounded-md p-2">
+                {/* Color List */}
+                <div className="border dark:border-gray-600 rounded-md p-2">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="text-sm font-medium">Lista Colori</h4>
+                    <h4 className="text-sm font-medium dark:text-blue-400">Color List</h4>
                     <button 
                       type="button"
                       onClick={() => {
                         setCurrentColorIndex(null);
-                        addColor();
+                        setCurrentHexColor('#000000'); // Reset hex color for adding new
                       }}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded"
-                      title="Aggiungi Colore"
+                      className="p-1 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/50 rounded"
+                      title="Add Color"
                     >
                       <Plus size={16} />
                     </button>
@@ -177,16 +178,18 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
                       <div 
                         key={index}
                         className={`flex justify-between items-center p-2 my-1 rounded cursor-pointer ${
-                          currentColorIndex === index ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          currentColorIndex === index 
+                            ? 'bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-700' 
+                            : 'hover:bg-gray-50 dark:hover:bg-blue-900/30'
                         }`}
                         onClick={() => selectColor(index)}
                       >
                         <div className="flex items-center">
                           <div 
-                            className="w-6 h-6 rounded-full mr-2 border border-gray-300" 
+                            className="w-6 h-6 rounded-full mr-2 border border-gray-300 dark:border-gray-600" 
                             style={{ backgroundColor: rgbToHex(color) }} 
                           />
-                          <div className="text-xs">{rgbToHex(color)}</div>
+                          <div className="text-xs dark:text-blue-400">{rgbToHex(color)}</div>
                         </div>
                         <button
                           type="button"
@@ -194,8 +197,8 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
                             e.stopPropagation();
                             removeColor(index);
                           }}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded"
-                          title="Rimuovi Colore"
+                          className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/50 rounded"
+                          title="Remove Color"
                         >
                           <Minus size={14} />
                         </button>
@@ -203,23 +206,23 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
                     ))}
                     
                     {editingColors.length === 0 && (
-                      <div className="text-center text-gray-500 py-4">
-                        Nessun colore aggiunto. Usa il selettore di colori per aggiungere colori.
+                      <div className="text-center text-gray-500 dark:text-gray-400 py-4">
+                        No colors added. Use the color picker to add colors.
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Selettore colori */}
-                <div className="border rounded-md p-2">
-                  <h4 className="text-sm font-medium mb-2">Selettore Colori</h4>
+                {/* Color Picker */}
+                <div className="border dark:border-gray-600 rounded-md p-2">
+                  <h4 className="text-sm font-medium mb-2 dark:text-blue-400">Color Picker</h4>
                   
                   <div className="space-y-3">
                     <input
                       type="color"
                       value={currentHexColor}
                       onChange={(e) => updateCurrentColor(e.target.value)}
-                      className="w-full h-10 rounded p-1"
+                      className="w-full h-10 rounded p-1 border dark:border-gray-600 cursor-pointer"
                     />
                     
                     <div className="flex items-center space-x-2">
@@ -227,30 +230,29 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
                         type="text"
                         value={currentHexColor}
                         onChange={(e) => updateCurrentColor(e.target.value)}
-                        className="flex-1 px-2 py-1 border border-gray-300 rounded-md text-sm"
+                        className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
                       />
                       
                       <button
                         type="button"
                         onClick={addColor}
-                        className="px-2 py-1 bg-green-600 text-white rounded-md text-xs"
+                        className="px-2 py-1 bg-green-600 dark:bg-green-700 dark:hover:bg-green-600 text-white rounded-md text-xs hover:bg-green-700"
                       >
-                        {currentColorIndex !== null ? 'Aggiorna' : 'Aggiungi'}
+                        {currentColorIndex !== null ? 'Update' : 'Add'}
                       </button>
                     </div>
                     
-                    {/* Colori predefiniti */}
+                    {/* Preset Colors */}
                     <div>
-                      <label className="block text-xs text-gray-500 mb-1">Colori predefiniti</label>
+                      <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">Preset Colors</label>
                       <div className="grid grid-cols-8 gap-1">
                         {['#FF0000', '#FF9900', '#FFCC00', '#33CC00', '#0099FF', '#6633CC', '#CC33FF', '#FF3399',
                           '#000000', '#666666', '#999999', '#CCCCCC', '#FFFFFF', '#996633', '#006633', '#003366'].map(color => (
                           <div
                             key={color}
-                            className="w-6 h-6 rounded-full border border-gray-300 cursor-pointer"
+                            className="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 cursor-pointer hover:scale-110 transition-transform"
                             style={{ backgroundColor: color }}
                             onClick={() => updateCurrentColor(color)}
-                            title={color}
                           />
                         ))}
                       </div>
@@ -259,20 +261,21 @@ export const ColorListInput: React.FC<ColorListInputProps> = ({
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2 mt-4">
+              {/* Modal actions */}
+              <div className="mt-6 flex justify-end space-x-3">
                 <button
                   type="button"
                   onClick={closeDialog}
-                  className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700 hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Annulla
+                  Cancel
                 </button>
                 <button
                   type="button"
                   onClick={saveColors}
-                  className="px-3 py-1.5 bg-blue-600 rounded text-sm text-white hover:bg-blue-700"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  Salva Colori
+                  Save Colors
                 </button>
               </div>
             </motion.div>

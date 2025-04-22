@@ -38,7 +38,7 @@ const Footer: FC = () => {
         <div className="flex flex-col items-center gap-y-2 sm:flex-row sm:items-center sm:gap-x-4">
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
             <Link href="/legal/terms" className="hover:underline">Terms</Link>
-            <Link href="/legal/privacy-policy" className="hover:underline">Privacy</Link>
+            <Link href="/legal/privacy" className="hover:underline">Privacy</Link>
             <Link href="/legal/third-party-licenses" className="hover:underline">Licenses</Link>
           </div>
           <Link

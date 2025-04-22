@@ -13,7 +13,7 @@ const StatusBar: React.FC = () => {
     visible: { opacity: 1, y: 0 }
   };
   
-  // Determine if we're in 2D (XZ) mode or 3D mode
+  // Determine if we're in 2D (XY) mode or 3D mode
   const is2DMode = viewMode === '2d';
   
   return (
@@ -45,7 +45,7 @@ const StatusBar: React.FC = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
           >
-            {is2DMode ? '2D (XZ)' : '3D'}
+            {is2DMode ? '2D (XY)' : '3D'}
           </motion.span>
         </motion.div>
         <motion.div variants={statusItemVariants}>
@@ -97,7 +97,7 @@ const StatusBar: React.FC = () => {
         </motion.div>
 
         {/* Show Y coordinate in 3D mode */}
-        {!is2DMode && (
+        
           <motion.div variants={statusItemVariants}>
             <span className="text-gray-400 mr-2">Y:</span>
             <motion.span 
@@ -108,9 +108,10 @@ const StatusBar: React.FC = () => {
               {mousePosition.y.toFixed(2)}
             </motion.span>
           </motion.div>
-        )}
+      
 
         {/* Always show Z coordinate */}
+        {!is2DMode && (
         <motion.div variants={statusItemVariants}>
           <span className="text-gray-400 mr-2">Z:</span>
           <motion.span 
@@ -121,6 +122,7 @@ const StatusBar: React.FC = () => {
             {mousePosition.z.toFixed(2)}
           </motion.span>
         </motion.div>
+        )}
 
         <motion.div variants={statusItemVariants}>
           <span className="text-gray-400 mr-2">Selected:</span>

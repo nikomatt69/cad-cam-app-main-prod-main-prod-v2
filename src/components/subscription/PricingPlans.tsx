@@ -25,25 +25,25 @@ export default function PricingPlans() {
   const planKeys = Object.keys(SUBSCRIPTION_PLANS).filter(key => key !== 'FREE');
   
   return (
-    <div className="bg-white py-12">
+    <div className="bg-white dark:bg-gray-800 rounded-lg py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">Subscription Plans</h2>
-          <p className="mt-4 text-xl text-gray-600">
+          <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white sm:text-4xl">Subscription Plans</h2>
+          <p className="mt-4 text-xl text-gray-600 dark:text-gray-400 ">
             Choose the right plan for your needs
           </p>
         </div>
         
         <div className="mt-12 space-y-12 lg:space-y-0 lg:grid lg:grid-cols-4 lg:gap-x-8">
           {/* Free plan */}
-          <div className="relative p-8 bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col">
+          <div className="relative p-8 bg-white border dark:border-blue-400 dark:bg-gray-800 border-gray-200 rounded-2xl shadow-sm flex flex-col">
             <div className="flex-1">
-              <h3 className="text-xl font-semibold text-gray-900">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].name}</h3>
-              <p className="mt-4 flex items-baseline text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].name}</h3>
+              <p className="mt-4 flex items-baseline text-gray-900 dark:text-white">
                 <span className="text-5xl font-extrabold tracking-tight">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].price}</span>
                 <span className="ml-1 text-xl font-semibold">/month</span>
               </p>
-              <p className="mt-6 text-gray-500">Get started with basic CAD functionality for free</p>
+              <p className="mt-6 text-gray-500 dark:text-gray-400">Get started with basic CAD functionality for free</p>
               
               <ul className="mt-6 space-y-4">
                 {PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].features.map((feature) => (
@@ -76,8 +76,8 @@ export default function PricingPlans() {
             return (
               <div 
                 key={planKey} 
-                className={`relative p-8 bg-white border rounded-2xl shadow-sm flex flex-col ${
-                  isCurrentPlan ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200'
+                className={`relative p-8 bg-white dark:bg-gray-800 border rounded-2xl shadow-sm flex flex-col ${
+                  isCurrentPlan ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700  '
                 }`}
               >
                 {isCurrentPlan && (
@@ -87,12 +87,12 @@ export default function PricingPlans() {
                 )}
                 
                 <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900">{planFeatures.name}</h3>
-                  <p className="mt-4 flex items-baseline text-gray-900">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{planFeatures.name}</h3>
+                  <p className="mt-4 flex items-baseline text-gray-900 dark:text-white">
                     <span className="text-2xl font-extrabold tracking-tight">{planFeatures.price}</span>
                     <span className="ml-1 text-xl font-semibold">/month</span>
                   </p>
-                  <p className="mt-6 text-gray-500">
+                  <p className="mt-6 text-gray-500 dark:text-gray-400">
                     Perfect for {planKey === 'BASIC' ? 'individuals' : planKey === 'PRO' ? 'professionals' : 'teams'}
                   </p>
                   
@@ -102,7 +102,7 @@ export default function PricingPlans() {
                         <svg className="flex-shrink-0 h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        <span className="ml-3 text-gray-500">{feature}</span>
+                        <span className="ml-3 text-gray-500 dark:text-gray-400">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -111,7 +111,7 @@ export default function PricingPlans() {
                 <button
                   onClick={() => handleSubscribe(planId as string)}
                   disabled={isCurrentPlan || isLoading}
-                  className={`mt-8 block w-full py-3 px-6 border border-transparent rounded-md shadow text-center text-white 
+                  className={`mt-8 block w-full py-3 px-6 border border-transparent rounded-md shadow text-center text-white dark:text-gray-900 
                     ${planKey === 'BASIC' ? 'bg-blue-600 hover:bg-blue-700' : 
                       planKey === 'PRO' ? 'bg-indigo-600 hover:bg-indigo-700' : 
                       'bg-purple-600 hover:bg-purple-700'} 

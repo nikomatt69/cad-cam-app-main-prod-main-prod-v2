@@ -17,7 +17,9 @@ import {
   Settings,
   ExternalLink,
   ToggleLeft,
-  Maximize
+  Maximize,
+  RotateCcw,
+  RotateCw
 } from 'react-feather';
 import { useRouter } from 'next/router';
 import { useElementsStore } from 'src/store/elementsStore';
@@ -34,6 +36,7 @@ import { useToolState } from '@/src/store/toolStore';
 import { usePluginClient } from '@/src/context/PluginClientContext';
 import PluginToolbarButton from '../plugins/PluginToolbarButton';
 import { useCADStore } from 'src/store/cadStore';
+import { ComponentLibraryItem, ToolLibraryItem, MaterialLibraryItem } from '@/src/hooks/useUnifiedLibrary';
 
 interface EnhancedToolbarProps {
   sidebarOpen: boolean;
@@ -46,8 +49,8 @@ interface EnhancedToolbarProps {
   setShowFloatingToolbar: (show: boolean) => void;
   showFloatingToolbar: boolean;
   selectedLibraryComponent: string | null;
-  setSelectedLibraryComponent: (componentId: string | null) => void;
-  setIsPlacingComponent?: (isPlacing: boolean) => void;
+  setSelectedLibraryComponent: (id: string | null) => void;
+  setIsPlacingComponent: (placing: boolean) => void;
 }
 
 // Custom plugin button component that matches your app's styling
@@ -156,10 +159,10 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
   
 
   return (
-    <div className="bg-white dark:bg-gray-900 border-b w-full px-4 py-2 rounded-xl flex items-center justify-between">
+    <div className="bg-[#F8FBFF] dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center justify-between w-full rounded-xl text-gray-900 dark:text-white">
       <div className="flex w-max rounded-xl items-center">
         <button
-          className="mr-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+          className="mr-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
           onClick={() => setSidebarOpen(!sidebarOpen)}
         >
           <Menu size={20} className="text-gray-600 dark:text-gray-400" />
@@ -216,18 +219,20 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
           
           <div className="h-5 border-l border-gray-300 dark:border-gray-700 mx-1"></div>
           <button
-            onClick={undo}
-            className="p-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md shadow-sm"
             title="Undo"
+            onClick={undo}
+            
+            className={`p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 dark:hover:text-white `}
           >
-            <ArrowLeft size={16} className="text-gray-600 dark:text-gray-400" />
+            <RotateCcw size={18} />
           </button>
-          <button
-            onClick={redo}
-            className="p-1.5 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md shadow-sm"
+          <button 
             title="Redo"
+            onClick={redo}
+            
+            className={`p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 dark:hover:text-white`}
           >
-            <ArrowRight size={16} className="text-gray-600 dark:text-gray-400" />
+            <RotateCw size={18} />
           </button>
           <div className="h-5 border-l border-gray-300 dark:border-gray-700 mx-1"></div>
           

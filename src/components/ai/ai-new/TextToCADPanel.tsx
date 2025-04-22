@@ -214,7 +214,7 @@ const TextToCADPanel: React.FC<TextToCADPanelProps> = ({
   const isGenerateDisabled = !description.trim() || generationStatus === 'generating';
   
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow p-4 ${className}`}>
+    <div className={`bg-white dark:bg-gray-800 border-violet-500 rounded-xl shadow p-4 ${className}`}>
       <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center mb-4">
         <PenTool className="mr-2" size={20} />
         Text to CAD

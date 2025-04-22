@@ -109,12 +109,13 @@ export default function SignUp() {
   return (
     <>
        <MetaTags
-  ogImage="/og-default.png" 
-        title="CAM/CAM FUN SIGNUP" 
+        ogImage="/og-default.png" 
+        title="CAD/CAM FUN" 
+        description="A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI."
      
       />
       <Navbar/>
-      <div className="min-h-screen items-center flex flex-col justify-center py-8 sm:px-6 lg:px-8 bg-gray">
+      <div className="min-h-screen items-center flex flex-col justify-center py-8 sm:px-6 lg:px-8 ">
         <div className="max-w-lg w-full border-2 justify-center flex-col flex rounded-xl p-20 sm:p-2 space-y-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md ">
         
@@ -133,19 +134,19 @@ export default function SignUp() {
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-6 text-center text-3xl font-extrabold text-gray-900"
+            className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white"
           >
             Create your account
           </motion.h2>
-          <p className="mt-2 text-center text-md text-gray-600"> Or{' '}</p>
+          <p className="mt-2 text-center text-md text-gray-600 dark:text-gray-400"> Or{' '}</p>
           <motion.p
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-2 text-center text-sm text-gray-600"
+            className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400"
           >
           
-            <Link href="/auth/signin" className="font-bold pt-3 text-blue-600 hover:text-blue-500 text-xl">
+            <Link href="/auth/signin" className="font-bold pt-3 text-blue-600 hover:text-blue-500 text-xl dark:text-blue-400 dark:hover:text-blue-500">
               Login Here
             </Link>
           </motion.p>
@@ -166,7 +167,7 @@ export default function SignUp() {
             
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-white">
                   Name
                 </label>
                 <div className="mt-1">
@@ -189,7 +190,7 @@ export default function SignUp() {
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-white">
                   Email address
                 </label>
                 <div className="mt-1">
@@ -212,7 +213,7 @@ export default function SignUp() {
               </div>
 
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-white">
                   Password
                 </label>
                 <div className="mt-1">
@@ -235,7 +236,7 @@ export default function SignUp() {
               </div>
 
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-white">
                   Confirm Password
                 </label>
                 <div className="mt-1">
@@ -261,7 +262,7 @@ export default function SignUp() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 dark:bg-blue-400 dark:hover:bg-blue-500 dark:focus:ring-blue-500 dark:text-white"
                 >
                   {isSubmitting ? 'Creating account...' : 'Sign up'}
                 </button>

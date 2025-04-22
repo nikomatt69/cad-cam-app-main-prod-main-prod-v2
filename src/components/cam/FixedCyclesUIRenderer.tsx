@@ -246,41 +246,47 @@ export const FixedCyclesUIRenderer: React.FC<FixedCyclesUIRendererProps> = ({
   };
   
   return (
-    <div className={`fixed-cycle-editor ${className || ''}`}>
-      <div className="fixed-cycle-header">
-        <h3>{getCycleTitle(cycleResult.type)}</h3>
-        <div className="fixed-cycle-gcode">{cycleResult.gCode}</div>
+    <div className={`fixed-cycle-editor bg-white dark:bg-gray-800 dark:text-gray-200 p-4 rounded-md shadow-md border dark:border-gray-700 ${className || ''}`}>
+      <div className="fixed-cycle-header border-b pb-2 mb-3 dark:border-gray-600">
+        <h3 className="text-lg font-semibold dark:text-gray-100">{getCycleTitle(cycleResult.type)}</h3>
+        <div className="fixed-cycle-gcode text-sm text-gray-500 dark:text-gray-400 font-mono mt-1">{cycleResult.gCode}</div>
       </div>
       
-      <div className="fixed-cycle-params">
+      <div className="fixed-cycle-params grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
         {parameterFields.map((field) => (
           <div key={field.name} className="param-field">
-            <label htmlFor={`param-${field.name}`}>
+            <label htmlFor={`param-${field.name}`} className="block text-sm font-medium mb-1 dark:text-gray-300">
               {field.label}
-              {field.required && <span className="required">*</span>}
+              {field.required && <span className="required text-red-500 ml-1">*</span>}
             </label>
-            <div className="param-input-group">
+            <div className="param-input-group flex items-center">
               <input
                 id={`param-${field.name}`}
                 type="number"
                 min={field.min}
                 max={field.max}
                 step={field.step || 1}
-                value={parameters[field.name as keyof FixedCycleParams] as number || field.defaultValue}
+                value={(parameters[field.name as keyof FixedCycleParams] as number) ?? field.defaultValue}
                 onChange={(e) => handleParameterChange(field.name, parseFloat(e.target.value))}
+                className="flex-grow px-2 py-1 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               />
-              {field.unit && <span className="unit">{field.unit}</span>}
+              {field.unit && <span className="unit ml-2 text-sm text-gray-500 dark:text-gray-400">{field.unit}</span>}
             </div>
-            <div className="param-description">{field.description}</div>
+            <div className="param-description text-xs text-gray-500 mt-1 dark:text-gray-400">{field.description}</div>
           </div>
         ))}
       </div>
       
-      <div className="fixed-cycle-actions">
-        <button className="apply-button" onClick={handleApply}>
-          Applica Modifiche
-        </button>
-      </div>
+      {onApply && (
+        <div className="fixed-cycle-actions mt-4 text-right">
+          <button 
+            className="apply-button px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-gray-800"
+            onClick={handleApply}
+          >
+            Applica Modifiche
+          </button>
+        </div>
+      )}
     </div>
   );
 };

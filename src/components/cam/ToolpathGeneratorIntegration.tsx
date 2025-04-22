@@ -199,13 +199,13 @@ const ToolpathGeneratorIntegration: React.FC<ToolpathGeneratorIntegrationProps> 
     <div className={`toolpath-generator-integration ${className || ''}`}>
       {/* Pulsanti per generare cicli fissi */}
       <div className="fixed-cycles-actions">
-        <h3>Cicli Fissi</h3>
+        <h3>Fixed Cycles</h3>
         <div className="cycle-buttons">
           <button 
             onClick={generateFixedCycleFromSelection}
             disabled={selectedElements.length === 0}
           >
-            Genera Ciclo Fisso dagli Elementi Selezionati
+            Generate Fixed Cycle from Selected Elements
           </button>
         </div>
       </div>
