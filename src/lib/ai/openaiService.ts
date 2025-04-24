@@ -303,25 +303,68 @@ export class OpenAIService {
       generateCADElement: {
         type: "function",
         function: {
-          name: "generateCADElement",
-          description: "Creates one or more new CAD elements based on a user description. Use the description provided by the user.",
+          name: 'generateCADElement',
+          description: 'Generate one or more CAD components based on a description',
           parameters: {
-            type: "object",
+            type: 'object',
             properties: {
-              description: {
-                type: "string",
-                description: "Detailed text description of the element(s) to create."
-              },
-              constraints: {
-                type: "object",
-                description: "Optional constraints like dimensions or preferred types.",
-                properties: {
-                   maxDimensions: { type: "object", properties: { width: {type: "number"}, height: {type: "number"}, depth: {type: "number"} } },
-                   preferredTypes: { type: "array", items: { type: "string" } }
+              elements: {
+                type: 'array',
+                description: 'Array of CAD elements to create',
+                items: {
+                  type: 'object',
+                  properties: {
+                    type: {
+                      type: 'string',
+                      enum: [
+                        'cube', 'sphere', 'cylinder', 'cone', 'torus', 'pyramid', 'prism',
+                        'hemisphere', 'ellipsoid', 'capsule', 'circle', 'rectangle', 'triangle',
+                        'polygon', 'ellipse', 'arc', 'line', 'spline', 'bezier', 'nurbs',
+                        'boolean-union', 'boolean-subtract', 'boolean-intersect', 'extrusion',
+                        'revolution', 'sweep', 'loft', 'thread', 'chamfer', 'fillet', 'gear',
+                        'spring', 'screw', 'nut', 'bolt', 'washer', 'rivet', 'linear-dimension',
+                        'angular-dimension', 'radius-dimension', 'diameter-dimension',
+                        'drawing-pen', 'drawing-highlighter', 'drawing-text', 'drawing-eraser',
+                        'drawing-screenshot-area', 'wall', 'floor', 'roof', 'window', 'door',
+                        'stair', 'column', 'text3d', 'path3d', 'point-cloud', 'mesh', 'group'
+                      ],
+                      description: 'Type of CAD element'
+                    },
+                    x: { type: 'number', description: 'X position' },
+                    y: { type: 'number', description: 'Y position' },
+                    z: { type: 'number', description: 'Z position' },
+                    name: {
+                      type: 'string',
+                      description: 'Optional name or label for the element'
+                    },
+                    material: {
+                      type: 'string',
+                      description: 'Material of the element (e.g., Steel, Aluminum, ABS Plastic)'
+                    },
+                    segments: {
+                      type: 'integer',
+                      description: 'Number of segments for curved surfaces (controls smoothness)'
+                    },
+                    width: { type: 'number', description: 'Width (for cube, rectangle etc.)' },
+                    height: { type: 'number', description: 'Height (for cube, cylinder etc.)' },
+                    depth: { type: 'number', description: 'Depth (for cube etc.)' },
+                    radius: { type: 'number', description: 'Radius (for sphere, cylinder etc.)' },
+                    color: { type: 'string', description: 'Color in hex format (e.g., #FF0000)' },
+                    rotation: {
+                      type: 'object',
+                      description: 'Rotation in degrees',
+                      properties: {
+                        x: { type: 'number', description: 'X rotation' },
+                        y: { type: 'number', description: 'Y rotation' },
+                        z: { type: 'number', description: 'Z rotation' }
+                      }
+                    }
+                  },
+                  required: ['type','id', 'properties']
                 }
               }
             },
-            required: ["description"]
+            required: ['elements']
           }
         }
       },

@@ -32,6 +32,8 @@ import { PluginRegistry, PluginStorage } from '@/src/plugins/core/registry';
 import { InMemoryPluginStorage } from '@/src/plugins/core/registry/pluginStorage';
 import MetaTags from '../components/layout/Metatags';
 import { useElementsStore } from 'src/store/elementsStore';
+import { ThemeProvider } from '../contexts/ThemeProvider';
+import { ConstraintProvider } from '../contexts/ConstraintContext';
 
 // Ensure this initialization runs only once client-side
 let pluginSystemInitialized = false;
@@ -100,6 +102,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
           <LanguageProvider>
             <MetaTags ogImage="/og-default.png" />
             <main className={`${camFont.style.fontFamily} antialiased bg-white dark:bg-gray-900`}>
+            <ThemeProvider>
               <SubscriptionProvider>
                 <NotificationProvider>
                   <ToastProvider>
@@ -108,6 +111,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
                         <PageViewTracker />
                         <AnalyticsProvider>
                           <CursorProvider>
+                            <ConstraintProvider>
                             <AIContextProvider addElementsToCanvas={addElements}>
                               <style jsx global>{`
                                 body {
@@ -119,6 +123,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
                                 <Component {...pageProps} />
                               </PluginClientProvider>
                             </AIContextProvider>
+                           </ConstraintProvider>
                           </CursorProvider>
                         </AnalyticsProvider>
                         <PWAInstallPrompt />
@@ -127,6 +132,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
                   </ToastProvider>
                 </NotificationProvider>
               </SubscriptionProvider>
+              </ThemeProvider>
             </main>
           </LanguageProvider>
         </AuthProvider>

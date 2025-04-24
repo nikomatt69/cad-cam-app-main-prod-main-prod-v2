@@ -210,8 +210,8 @@ export default function ProfilePage() {
         description={`View ${profile.name || 'User'}'s profile, projects and components.`}
       />
       <DynamicLayout>
-        {/* Profile Header */}
-        <div className="bg-[#F8FBFF] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        {/* Profile Header - Add rounded-xl */}
+        <div className="bg-[#F8FBFF] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-xl mb-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="md:flex md:items-center md:justify-between">
               <div className="flex items-center space-x-5">
@@ -228,304 +228,181 @@ export default function ProfilePage() {
                           </svg>
                         )}
                 </div>
-                <div className="flex bg-white dark:bg-gray-800 flex-col rounded-xl">
-                  <h1 className="text-2xl font-bold text-gray-900 sm:truncate">
+                <div className="flex flex-col">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-blue-400 sm:truncate">
                     {profile.name || 'User'}
                   </h1>
                   <div className="mt-1 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
                     {profile.email && (
-                      <div className="mt-2 flex items-center text-sm text-gray-500">
-                        <Mail className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                      <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                        <Mail className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
                         {profile.email}
                       </div>
                     )}
                     {profile.location && (
-                      <div className="mt-2 flex items-center text-sm text-gray-500">
-                        <MapPin className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                      <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                        <MapPin className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
                         {profile.location}
                       </div>
                     )}
-                    <div className="mt-2 flex items-center text-sm text-gray-500">
-                      <Calendar className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                    <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                      <Calendar className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
                       Joined {formatDate(profile.createdAt)}
                     </div>
+                    {profile.website && (
+                      <div className="mt-2 flex items-center text-sm text-gray-500">
+                        <Link href={profile.website} target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400">
+                          <Globe className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                          Website
+                        </Link>
+                      </div>
+                    )}
+                    {profile.github && (
+                      <div className="mt-2 flex items-center text-sm text-gray-500">
+                        <Link href={`https://github.com/${profile.github}`} target="_blank" rel="noopener noreferrer" className="flex items-center hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                          <GitHub className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                          GitHub
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              <div className="mt-6 flex flex-col-reverse justify-stretch space-y-4 space-y-reverse sm:flex-row-reverse sm:justify-end sm:space-x-3 sm:space-y-0 sm:space-x-reverse md:mt-0 md:flex-row md:space-x-3">
-                {isOwnProfile && (
-                  <Link href="/profile/settings" className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <Settings className="h-4 w-4 mr-2" />
+              {isOwnProfile && (
+                <div className="mt-6 flex space-x-3 md:mt-0 md:ml-4">
+                  <Link href="/profile/settings" className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <Settings className="-ml-1 mr-2 h-4 w-4" />
                     Edit Profile
                   </Link>
-                )}
-                {profile.github && (
-                  <a href={profile.github} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <GitHub className="h-4 w-4 mr-2" />
-                    GitHub
-                  </a>
-                )}
-                {profile.website && (
-                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <Globe className="h-4 w-4 mr-2" />
-                    Website
-                  </a>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-            
             {profile.bio && (
-              <div className="mt-6 max-w-3xl">
-                <p className="text-gray-700">{profile.bio}</p>
+              <div className="mt-6">
+                <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">About</h2>
+                <p className="mt-1 text-sm text-gray-900 dark:text-blue-400">{profile.bio}</p>
               </div>
             )}
           </div>
-        </div>
-        
-        {/* Stats Bar */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex overflow-x-auto py-4 space-x-8">
-              <div className="min-w-0 flex-1">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="px-4 py-2 text-center">
-                    <div className="text-2xl font-semibold text-gray-900">{projects.length}</div>
-                    <div className="text-sm font-medium text-gray-500">Projects</div>
-                  </div>
-                  <div className="px-4 py-2 text-center">
-                    <div className="text-2xl font-semibold text-gray-900">{components.length}</div>
-                    <div className="text-sm font-medium text-gray-500">Components</div>
-                  </div>
-                  <div className="px-4 py-2 text-center">
-                    <div className="text-2xl font-semibold text-gray-900">{toolpaths.length}</div>
-                    <div className="text-sm font-medium text-gray-500">Toolpaths</div>
-                  </div>
-                  <div className="px-4 py-2 text-center">
-                    <div className="text-2xl font-semibold text-gray-900">{profile.organizations?.length || 0}</div>
-                    <div className="text-sm font-medium text-gray-500">Organizations</div>
-                  </div>
-                </div>
+          {/* Stats Section - Add rounded-xl */}
+          <div className="bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700 rounded-b-xl">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Projects</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-blue-400">{projects.length}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Components</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-blue-400">{components.length}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Toolpaths</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-blue-400">{toolpaths.length}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Organizations</p>
+                <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-blue-400">{profile.organizations?.length || 0}</p>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Content Tabs */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="border-b border-gray-200">
+
+        {/* Tabs Section */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-6">
+          <div className="border-b border-gray-200 dark:border-gray-700">
             <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-              <button
-                onClick={() => setActiveTab('projects')}
-                className={`${
-                  activeTab === 'projects'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Projects
-              </button>
-              <button
-                onClick={() => setActiveTab('components')}
-                className={`${
-                  activeTab === 'components'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Components
-              </button>
-              <button
-                onClick={() => setActiveTab('toolpaths')}
-                className={`${
-                  activeTab === 'toolpaths'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Toolpaths
-              </button>
+              {['projects', 'components', 'toolpaths'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab as any)}
+                  className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm 
+                    ${activeTab === tab
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'
+                    }
+                  `}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
             </nav>
           </div>
-          
-          {/* Content Grid */}
-          <div className="mt-6">
-            {activeTab === 'projects' && (
-              <>
-                {projects.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects.map((project) => (
-                      <div key={project.id} className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-300">
-                        <Link href={`/projects/${project.id}`}>
-                          <div className="h-48 bg-gray-200  relative">
-                            {project.thumbnail ? (
-                              <img 
-                                src={project.thumbnail} 
-                                alt={project.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-gray-400 text-lg">No thumbnail</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-4">
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">{project.name}</h3>
-                            <p className="text-sm text-gray-500 line-clamp-2 h-10 mb-2">{project.description}</p>
-                            
-                            <div className="flex justify-between items-center text-sm text-gray-500">
-                              <span>Updated {new Date(project.updatedAt).toLocaleDateString()}</span>
-                            </div>
-                          </div>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No projects</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {isOwnProfile ? 'Get started by creating a new project.' : 'This user has no public projects yet.'}
-                    </p>
-                    {isOwnProfile && (
-                      <div className="mt-6">
-                        <Link href="/projects" className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                          </svg>
-                          New Project
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-            
-            {activeTab === 'components' && (
-              <>
-                {components.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {components.map((component) => (
-                      <div key={component.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-300">
-                        <Link href={`/components/${component.id}`}>
-                          <div className="h-48 bg-gray-200 relative">
-                            {component.thumbnail ? (
-                              <img
-                                src={component.thumbnail} 
-                                alt={component.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-gray-400 text-lg">No thumbnail</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-4">
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">{component.name}</h3>
-                            <p className="text-sm text-gray-500 line-clamp-2 h-10 mb-2">{component.description}</p>
-                            
-                            <div className="flex justify-between items-center text-sm text-gray-500">
-                              <span>Updated {new Date(component.updatedAt).toLocaleDateString()}</span>
-                              <Link href={`/projects/${component.projectId}`} className="text-blue-600 hover:text-blue-800">
-                                View Project
-                              </Link>
-                            </div>
-                          </div>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No components</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {isOwnProfile ? 'Get started by creating a new component.' : 'This user has no public components yet.'}
-                    </p>
-                    {isOwnProfile && (
-                      <div className="mt-6">
-                        <Link href="/components/new" className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                          </svg>
-                          New Component
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
+        </div>
 
-            {activeTab === 'toolpaths' && (
-              <>
-                {toolpaths.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {toolpaths.map((toolpath) => (
-                      <div key={toolpath.id} className="bg-white rounded-lg shadow overflow-hidden hover:shadow-md transition-shadow duration-300">
-                        <Link href={`/toolpaths/${toolpath.id}`}>
-                          <div className="h-48 bg-gray-200 relative">
-                            {toolpath.thumbnail ? (
-                              <img
-                                src={toolpath.thumbnail} 
-                                alt={toolpath.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <span className="text-gray-400 text-lg">No thumbnail</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-4">
-                            <h3 className="text-lg font-medium text-gray-900 mb-1">{toolpath.name}</h3>
-                            <p className="text-sm text-gray-500 line-clamp-2 h-10 mb-2">{toolpath.description}</p>
-                            
-                            <div className="flex justify-between items-center text-sm text-gray-500">
-                              <span>Updated {new Date(toolpath.updatedAt).toLocaleDateString()}</span>
-                              <Link href={`/projects/${toolpath.projectId}`} className="text-blue-600 hover:text-blue-800">
-                                View Project
-                              </Link>
-                            </div>
-                          </div>
-                        </Link>
-                      </div>
-                    ))}
-                  </div>
+        {/* Tab Content - Apply Card Styles */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {activeTab === 'projects' && projects.map((project) => (
+            <Link href={`/projects/${project.id}`} key={project.id} 
+                  // Apply card styling
+                  className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border dark:border-gray-700 overflow-hidden">
+              <div className="h-40 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                {project.thumbnail ? (
+                  <img src={project.thumbnail} alt={project.name} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="text-center py-12">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V7a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No toolpaths</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {isOwnProfile ? 'Get started by creating a new toolpath.' : 'This user has no public toolpaths yet.'}
-                    </p>
-                    {isOwnProfile && (
-                      <div className="mt-6">
-                        <Link href="/toolpaths/new" className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                          <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-                          </svg>
-                          New Toolpath
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                  <span className="text-gray-500 dark:text-gray-400">No thumbnail</span>
                 )}
-              </>
-            )}
-          </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-blue-400 truncate">{project.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Updated {new Date(project.updatedAt).toLocaleDateString()}</p>
+              </div>
+            </Link>
+          ))}
+
+          {activeTab === 'components' && components.map((component) => (
+            <Link href={`/components/${component.id}`} key={component.id} 
+                  // Apply card styling
+                  className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border dark:border-gray-700 overflow-hidden">
+              <div className="h-40 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                {component.thumbnail ? (
+                  <img src={component.thumbnail} alt={component.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400">No thumbnail</span>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-blue-400 truncate">{component.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{component.description || 'No description'}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">Updated {new Date(component.updatedAt).toLocaleDateString()}</p>
+                {component.projectId && (
+                  <span className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 block">View Project</span>
+                )}
+              </div>
+            </Link>
+          ))}
+          
+          {activeTab === 'toolpaths' && toolpaths.map((toolpath) => (
+            <Link href={`/toolpaths/${toolpath.id}`} key={toolpath.id} 
+                  // Apply card styling
+                  className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow border dark:border-gray-700 overflow-hidden">
+              <div className="h-40 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                {toolpath.thumbnail ? (
+                  <img src={toolpath.thumbnail} alt={toolpath.name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400">No thumbnail</span>
+                )}
+              </div>
+              <div className="p-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-blue-400 truncate">{toolpath.name}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Updated {new Date(toolpath.updatedAt).toLocaleDateString()}</p>
+              </div>
+            </Link>
+          ))}
+
+          {/* Empty States */}
+          {activeTab === 'projects' && projects.length === 0 && <EmptyState message="No projects found." />}
+          {activeTab === 'components' && components.length === 0 && <EmptyState message="No components found." />}
+          {activeTab === 'toolpaths' && toolpaths.length === 0 && <EmptyState message="No toolpaths found." />}
         </div>
       </DynamicLayout>
     </>
   );
 }
+
+// Helper component for empty states
+const EmptyState: React.FC<{ message: string }> = ({ message }) => (
+  <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center py-12">
+    <Layout size={48} className="mx-auto text-gray-400 dark:text-gray-500" />
+    <p className="mt-2 text-sm font-medium text-gray-900 dark:text-blue-400">{message}</p>
+  </div>
+);

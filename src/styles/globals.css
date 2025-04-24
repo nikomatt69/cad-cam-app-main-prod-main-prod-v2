@@ -20,7 +20,7 @@
 /* Base styles */
 @layer base {
   body {
-    @apply bg-[#F9FCFF] dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased;
+    @apply bg-[#F9FCFF] dark:bg-gradient-to-b from-gray-800 to-gray-600 text-gray-900 dark:text-gray-100 antialiased;
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
       Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   }
@@ -485,7 +485,7 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   .form-select,
   .form-textarea {
     @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500;
-    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200;
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-blue-400;
     @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
     @apply sm:text-sm;
   }
@@ -496,7 +496,7 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   }
 
   .form-label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-medium text-gray-700 dark:text-blue-400 mb-1;
   }
 
   .form-error {

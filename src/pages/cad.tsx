@@ -7,7 +7,7 @@ import StatusBar from '../components/cad/StatusBar';
 import TransformToolbar from '../components/cad/TrasformToolbar';
 import FloatingToolbar from '../components/cad/FloatingToolbar';
 
-import { Book, X, ChevronLeft, ChevronRight, Sliders, PenTool, Tool, Box, Cpu } from 'react-feather';
+import { Book, X, ChevronLeft, ChevronRight, Sliders, PenTool, Tool, Box, Cpu, Activity } from 'react-feather';
 import LocalCadLibraryView from 'src/components/library/LocalCadLibraryView';
 import ImportExportDialog from 'src/components/cad/ImportExportDialog';
 import { useCADStore } from 'src/store/cadStore';
@@ -32,9 +32,20 @@ import PluginSidebar from '../components/plugins/PluginSidebar';
 import { CADAssistantButton } from '../components/ai/ai-new/OpenaiAssistant/CADAssistantButton';
 import { CADAssistantBridge } from '../components/ai/ai-new/OpenaiAssistant/CADAssistantBridge';
 import { useSelectionStore } from 'src/store/selectorStore';
+import ParametricModelingPanel from '../components/cad/ParametricModelingPanel';
+import ModelTimeline from '../components/cad/timeline/ModelTimeline';
+import HistoryBrowser from '../components/cad/timeline/HistoryBrowser';
+import { AssemblyBrowser } from '../components/cad/assembly/AssemblyBrowser';
+import { JointCreator } from '../components/cad/assembly/JointCreator';
+import { AssemblyConstraints } from '../components/cad/assembly/AssemblyConstraints';
+import { Joint } from '../types/assembly';
+import { Constraint } from '../types/assembly';
+import { assemblyManager } from '../store/assemblyStore';
 
-// Import new CAD Assistant components
+// Simulation Imports
+import { BufferGeometry, NormalBufferAttributes, Material, Mesh, Mesh as ThreeMesh } from 'three';
 
+// Assuming a type for results
 
 // Define structure for cross-window subscription
 interface CrossWindowSubscription {
@@ -80,7 +91,30 @@ export default function CADPage() {
   
   // State to manage subscriptions from plugin windows
   const [crossWindowSubscriptions, setCrossWindowSubscriptions] = useState<CrossWindowSubscription[]>([]);
-  const [activeRightPanel, setActiveRightPanel] = useState<'proprieties' | 'trasform' | 'ai'>('proprieties');
+  const [activeRightPanel, setActiveRightPanel] = useState<'proprieties' | 'trasform' | 'ai' | 'constraints' | 'simulation'>('proprieties');
+  const [selectedAssemblyNodeId, setSelectedAssemblyNodeId] = useState<string | undefined>(undefined);
+
+  // Add state for CAD Assistant
+  const [simulationMesh, setSimulationMesh] = useState<ThreeMesh | null>(null);
+
+
+  const handleAssemblyNodeSelect = useCallback((nodeId: string) => {
+    console.log('Assembly Node Selected:', nodeId);
+    setSelectedAssemblyNodeId(prevId => (prevId === nodeId ? undefined : nodeId));
+    // Optionally sync with the main selection store or manager's active node:
+     assemblyManager.setActiveNode(nodeId || null); 
+    selectElement(nodeId); // If assembly nodes are also 'elements'
+  }, [selectElement]);
+
+  const handleJointCreated = (joint: Joint) => {
+     console.log('Joint created in page:', joint.id);
+     // Trigger updates elsewhere if needed (e.g., redraw 3D view)
+  };
+      
+  const handleConstraintAdded = (constraint: Constraint) => {
+     console.log('Constraint added in page:', constraint.id);
+     // Trigger updates
+  };
   // Get state management functions from Zustand stores
   const { 
     elements: getElementsState, 
@@ -359,6 +393,8 @@ export default function CADPage() {
     };
   }, [elements, selectedElementIds, layers, activeLayer]);
 
+  // Placeholder for getting the mesh to simulate - replace with actual logic
+
   if (status === 'loading') {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -367,10 +403,7 @@ export default function CADPage() {
     );
   }
 
-  if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
-  }
+
  
   return (
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
@@ -479,6 +512,18 @@ export default function CADPage() {
                   Trasform
                   Controls
                 </button>
+                <button
+                  onClick={() => setActiveRightPanel('constraints')}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    activeRightPanel === 'constraints'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100  border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <Cpu size={16} className="mr-1" />
+                  Assembly
+                </button>
+                
               </div>
             </div>
 
@@ -487,14 +532,35 @@ export default function CADPage() {
                  <PropertyPanel />
               )}
               
-              {activeRightPanel === 'trasform' && (
-               <>
-                <TransformToolbar />
-                
+              
+              
+              {activeRightPanel === 'constraints' && (
+                <>
+                <AssemblyBrowser 
+                    selectedNodeId={selectedAssemblyNodeId}
+                    onNodeSelect={handleAssemblyNodeSelect} 
+                  />
+
+                  {/* Joint Creator */}
+                  <JointCreator 
+                    onJointCreated={handleJointCreated} 
+                    // onJointRemoved={...} // Add if needed
+                  />
+
+                  {/* Constraint Manager */}
+                  <AssemblyConstraints 
+                    onConstraintAdded={handleConstraintAdded}
+                    // onConstraintRemoved={...} // Add if needed
+                  />
+
+                  <ParametricModelingPanel />
+                    
                 </>
               )}
+
               
               
+
             </div>
           </div>
           
