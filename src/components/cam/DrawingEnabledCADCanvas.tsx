@@ -17,6 +17,7 @@ import { useCADStore } from '../../store/cadStore';
 import { useLayerStore } from '../../store/layerStore';
 import CADCanvas from '../cad/CADCanvas';
 import OptimizedCADCanvas from '../cad/OptimizedCADCanvas';
+import DimensionsOverlay from '../cad/DimensionsOverlay';
 
 interface DrawingEnabledCADCanvasProps {
   width?: string | number;
@@ -48,6 +49,7 @@ const DrawingEnabledCADCanvas: React.FC<DrawingEnabledCADCanvasProps> = (props) 
   const { activeLayer, layers } = useLayerStore();
   const { addElement } = useElementsStore();
   const { originOffset } = useCADStore();
+  const showDimensions = useCADStore((state) => state.showDimensions);
   
   // Connect to the Three.js scene from CADCanvas
   useEffect(() => {
@@ -416,9 +418,16 @@ const DrawingEnabledCADCanvas: React.FC<DrawingEnabledCADCanvasProps> = (props) 
   }, []);
   
   return (
-    <div className="flex flex-col h-full w-full" ref={canvasRef}>
-      {/* Drawing Toolbar */}
-      <DrawingToolbar
+    <div className="relative w-full h-full" ref={canvasRef}>
+      <div className="absolute inset-0 z-10 pointer-events-none" ref={canvasContentRef} />
+      
+      <OptimizedCADCanvas 
+        {...props} 
+        // Ensure CADCanvas exposes scene and camera if needed
+      />
+      
+      {/* Render Drawing Toolbar */}
+      <DrawingToolbar 
         onSelectTool={setActiveTool}
         activeTool={toolState.activeTool}
         color={toolState.color}
@@ -435,86 +444,78 @@ const DrawingEnabledCADCanvas: React.FC<DrawingEnabledCADCanvasProps> = (props) 
         onDimensionStyleChange={setDimensionStyle}
       />
       
-      {/* CAD Canvas with event handlers */}
-      <div 
-        className="flex-1 relative"
-        ref={canvasContentRef}
-        style={{ 
-            width: '100%',
-            height: '100%'
+      {/* Render Dimensions Overlay if active and camera/scene are available */}
+      {showDimensions && window.cadCanvasCamera && sceneRef.current && (
+        <DimensionsOverlay 
+          camera={window.cadCanvasCamera} 
+          scene={sceneRef.current} 
+        />
+      )}
+      
+      {/* Render Text Input Modal if active */}
+      {showTextInput && (
+        <div 
+          className="absolute bg-white p-2 shadow-lg rounded-md"
+          style={{ 
+            left: textPosition ? `${textPosition.x}px` : '50%',
+            top: textPosition ? `${textPosition.y}px` : '50%',
+            transform: 'translate(-50%, -50%)'
           }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp} // Treat mouse leave as mouse up to end drawing
-      >
-        <OptimizedCADCanvas {...props} />
-        
-        {/* Text input overlay */}
-        {showTextInput && (
-          <div 
-            className="absolute bg-white p-2 shadow-lg rounded-md"
-            style={{ 
-              left: textPosition ? `${textPosition.x}px` : '50%',
-              top: textPosition ? `${textPosition.y}px` : '50%',
-              transform: 'translate(-50%, -50%)'
+        >
+          <input
+            type="text"
+            className="border rounded px-2 py-1 w-64"
+            placeholder="Enter text..."
+            value={textInput}
+            onChange={(e) => setTextInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleTextSubmit();
+              } else if (e.key === 'Escape') {
+                setShowTextInput(false);
+                setIsTextMode(false);
+                setTextInput('');
+              }
             }}
-          >
-            <input
-              type="text"
-              className="border rounded px-2 py-1 w-64"
-              placeholder="Enter text..."
-              value={textInput}
-              onChange={(e) => setTextInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleTextSubmit();
-                } else if (e.key === 'Escape') {
-                  setShowTextInput(false);
-                  setIsTextMode(false);
-                  setTextInput('');
-                }
+            autoFocus
+          />
+          <div className="flex justify-end mt-2">
+            <button 
+              className="bg-gray-200 text-gray-800 px-2 py-1 rounded text-sm mr-2"
+              onClick={() => {
+                setShowTextInput(false);
+                setIsTextMode(false);
+                setTextInput('');
               }}
-              autoFocus
-            />
-            <div className="flex justify-end mt-2">
-              <button 
-                className="bg-gray-200 text-gray-800 px-2 py-1 rounded text-sm mr-2"
-                onClick={() => {
-                  setShowTextInput(false);
-                  setIsTextMode(false);
-                  setTextInput('');
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-                onClick={handleTextSubmit}
-              >
-                Add
-              </button>
-            </div>
+            >
+              Cancel
+            </button>
+            <button 
+              className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
+              onClick={handleTextSubmit}
+            >
+              Add
+            </button>
           </div>
-        )}
-        
-        {/* Drawing status indicators */}
-        {isDimensioning && dimensionStart && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-md shadow-lg">
-            Click to set the second point for dimensioning
-          </div>
-        )}
-        
-        {/* Export button for drawing elements */}
-        {drawingElements.length > 0 && (
-          <button
-            className="absolute bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-md shadow-lg"
-            onClick={exportToCADElements}
-          >
-            Save Drawings to CAD
-          </button>
-        )}
-      </div>
+        </div>
+      )}
+      
+      {/* Drawing status indicators */}
+      {isDimensioning && dimensionStart && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-4 py-2 rounded-md shadow-lg">
+          Click to set the second point for dimensioning
+        </div>
+      )}
+      
+      {/* Export button for drawing elements */}
+      {drawingElements.length > 0 && (
+        <button
+          className="absolute bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-md shadow-lg"
+          onClick={exportToCADElements}
+        >
+          Save Drawings to CAD
+        </button>
+      )}
     </div>
   );
 };

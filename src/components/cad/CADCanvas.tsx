@@ -37,6 +37,7 @@ import router from 'next/router';
 import toast from 'react-hot-toast';
 import SmartRenderer from '@/src/lib/canvas/SmartRenderer';
 import CanvasPool from '@/src/lib/canvas/CanvasPool';
+import { useConstraints } from '@/src/contexts/ConstraintContext';
 
 interface CADCanvasProps {
   width?: string | number;
@@ -99,7 +100,7 @@ const CADCanvas: React.FC<CADCanvasProps> = ({
   const [logMessages, setLogMessages] = useState<string[]>([]);
   // Riferimenti per controlli di trasformazione avanzati
   const transformControlsRef = useRef<TransformControls | null>(null);
-  
+  const [activeRightPanel, setActiveRightPanel] = useState<'proprieties' | 'trasform' | 'constraints'>('proprieties');
   // Nuovi stati per ottimizzazioni e migliori UX
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [isDraggingComponent, setIsDraggingComponent] = useState(false);
@@ -144,6 +145,47 @@ const toggleMultiSelectMode = useCallback(() => {
 }, []);
 // Attiva gli shortcut
 useCADShortcuts();
+
+
+const { getConstraintsForEntity } = useConstraints();
+  
+// Find the existing object selection handler in your code
+// For example, modify the existing selection handler:
+
+const handleObjectSelection = (object: THREE.Object3D, multiSelect: boolean = false) => {
+  // Your existing object selection code
+  
+  // After selecting an object, check if it has constraints
+  if (object.userData?.elementId) {
+    const elementId = object.userData.elementId;
+    const constraints = getConstraintsForEntity(elementId);
+    
+    // Optionally highlight or visualize constrained objects
+    if (constraints.length > 0) {
+      console.log(`Selected object has ${constraints.length} constraints`);
+      // You might want to highlight related objects or show constraint indicators
+    }
+  }
+};
+
+useEffect(() => {
+  const connectSelectionToConstraints = () => {
+    // Every time selectedElementIds changes, we could potentially
+    // update the constraint system or UI to highlight constraints
+    if (selectedElementIds.length > 0) {
+      // Example: if you want to auto-select these elements for constraints
+      // when in parametric mode
+      if (activeRightPanel === 'constraints') {
+        // You could trigger some action or update state here
+        console.log("Connecting elements to parametric system:", selectedElementIds);
+      }
+    }
+  };
+  
+  connectSelectionToConstraints();
+}, [selectedElementIds, activeRightPanel]);
+
+
 const worldToScreen = useCallback((position: { x: number, y: number, z: number }) => {
   if (!canvasRef.current || !cameraRef.current) return null;
   
@@ -1380,8 +1422,8 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     // Aumenta il range di zoom permettendo sia un livello molto ravvicinato che molto distante
-    controls.minDistance = 0.1;  // Zoom ravvicinato molto più vicino (era 5)
-    controls.maxDistance = 500;  // Zoom molto più lontano (era 100)
+    controls.minDistance = 0.01;  // Zoom ravvicinato molto più vicino (era 5)
+    controls.maxDistance = 5000;  // Zoom molto più lontano (era 100)
     // Aggiungi la velocità di zoom per un controllo più preciso
     controls.zoomSpeed = 1.5;
     // Attiva il pannello sensibile alla rotella del mouse per uno zoom più intuitivo
@@ -1428,24 +1470,39 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
 
       // Add labels for axes
       const addAxisLabel = (text: string, position: [number, number, number], color: THREE.Color) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 64;
-        canvas.height = 64;
+        const canvasWidth = 64;
+        const canvasHeight = 64;
+        // Use pooled canvas
+        const canvas = getTemporaryCanvas(`axisLabel-${text}`, canvasWidth, canvasHeight);
         const context = canvas.getContext('2d');
+        
         if (context) {
+          // Clear canvas before drawing
+          context.clearRect(0, 0, canvasWidth, canvasHeight);
           context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
           context.font = 'Bold 48px Arial';
           context.textAlign = 'center';
           context.textBaseline = 'middle';
           context.fillText(text, 32, 32);
           
-          const texture = new THREE.CanvasTexture(canvas);
+          // Use pooled texture
+          const texture = getTextureFromPool(`axisLabelTexture-${text}`, canvasWidth, canvasHeight);
+          texture.image = canvas; // Assign the drawn canvas to the texture
+          texture.needsUpdate = true; // Mark texture for update
+          
           const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
           const sprite = new THREE.Sprite(spriteMaterial);
           sprite.position.set(...position);
           sprite.scale.set(2, 2, 2);
+          
+          // Release canvas back to pool (optional, pool manages reuse)
+          // CanvasPool.releaseCanvas(canvas); 
+          
           return sprite;
         }
+        // Release canvas if context failed or sprite wasn't created
+        const canvasKey = `temp-axisLabel-${text}`;
+        CanvasPool.releaseCanvas(canvasKey);
         return null;
       };
 
@@ -1468,7 +1525,7 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
     };
 
     // Create and add custom axes to the scene
-    const customAxes = createCustomAxes(20);  // Assi più lunghi (era 10)
+    const customAxes = createCustomAxes(30);  // Assi più lunghi (era 10)
     customAxes.visible = axisVisible;
     customAxes.userData.isCustomAxes = true;
     scene.add(customAxes);
@@ -1660,13 +1717,48 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
     
     switch (viewMode) {
       case '2d':
-        // Position camera for top-down 2D view
-        cameraRef.current.position.set(0, 0, 10);
+        // Set dark background for 2D mode
+        if (sceneRef.current) {
+          sceneRef.current.background = new THREE.Color('#2A2A2A');
+        }
+        
+        // Position camera to look at XY plane (from Z axis)
+        cameraRef.current.position.set(0, 0, 50);
+        cameraRef.current.up.set(0, 1, 0); // Set Y as the up direction 
         cameraRef.current.lookAt(0, 0, 0);
+        
+        // Update grid for XY plane view
+        const gridHelper = sceneRef?.current?.children.find(
+          child => child instanceof THREE.GridHelper
+        ) as THREE.GridHelper | undefined;
+        
+        if (gridHelper) {
+          gridHelper.material.opacity = 0.2;
+          gridHelper.material.transparent = true;
+          // Align grid with XY plane (flat on the ground)
+          gridHelper.rotation.x = Math.PI / 2;
+        }
+        
+        // Disable rotation in 2D mode
         controlsRef.current.enableRotate = false;
         controlsRef.current.enablePan = true;
-        controlsRef.current.minDistance = 0.1;   // Ridotto per permettere uno zoom ravvicinato
-        controlsRef.current.maxDistance = 1000;  // Aumentato per permettere una visione d'insieme più ampia
+        
+        // Show only X and Y axes in 2D mode
+        const customAxes = sceneRef?.current?.children.find(
+          child => child.userData.isCustomAxes
+        );
+        
+        if (customAxes) {
+          customAxes.visible = axisVisible;
+          customAxes.children.forEach((child, index) => {
+            // Show X (index 0) and Y (index 1), hide Z (index 2)
+            if (index === 2) {
+              child.visible = false;
+            } else {
+              child.visible = true;
+            }
+          });
+        }
         break;
       case '3d':
         // Position camera for 3D view
@@ -1674,13 +1766,13 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
         cameraRef.current.lookAt(0, 0, 0);
         controlsRef.current.enableRotate = true;
         controlsRef.current.enablePan = true;
-        controlsRef.current.minDistance = 0.1;   // Ridotto per permettere uno zoom ravvicinato
-        controlsRef.current.maxDistance = 1000;  // Aumentato per permettere una visione d'insieme più ampia
+        controlsRef.current.minDistance = 0.01;   // Ridotto per permettere uno zoom ravvicinato
+        controlsRef.current.maxDistance = 5000;  // Aumentato per permettere una visione d'insieme più ampia
         break;
       default:
         break;
     }
-  }, [viewMode]);
+  }, [viewMode, axisVisible]);
 
   // Handle preview component changes
   useEffect(() => {
@@ -2056,40 +2148,40 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
        // ======= MEASUREMENT ELEMENTS =======
     case 'linear-dimension':
       // Create a linear dimension between two points
-      if (!element.startPoint || !element.endPoint) return null;
-      
+      if (!element.startPoint || !element.endPoint) return null; // Checks startPoint/endPoint
+
       const dimensionGroup = new THREE.Group();
-      
-      // Start and end points
-      const startPoint2 = new THREE.Vector3(
-        element.startPoint2.x + originOffset.x,
-        element.startPoint2.y + originOffset.y,
-        (element.startPoint2.z || 0) + originOffset.z
+
+      // Start and end points - Use startPoint/endPoint consistently
+      const startPointVec = new THREE.Vector3(
+        element.startPoint.x + originOffset.x,
+        element.startPoint.y + originOffset.y,
+        (element.startPoint.z || 0) + originOffset.z
       );
-      
-      const endPoint2 = new THREE.Vector3(
-        element.endPoint2.x + originOffset.x,
-        element.endPoint2.y + originOffset.y,
-        (element.endPoint2.z || 0) + originOffset.z
+
+      const endPointVec = new THREE.Vector3(
+        element.endPoint.x + originOffset.x,
+        element.endPoint.y + originOffset.y,
+        (element.endPoint.z || 0) + originOffset.z
       );
-      
+
       // Calculate dimension line offset
       const offsetDirection = element.offsetDirection || 'y';
       const offsetAmount = element.offsetAmount || 10;
-      
+
       // Create dimension line
-      const directionVector = new THREE.Vector3().subVectors(endPoint2, startPoint2);
+      const directionVector = new THREE.Vector3().subVectors(endPointVec, startPointVec);
       const length = directionVector.length();
-      
-      const dimensionLineMaterial = new THREE.LineBasicMaterial({ 
+
+      const dimensionLineMaterial = new THREE.LineBasicMaterial({
         color: element.color || 0x000000,
         linewidth: element.linewidth || 1
       });
-      
+
       // Create offset points for dimension line
-      const startOffset = startPoint2.clone();
-      const endOffset = endPoint2.clone();
-      
+      const startOffset = startPointVec.clone();
+      const endOffset = endPointVec.clone();
+
       if (offsetDirection === 'y') {
         startOffset.y += offsetAmount;
         endOffset.y += offsetAmount;
@@ -2100,7 +2192,7 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
         startOffset.z += offsetAmount;
         endOffset.z += offsetAmount;
       }
-      
+
       // Main dimension line
       const dimensionLineGeometry = new THREE.BufferGeometry().setFromPoints([
         startOffset,
@@ -2108,23 +2200,23 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
       ]);
       const dimensionLine = new THREE.Line(dimensionLineGeometry, dimensionLineMaterial);
       dimensionGroup.add(dimensionLine);
-      
+
       // Extension lines
       const extensionLine1Geometry = new THREE.BufferGeometry().setFromPoints([
-        startPoint2,
+        startPointVec, // Use startPointVec
         startOffset
       ]);
       const extensionLine2Geometry = new THREE.BufferGeometry().setFromPoints([
-        endPoint2,
+        endPointVec, // Use endPointVec
         endOffset
       ]);
-      
+
       const extensionLine1 = new THREE.Line(extensionLine1Geometry, dimensionLineMaterial);
       const extensionLine2 = new THREE.Line(extensionLine2Geometry, dimensionLineMaterial);
-      
+
       dimensionGroup.add(extensionLine1);
       dimensionGroup.add(extensionLine2);
-      
+
       // Add dimension text (requires TextGeometry which needs font loading)
       // For now, we'll create a placeholder for the text
       const textPosition = new THREE.Vector3(
@@ -2132,12 +2224,12 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
         (startOffset.y + endOffset.y) / 2,
         (startOffset.z + endOffset.z) / 2
       );
-      
+
       // Format display value
       const dimensionValue = element.value || length.toFixed(2);
       const dimensionUnit = element.unit || 'mm';
       const dimensionText = `${dimensionValue} ${dimensionUnit}`;
-      
+
       // Create text placeholder as a small plane
       const textPlaceholder2 = new THREE.Mesh(
         new THREE.PlaneGeometry(dimensionText.length * 0.8, 1),
@@ -2147,21 +2239,21 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
           opacity: 0.7
         })
       );
-      
+
       textPlaceholder2.position.copy(textPosition);
       textPlaceholder2.userData.text = dimensionText;
       textPlaceholder2.userData.isDimensionText = true;
-      
+
       dimensionGroup.add(textPlaceholder2);
-      
+
       // Add arrows at the ends of the dimension line
       // This would require custom geometry for proper arrows
-      
+
       dimensionGroup.userData.isDimension = true;
       dimensionGroup.userData.dimensionType = 'linear';
       dimensionGroup.userData.dimensionValue = dimensionValue;
       dimensionGroup.userData.dimensionUnit = dimensionUnit;
-      
+
       return dimensionGroup;
       
     case 'angular-dimension':
@@ -4182,15 +4274,35 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
               componentThreeGroup.add(childThreeObject);
             }
           });
+        } else if (element.data?.elements && Array.isArray(element.data.elements)) {
+          // Try to get elements from element.data if available
+          element.data.elements.forEach((childElement: any) => {
+            const childThreeObject = createThreeObject({
+              ...childElement,
+              x: childElement.x || 0,
+              y: childElement.y || 0,
+              z: childElement.z || 0
+            });
+            
+            if (childThreeObject) {
+              childThreeObject.userData.isCADElement = true;
+              childThreeObject.userData.elementId = element.id;
+              childThreeObject.userData.isComponentChild = true;
+              childThreeObject.userData.parentComponentId = element.id;
+              componentThreeGroup.add(childThreeObject);
+            }
+          });
         } else {
-          // If no elements are provided or array is empty, create a visual placeholder
+          // If no elements are found, create a visual placeholder
+          console.log('Creating placeholder for component with no elements:', element.id);
+          
           const placeholderGeometry = new THREE.BoxGeometry(
-            element.width || 1,
-            element.height || 1,
-            element.depth || 1
+            element.width || 50,
+            element.height || 50,
+            element.depth || 50
           );
           
-          const placeholderMaterial = new THREE.MeshBasicMaterial({
+          const placeholderMaterial = new THREE.MeshStandardMaterial({
             color: element.color || 0x3f51b5,
             wireframe: true,
             opacity: 0.7,
@@ -4709,12 +4821,12 @@ useEffect(() => {
         // Set dark background for 2D mode
         sceneRef.current.background = new THREE.Color('#2A2A2A');
         
-        // Position camera to look at XZ plane (from Y axis)
-        cameraRef.current.position.set(0, 50, 0);
-        cameraRef.current.up.set(0, 1, 0); // Set Z as the up direction
+        // Position camera to look at XY plane (from Z axis)
+        cameraRef.current.position.set(0, 0, 50);
+        cameraRef.current.up.set(0, 1, 0); // Set Y as the up direction 
         cameraRef.current.lookAt(0, 0, 0);
         
-        // Update grid for XZ plane view
+        // Update grid for XY plane view
         const gridHelper = sceneRef.current.children.find(
           child => child instanceof THREE.GridHelper
         ) as THREE.GridHelper | undefined;
@@ -4722,15 +4834,15 @@ useEffect(() => {
         if (gridHelper) {
           gridHelper.material.opacity = 0.2;
           gridHelper.material.transparent = true;
-          // Align grid with XZ plane
-          gridHelper.rotation.x = 0;
+          // Align grid with XY plane (flat on the ground)
+          gridHelper.rotation.x = Math.PI / 2;
         }
         
         // Disable rotation in 2D mode
         controlsRef.current.enableRotate = false;
         controlsRef.current.enablePan = true;
         
-        // Show only X and Z axes in 2D mode
+        // Show only X and Y axes in 2D mode
         const customAxes = sceneRef.current.children.find(
           child => child.userData.isCustomAxes
         );
@@ -5149,35 +5261,43 @@ useEffect(() => {
 
   // Funzione per evidenziare elementi
   const highlightElement = useCallback((threeObject: THREE.Object3D, element: any) => {
+    // Hover Highlight
     if (element.id === hoveredElementId) {
       if (threeObject instanceof THREE.Line) {
-        (threeObject.material as THREE.LineBasicMaterial).color.set(0x4a90e2);
-        (threeObject.material as THREE.LineBasicMaterial).linewidth = (element.linewidth || 1) + 1;
+        const material = threeObject.material as THREE.LineBasicMaterial;
+        material.color.setHex(0x4a90e2);
+        material.linewidth = (element.linewidth || 1) + 1;
       } else if (threeObject instanceof THREE.Mesh) {
-        if ((threeObject.material as THREE.MeshBasicMaterial).wireframe) {
-          (threeObject.material as THREE.MeshBasicMaterial).color.set(0x4a90e2);
-        } else {
-          const material = threeObject.material as THREE.MeshStandardMaterial;
-          material.emissive.set(0x4a90e2);
+        const material = threeObject.material as THREE.Material;
+        if (material instanceof THREE.MeshStandardMaterial && !material.wireframe) {
+          material.emissive.setHex(0x4a90e2);
           material.emissiveIntensity = 0.3;
+        } else if ('color' in material && material.color instanceof THREE.Color) {
+          material.color.setHex(0x4a90e2);
         }
       }
     }
-    
+
+    // Selection Highlight
     if (selectedElement && element.id === selectedElement.id) {
       if (threeObject instanceof THREE.Line) {
-        (threeObject.material as THREE.LineBasicMaterial).color.set(0xff3366);
-        (threeObject.material as THREE.LineBasicMaterial).linewidth = (element.linewidth || 1) + 2;
+        const material = threeObject.material as THREE.LineBasicMaterial;
+        material.color.setHex(0xff3366);
+        material.linewidth = (element.linewidth || 1) + 2;
       } else if (threeObject instanceof THREE.Mesh) {
-        if ((threeObject.material as THREE.MeshBasicMaterial).wireframe) {
-          (threeObject.material as THREE.MeshBasicMaterial).color.set(0xff3366);
-        } else {
-          const material = threeObject.material as THREE.MeshStandardMaterial;
-          material.emissive?.set(0xff3366);
+        const material = threeObject.material as THREE.Material;
+        if (material instanceof THREE.MeshStandardMaterial && !material.wireframe) {
+          material.emissive?.setHex(0xff3366); // Use optional chaining for safety
           material.emissiveIntensity = 0.5;
+        } else if ('color' in material && material.color instanceof THREE.Color) {
+          material.color.setHex(0xff3366);
         }
       }
     }
+
+    // Reset if not hovered or selected (This part needs careful implementation)
+    // Consider storing original material properties if complex highlighting is needed
+
   }, [hoveredElementId, selectedElement]);
 
   // Inizializzazione dei TransformControls
@@ -5553,7 +5673,7 @@ useEffect(() => {
         width: width,
         height: height
       }}
-      className={`relative bg-gray-200 overflow-hidden ${isPlacingComponent || isDraggingComponent ? 'cursor-cell' : ''}`}
+      className={`relative bg-gradient-to-b from-[#2A2A2A] to-[#303030] overflow-hidden ${isPlacingComponent || isDraggingComponent ? 'cursor-cell' : ''}`}
       onMouseMove={handleMouseMove}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}

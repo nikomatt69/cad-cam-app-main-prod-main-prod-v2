@@ -1,7 +1,7 @@
 /**
  * AdvancedPostProcessorPanel.tsx
- * Pannello avanzato per il post-processing del G-code
- * Supporta controller Fanuc e Heidenhain con numerose opzioni di ottimizzazione
+ * Advanced panel for G-code post-processing
+ * Supports Fanuc and Heidenhain controllers with numerous optimization options
  */
 
 import React, { useState, useEffect } from 'react';
@@ -33,14 +33,14 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
   controllerType,
   onProcessedGcode
 }) => {
-  // Stato G-code e risultati
+  // G-code state and results
   const [inputGcode, setInputGcode] = useState(initialGcode);
   const [outputGcode, setOutputGcode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [selectedController, setSelectedController] = useState<ControllerType>(controllerType);
   
-  // Stato delle opzioni
+  // Options state
   const [options, setOptions] = useState<OptimizationOptions>({
     removeRedundantMoves: true,
     removeRedundantCodes: true,
@@ -79,7 +79,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     }
   });
   
-  // Gestione pannelli aperti
+  // Open panels management
   const [expanded, setExpanded] = useState({
     generalOptions: true,
     controllerOptions: true,
@@ -87,7 +87,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     preview: false
   });
   
-  // Inizializzazione e aggiornamento
+  // Initialization and update
   useEffect(() => {
     if (initialGcode !== inputGcode) {
       setInputGcode(initialGcode);
@@ -100,7 +100,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     setSelectedController(controllerType);
   }, [controllerType]);
   
-  // Toggle pannelli
+  // Toggle panels
   const toggleSection = (section: keyof typeof expanded) => {
     setExpanded(prev => ({
       ...prev,
@@ -108,7 +108,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     }));
   };
   
-  // Aggiorna opzioni
+  // Update options
   const updateOption = <K extends keyof OptimizationOptions>(
     key: K, 
     value: OptimizationOptions[K]
@@ -119,7 +119,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     }));
   };
   
-  // Aggiorna opzioni specifiche per controller
+  // Update controller-specific options
   const updateControllerOption = <
     C extends keyof OptimizationOptions['controllerSpecific'],
     K extends keyof NonNullable<OptimizationOptions['controllerSpecific'][C]>
@@ -140,7 +140,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     }));
   };
   
-  // Processa G-code
+  // Process G-code
   const processGcode = async () => {
     if (!inputGcode) return;
     
@@ -148,24 +148,24 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     setResult(null);
     
     try {
-      // Crea il post-processor
+      // Create the post-processor
       const postProcessor = new AdvancedPostProcessor(selectedController, options);
       
-      // Processa il codice
+      // Process the code
       const result = await postProcessor.processGCode(inputGcode);
       
-      // Aggiorna stato
+      // Update state
       setOutputGcode(result.code);
       setResult(result);
       
-      // Invia il risultato al componente padre
+      // Send the result to the parent component
       onProcessedGcode(result.code, result.stats);
     } catch (error) {
-      console.error('Errore nel post-processing:', error);
-      // Mostra errore
+      console.error('Error during post-processing:', error);
+      // Show error
     } finally {
       setIsProcessing(false);
-      // Apri il pannello risultati
+      // Open the results panel
       setExpanded(prev => ({
         ...prev,
         results: true
@@ -173,7 +173,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     }
   };
   
-  // Salva G-code
+  // Save G-code
   const saveGcode = () => {
     if (!outputGcode) return;
     
@@ -182,7 +182,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     const a = document.createElement('a');
     a.href = url;
     
-    // Nome del file con data e tipo di controller
+    // Filename with date and controller type
     const date = new Date().toISOString().slice(0, 10);
     const extension = selectedController === 'heidenhain' ? '.h' : '.nc';
     a.download = `optimized_${selectedController}_${date}${extension}`;
@@ -193,7 +193,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     URL.revokeObjectURL(url);
   };
   
-  // Applicare preset di ottimizzazione
+  // Apply optimization preset
   const applyOptimizationPreset = (preset: 'basic' | 'speed' | 'quality' | 'advanced') => {
     switch (preset) {
       case 'basic':
@@ -367,43 +367,43 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
     }
   };
   
-  // Ottieni la descrizione delle ottimizzazioni specifiche per controller
+  // Get controller-specific optimizations description
   const getControllerSpecificDescription = (): string => {
     switch (selectedController) {
       case 'fanuc':
-        return 'Ottimizzazioni specifiche per controller Fanuc includono supporto per modalità High-Speed, AICC (AI Contour Control), Nano Smoothing e arrotondamento angoli per percorsi più fluidi.';
+        return 'Specific optimizations for Fanuc controllers include support for High-Speed modes, AICC (AI Contour Control), Nano Smoothing, and corner rounding for smoother paths.';
       case 'heidenhain':
-        return 'Ottimizzazioni specifiche per controller Heidenhain includono formato conversazionale, blocchi funzione, cicli avanzati, programmazione parametrica e supporto TCPM.';
+        return 'Specific optimizations for Heidenhain controllers include conversational format, function blocks, advanced cycles, parameter programming, and TCPM support.';
       case 'siemens':
-        return 'Ottimizzazioni specifiche per controller Siemens/Sinumerik includono compattazione codice, ottimizzazione look-ahead e supporto per cicli avanzati.';
+        return 'Specific optimizations for Siemens/Sinumerik controllers include code compaction, look-ahead optimization, and support for advanced cycles.';
       case 'haas':
-        return 'Ottimizzazioni specifiche per controller Haas includono supporto per macro e cicli speciali Haas.';
+        return 'Specific optimizations for Haas controllers include support for Haas-specific macros and cycles.';
       case 'mazak':
-        return 'Ottimizzazioni specifiche per controller Mazak includono modalità SMOOTH e supporto per cicli avanzati.';
+        return 'Specific optimizations for Mazak controllers include SMOOTH mode and support for advanced cycles.';
       case 'okuma':
-        return 'Ottimizzazioni specifiche per controller Okuma includono sintassi OSP e cicli avanzati.';
+        return 'Specific optimizations for Okuma controllers include OSP syntax and advanced cycles.';
       default:
-        return 'Ottimizzazioni generiche compatibili con la maggior parte dei controller CNC.';
+        return 'Generic optimizations compatible with most CNC controllers.';
     }
   };
   
   return (
-    <div className="bg-white rounded-lg shadow-md">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
       <div className="p-4 border-b">
         <h2 className="text-xl font-bold text-gray-800 flex items-center mb-2">
           <Cpu size={20} className="mr-2 text-blue-600" />
-          Post-Processor Avanzato
+          Advanced Post-Processor
         </h2>
         
         <p className="text-sm text-gray-600 mb-4">
-          Ottimizza e converte il G-code per controller {selectedController.charAt(0).toUpperCase() + selectedController.slice(1)}.
-          Configura le opzioni per adattare il codice alle specifiche del tuo CNC.
+          Optimize and convert G-code for {selectedController.charAt(0).toUpperCase() + selectedController.slice(1)} controllers.
+          Configure options to adapt the code to your CNC specifications.
         </p>
         
         {/* Controller selection */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tipo di Controller
+            Controller Type
           </label>
           <div className="flex space-x-2">
             <select
@@ -417,7 +417,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
               <option value="haas">Haas</option>
               <option value="mazak">Mazak</option>
               <option value="okuma">Okuma</option>
-              <option value="generic">Generico</option>
+              <option value="generic">Generic</option>
             </select>
             <button
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center"
@@ -429,41 +429,41 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
               ) : (
                 <Settings size={18} className="mr-2" />
               )}
-              {isProcessing ? 'Elaborazione...' : 'Processa G-code'}
+              {isProcessing ? 'Processing...' : 'Process G-code'}
             </button>
           </div>
         </div>
         
         {/* Preset buttons */}
         <div className="flex flex-wrap gap-2 mb-4">
-          <span className="text-sm font-medium text-gray-700 self-center mr-2">Preset:</span>
+          <span className="text-sm font-medium text-gray-700 self-center mr-2">Presets:</span>
           <button
             type="button"
             className="px-3 py-1 bg-gray-100 text-gray-800 text-sm rounded hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
             onClick={() => applyOptimizationPreset('basic')}
           >
-            Base
+            Basic
           </button>
           <button
             type="button"
             className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
             onClick={() => applyOptimizationPreset('speed')}
           >
-            Velocità
+            Speed
           </button>
           <button
             type="button"
             className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-green-400"
             onClick={() => applyOptimizationPreset('quality')}
           >
-            Qualità
+            Quality
           </button>
           <button
             type="button"
             className="px-3 py-1 bg-purple-100 text-purple-800 text-sm rounded hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400"
             onClick={() => applyOptimizationPreset('advanced')}
           >
-            Avanzato
+            Advanced
           </button>
         </div>
         
@@ -484,7 +484,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
         >
           <h3 className="text-lg font-medium text-gray-800 flex items-center">
             <Sliders size={18} className="mr-2 text-blue-600" />
-            Opzioni Generali
+            General Options
           </h3>
           {expanded.generalOptions ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
@@ -492,7 +492,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
         {expanded.generalOptions && (
           <div className="p-4 pt-0 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Ottimizzazione Percorso</h4>
+              <h4 className="font-medium text-gray-700 mb-2">Path Optimization</h4>
               
               <div className="space-y-2">
                 <div className="flex items-center">
@@ -504,7 +504,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('removeRedundantMoves', e.target.checked)}
                   />
                   <label htmlFor="removeRedundantMoves" className="ml-2 block text-sm text-gray-700">
-                    Rimuovi movimenti ridondanti
+                    Remove redundant moves
                   </label>
                 </div>
                 
@@ -517,7 +517,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('optimizeRapidMoves', e.target.checked)}
                   />
                   <label htmlFor="optimizeRapidMoves" className="ml-2 block text-sm text-gray-700">
-                    Ottimizza movimenti rapidi
+                    Optimize rapid moves
                   </label>
                 </div>
                 
@@ -530,7 +530,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('optimizeToolpaths', e.target.checked)}
                   />
                   <label htmlFor="optimizeToolpaths" className="ml-2 block text-sm text-gray-700">
-                    Ottimizza percorsi utensile
+                    Optimize toolpaths
                   </label>
                 </div>
                 
@@ -543,7 +543,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('minimizeAxisMovement', e.target.checked)}
                   />
                   <label htmlFor="minimizeAxisMovement" className="ml-2 block text-sm text-gray-700">
-                    Minimizza movimento assi
+                    Minimize axis movement
                   </label>
                 </div>
                 
@@ -556,14 +556,14 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('useArcOptimization', e.target.checked)}
                   />
                   <label htmlFor="useArcOptimization" className="ml-2 block text-sm text-gray-700">
-                    Ottimizza archi e cerchi
+                    Optimize arcs and circles
                   </label>
                 </div>
               </div>
             </div>
             
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Ottimizzazione Codice</h4>
+              <h4 className="font-medium text-gray-700 mb-2">Code Optimization</h4>
               
               <div className="space-y-2">
                 <div className="flex items-center">
@@ -575,7 +575,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('removeRedundantCodes', e.target.checked)}
                   />
                   <label htmlFor="removeRedundantCodes" className="ml-2 block text-sm text-gray-700">
-                    Rimuovi codici ridondanti
+                    Remove redundant codes
                   </label>
                 </div>
                 
@@ -588,7 +588,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('optimizeFeedrates', e.target.checked)}
                   />
                   <label htmlFor="optimizeFeedrates" className="ml-2 block text-sm text-gray-700">
-                    Ottimizza velocità di avanzamento
+                    Optimize feed rates
                   </label>
                 </div>
                 
@@ -601,7 +601,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('consolidateGCodes', e.target.checked)}
                   />
                   <label htmlFor="consolidateGCodes" className="ml-2 block text-sm text-gray-700">
-                    Consolida G-code modali
+                    Consolidate modal G-codes
                   </label>
                 </div>
                 
@@ -614,7 +614,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('removeEmptyLines', e.target.checked)}
                   />
                   <label htmlFor="removeEmptyLines" className="ml-2 block text-sm text-gray-700">
-                    Rimuovi righe vuote in eccesso
+                    Remove excess empty lines
                   </label>
                 </div>
                 
@@ -627,14 +627,14 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('removeComments', e.target.checked)}
                   />
                   <label htmlFor="removeComments" className="ml-2 block text-sm text-gray-700">
-                    Rimuovi commenti
+                    Remove comments
                   </label>
                 </div>
               </div>
             </div>
             
             <div>
-              <h4 className="font-medium text-gray-700 mb-2">Funzionalità Avanzate</h4>
+              <h4 className="font-medium text-gray-700 mb-2">Advanced Features</h4>
               
               <div className="space-y-2">
                 <div className="flex items-center">
@@ -646,7 +646,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('useHighSpeedMode', e.target.checked)}
                   />
                   <label htmlFor="useHighSpeedMode" className="ml-2 block text-sm text-gray-700">
-                    Abilita modalità alta velocità
+                    Enable high-speed mode
                   </label>
                 </div>
                 
@@ -659,7 +659,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('useLookAhead', e.target.checked)}
                   />
                   <label htmlFor="useLookAhead" className="ml-2 block text-sm text-gray-700">
-                    Abilita look-ahead
+                    Enable look-ahead
                   </label>
                 </div>
                 
@@ -672,7 +672,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('useTCPMode', e.target.checked)}
                   />
                   <label htmlFor="useTCPMode" className="ml-2 block text-sm text-gray-700">
-                    Abilita TCP/TCPM (5 assi)
+                    Enable TCP/TCPM (5-axis)
                   </label>
                 </div>
                 
@@ -685,7 +685,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     onChange={(e) => updateOption('safetyChecks', e.target.checked)}
                   />
                   <label htmlFor="safetyChecks" className="ml-2 block text-sm text-gray-700">
-                    Esegui controlli di sicurezza
+                    Perform safety checks
                   </label>
                 </div>
               </div>
@@ -702,7 +702,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
         >
           <h3 className="text-lg font-medium text-gray-800 flex items-center">
             <Settings size={18} className="mr-2 text-blue-600" />
-            Opzioni Specifiche {selectedController.charAt(0).toUpperCase() + selectedController.slice(1)}
+            {selectedController.charAt(0).toUpperCase() + selectedController.slice(1)} Specific Options
           </h3>
           {expanded.controllerOptions ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
         </div>
@@ -713,7 +713,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
             {selectedController === 'fanuc' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Ottimizzazione Formato</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Format Optimization</h4>
                   
                   <div className="space-y-2">
                     <div className="flex items-center">
@@ -725,7 +725,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useDecimalFormat', e.target.checked)}
                       />
                       <label htmlFor="fanucUseDecimalFormat" className="ml-2 block text-sm text-gray-700">
-                        Usa formato decimale
+                        Use decimal format
                       </label>
                     </div>
                     
@@ -738,7 +738,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useModalGCodes', e.target.checked)}
                       />
                       <label htmlFor="fanucUseModalGCodes" className="ml-2 block text-sm text-gray-700">
-                        Usa G-code modali
+                        Use modal G-codes
                       </label>
                     </div>
                     
@@ -751,14 +751,14 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useCompactGCode', e.target.checked)}
                       />
                       <label htmlFor="fanucUseCompactGCode" className="ml-2 block text-sm text-gray-700">
-                        Genera G-code compatto
+                        Generate compact G-code
                       </label>
                     </div>
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Funzionalità Avanzate</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Advanced Features</h4>
                   
                   <div className="space-y-2">
                     <div className="flex items-center">
@@ -770,7 +770,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useAI', e.target.checked)}
                       />
                       <label htmlFor="fanucUseAI" className="ml-2 block text-sm text-gray-700">
-                        Abilita AI Contour Control
+                        Enable AI Contour Control
                       </label>
                     </div>
                     
@@ -783,7 +783,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useNanoSmoothing', e.target.checked)}
                       />
                       <label htmlFor="fanucUseNanoSmoothing" className="ml-2 block text-sm text-gray-700">
-                        Abilita Nano Smoothing
+                        Enable Nano Smoothing
                       </label>
                     </div>
                     
@@ -796,7 +796,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useCornerRounding', e.target.checked)}
                       />
                       <label htmlFor="fanucUseCornerRounding" className="ml-2 block text-sm text-gray-700">
-                        Abilita arrotondamento angoli
+                        Enable corner rounding
                       </label>
                     </div>
                     
@@ -809,7 +809,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('fanuc', 'useHighPrecisionMode', e.target.checked)}
                       />
                       <label htmlFor="fanucUseHighPrecisionMode" className="ml-2 block text-sm text-gray-700">
-                        Abilita modalità alta precisione
+                        Enable high-precision mode
                       </label>
                     </div>
                   </div>
@@ -820,8 +820,8 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     <div className="flex items-start">
                       <Info size={16} className="mt-0.5 mr-2 flex-shrink-0 text-yellow-600" />
                       <p className="text-sm text-yellow-800">
-                        Le opzioni avanzate Fanuc come AI Contour Control e Nano Smoothing richiedono che il controller CNC supporti queste funzionalità.
-                        Verifica che il tuo controller supporti queste funzioni prima di utilizzarle.
+                        Advanced Fanuc options like AI Contour Control and Nano Smoothing require the CNC controller to support these features.
+                        Verify that your controller supports these functions before using them.
                       </p>
                     </div>
                   </div>
@@ -833,7 +833,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
             {selectedController === 'heidenhain' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Formato Programma</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Program Format</h4>
                   
                   <div className="space-y-2">
                     <div className="flex items-center">
@@ -845,7 +845,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useConversationalFormat', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseConversationalFormat" className="ml-2 block text-sm text-gray-700">
-                        Usa formato conversazionale
+                        Use conversational format
                       </label>
                     </div>
                     
@@ -858,7 +858,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useFunctionBlocks', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseFunctionBlocks" className="ml-2 block text-sm text-gray-700">
-                        Usa blocchi funzione (LBL)
+                        Use function blocks (LBL)
                       </label>
                     </div>
                     
@@ -871,7 +871,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useCycleDefine', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseCycleDefine" className="ml-2 block text-sm text-gray-700">
-                        Usa cicli definiti (CYCL DEF)
+                        Use defined cycles (CYCL DEF)
                       </label>
                     </div>
                     
@@ -884,14 +884,14 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useParameterProgramming', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseParameterProgramming" className="ml-2 block text-sm text-gray-700">
-                        Usa programmazione parametrica
+                        Use parametric programming
                       </label>
                     </div>
                   </div>
                 </div>
                 
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Funzionalità Avanzate</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Advanced Features</h4>
                   
                   <div className="space-y-2">
                     <div className="flex items-center">
@@ -903,7 +903,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useTCP', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseTCP" className="ml-2 block text-sm text-gray-700">
-                        Abilita TCPM (5 assi)
+                        Enable TCPM (5-axis)
                       </label>
                     </div>
                     
@@ -916,7 +916,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useRadiusCompensation3D', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseRadiusCompensation3D" className="ml-2 block text-sm text-gray-700">
-                        Compensazione raggio 3D
+                        3D radius compensation
                       </label>
                     </div>
                     
@@ -929,7 +929,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                         onChange={(e) => updateControllerOption('heidenhain', 'useSmartTurning', e.target.checked)}
                       />
                       <label htmlFor="heidenhainUseSmartTurning" className="ml-2 block text-sm text-gray-700">
-                        Abilita Smart Turning
+                        Enable Smart Turning
                       </label>
                     </div>
                   </div>
@@ -940,9 +940,9 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                     <div className="flex items-start">
                       <Info size={16} className="mt-0.5 mr-2 flex-shrink-0 text-yellow-600" />
                       <p className="text-sm text-yellow-800">
-                        La conversione da G-code standard a formato conversazionale Heidenhain potrebbe richiedere
-                        ulteriori aggiustamenti manuali per operazioni complesse. Verifica sempre il risultato
-                        prima di utilizzarlo sulla macchina.
+                        Converting standard G-code to Heidenhain conversational format may require
+                        additional manual adjustments for complex operations. Always verify the result
+                        before using it on the machine.
                       </p>
                     </div>
                   </div>
@@ -956,9 +956,9 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                 <div className="flex items-start">
                   <Info size={16} className="mt-0.5 mr-2 flex-shrink-0 text-blue-600" />
                   <p className="text-sm text-blue-800">
-                    Le ottimizzazioni per il controller {selectedController.charAt(0).toUpperCase() + selectedController.slice(1)} 
-                    utilizzano le opzioni generali di ottimizzazione configurate nella sezione precedente.
-                    Sono disponibili opzioni estese solo per controller Fanuc e Heidenhain.
+                    Optimizations for the {selectedController.charAt(0).toUpperCase() + selectedController.slice(1)} controller
+                    use the general optimization options configured in the previous section.
+                    Extended options are available only for Fanuc and Heidenhain controllers.
                   </p>
                 </div>
               </div>
@@ -976,7 +976,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
           >
             <h3 className="text-lg font-medium text-gray-800 flex items-center">
               <Check size={18} className="mr-2 text-green-600" />
-              Risultati Ottimizzazione
+              Optimization Results
             </h3>
             {expanded.results ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
@@ -985,24 +985,24 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
             <div className="p-4 pt-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Statistiche</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Statistics</h4>
                   
                   <div className="bg-gray-50 p-3 rounded-md">
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Linee originali:</span>
+                        <span className="text-gray-600">Original lines:</span>
                         <span className="font-medium">{result.stats.originalLines}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Linee ottimizzate:</span>
+                        <span className="text-gray-600">Optimized lines:</span>
                         <span className="font-medium">{result.stats.optimizedLines}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Riduzione:</span>
+                        <span className="text-gray-600">Reduction:</span>
                         <span className="font-medium">{result.stats.reductionPercent.toFixed(2)}%</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Tempo stimato:</span>
+                        <span className="text-gray-600">Estimated time:</span>
                         <span className="font-medium">-{result.stats.estimatedTimeReduction.toFixed(2)} min</span>
                       </div>
                     </div>
@@ -1010,13 +1010,13 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                 </div>
                 
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Controlli di Sicurezza</h4>
+                  <h4 className="font-medium text-gray-700 mb-2">Safety Checks</h4>
                   
                   {result.validation.isValid ? (
                     <div className="bg-green-50 p-3 rounded-md flex items-start">
                       <Check size={16} className="mt-0.5 mr-2 flex-shrink-0 text-green-600" />
                       <p className="text-sm text-green-800">
-                        Il G-code ottimizzato ha superato tutti i controlli di sicurezza.
+                        The optimized G-code passed all safety checks.
                       </p>
                     </div>
                   ) : (
@@ -1024,7 +1024,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                       <AlertTriangle size={16} className="mt-0.5 mr-2 flex-shrink-0 text-red-600" />
                       <div>
                         <p className="text-sm font-medium text-red-800 mb-1">
-                          Attenzione: Sono stati rilevati problemi nel G-code
+                          Warning: Issues detected in the G-code
                         </p>
                         <ul className="text-sm text-red-800 list-disc list-inside">
                           {result.validation.errors.map((error, index) => (
@@ -1040,7 +1040,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                       <AlertTriangle size={16} className="mt-0.5 mr-2 flex-shrink-0 text-yellow-600" />
                       <div>
                         <p className="text-sm font-medium text-yellow-800 mb-1">
-                          Avvertenze:
+                          Warnings:
                         </p>
                         <ul className="text-sm text-yellow-800 list-disc list-inside">
                           {result.validation.warnings.map((warning, index) => (
@@ -1054,7 +1054,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
               </div>
               
               <div className="mb-4">
-                <h4 className="font-medium text-gray-700 mb-2">Ottimizzazioni Applicate</h4>
+                <h4 className="font-medium text-gray-700 mb-2">Applied Optimizations</h4>
                 
                 <div className="bg-blue-50 p-3 rounded-md">
                   <ul className="text-sm text-blue-800 grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1075,7 +1075,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                   onClick={() => toggleSection('preview')}
                 >
                   <Eye size={16} className="mr-2" />
-                  {expanded.preview ? 'Nascondi Anteprima' : 'Mostra Anteprima'}
+                  {expanded.preview ? 'Hide Preview' : 'Show Preview'}
                 </button>
                 
                 <button
@@ -1084,7 +1084,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                   onClick={saveGcode}
                 >
                   <Save size={16} className="mr-2" />
-                  Salva G-code
+                  Save G-code
                 </button>
                 
                 <button
@@ -1093,7 +1093,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
                   onClick={processGcode}
                 >
                   <Settings size={16} className="mr-2" />
-                  Riprocessa
+                  Reprocess
                 </button>
               </div>
             </div>
@@ -1104,7 +1104,7 @@ const AdvancedPostProcessorPanel: React.FC<AdvancedPostProcessorPanelProps> = ({
       {/* G-code Preview */}
       {result && expanded.preview && (
         <div className="p-4">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">Anteprima G-code Ottimizzato</h3>
+          <h3 className="text-lg font-medium text-gray-800 mb-2">Optimized G-code Preview</h3>
           
           <div className="bg-gray-100 p-3 rounded-md overflow-auto max-h-96">
             <pre className="text-sm font-mono whitespace-pre-wrap">{outputGcode}</pre>

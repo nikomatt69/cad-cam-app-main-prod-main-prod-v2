@@ -85,18 +85,18 @@ const PWAInstallPrompt: React.FC = () => {
         <div className="flex items-center">
           <img src="/icon.png" alt="Logo" className="w-10 h-10 mr-3" />
           <div>
-            <h3 className="font-medium text-gray-900 dark:text-white">Install App</h3>
+            <h3 className="font-medium text-gray-900">Install App</h3>
             <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Add CAD/CAM to your home screen for quick access</p>
           </div>
         </div>
-        <button onClick={handleDismiss} className="text-gray-400 hover:text-gray-500">
+        <button onClick={handleDismiss} className="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300">
           <X size={18} />
         </button>
       </div>
       <div className="mt-4 flex justify-end space-x-3">
         <button 
           onClick={handleDismiss}
-          className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+          className="text-sm px-2 py-1 rounded text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-blue-900/30"
         >
           Not now
         </button>

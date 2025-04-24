@@ -62,7 +62,7 @@ const Dialog: React.FC<DialogProps> = ({
                   <div className="flex items-center justify-between mb-4">
                     <HeadlessDialog.Title
                       as="h3"
-                      className="text-lg font-medium leading-6 text-gray-900 dark:text-white"
+                      className="text-lg font-medium leading-6 text-gray-900"
                     >
                       {title}
                     </HeadlessDialog.Title>
@@ -70,7 +70,7 @@ const Dialog: React.FC<DialogProps> = ({
                     {showCloseButton && (
                       <button
                         type="button"
-                        className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-300"
                         onClick={onClose}
                       >
                         <span className="sr-only">Close</span>

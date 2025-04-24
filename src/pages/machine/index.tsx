@@ -37,6 +37,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { formatDistance } from 'date-fns';
 import { debounce } from 'lodash';
 import MetaTags from '@/src/components/layout/Metatags';
+import ExportImportToolpathsControls from '@/src/components/cam/ToolpathControls';
 
 interface MachineConfigFilterState {
   type: string;
@@ -408,7 +409,7 @@ export default function MachineConfigsPage() {
           </div>
           
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-            <ExportImportControls entityType="machineConfigs" />
+          <ExportImportToolpathsControls entityType="machineConfigs" />
           </div>
           
           {/* Search and filters */}

@@ -20,10 +20,58 @@
 /* Base styles */
 @layer base {
   body {
-    @apply bg-[#F9FCFF] dark:bg-gray-900 text-gray-900 antialiased;
+    @apply bg-[#F9FCFF] dark:bg-gradient-to-b from-gray-800 to-gray-600 text-gray-900 dark:text-gray-100 antialiased;
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
       Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   }
+
+  /* Set default text color for dark mode */
+  html.dark {
+    color: theme('colors.blue.400');
+  }
+
+  /* Dark mode form styles - text color will now inherit from html.dark */
+  html.dark input[type="text"],
+  html.dark input[type="email"],
+  html.dark input[type="number"],
+  html.dark textarea {
+    @apply bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500;
+  }
+
+  html.dark input[type="email"]:disabled {
+     @apply bg-gray-700 border-gray-600 text-gray-400 cursor-not-allowed;
+  }
+
+  html.dark input[type="checkbox"],
+  html.dark input[type="radio"] {
+     @apply bg-gray-700 border-gray-600;
+  }
+
+  /* Default hover styles for dark mode */
+  html.dark a:not(.btn):hover,
+  html.dark button:not([class*=" hover:bg-"]):not([class*=" bg-"]):not(.btn):hover,
+  html.dark tr[onclick]:hover,
+  html.dark tr[role="button"]:hover,
+  html.dark li[onclick]:hover,
+  html.dark li[role="button"]:hover,
+  html.dark div[role="button"]:hover,
+  html.dark div[role="option"]:hover,
+  html.dark .sidebar-tab:hover
+  {
+    /* Apply a subtle light blue background tint */
+    background-color: theme('colors.blue.900 / 30%');
+  }
+
+  /* Ensure outline buttons also use a less bright hover */
+  html.dark .btn-outline:hover,
+  html.dark .btn-outline-primary:hover {
+     background-color: theme('colors.blue.900 / 20%');
+     border-color: theme('colors.gray.500');
+  }
+  html.dark .btn-outline-primary:hover {
+     border-color: theme('colors.blue.400');
+  }
+
   .fixed-cycle-editor {
     background-color: #f5f5f5;
     border-radius: 8px;
@@ -69,10 +117,7 @@
   }
   
   .param-field label {
-    font-weight: 500;
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
+    @apply font-medium mb-1 flex items-center text-gray-700 dark:text-gray-300;
   }
   
   .param-field .required {
@@ -439,7 +484,8 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   .form-input,
   .form-select,
   .form-textarea {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400;
+    @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500;
+    @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-blue-400;
     @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
     @apply sm:text-sm;
   }
@@ -450,7 +496,7 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   }
 
   .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-medium text-gray-700 dark:text-blue-400 mb-1;
   }
 
   .form-error {
@@ -711,10 +757,11 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   --background: #161616;
   --surface: #545454;
   --surface-hover: #374151;
+  @apply hover:bg-gray-700;
 }
 
 .dark body {
-  @apply bg-gray-800 text-white;
+  @apply bg-gray-800 text-white hover:bg-gray-700;
 }
 
 .dark .card {
@@ -747,18 +794,12 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   @apply text-gray-300;
 }
 
-
-
-
 /* Keyframe animations - defined if not using Tailwind's built-in animations */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
-
-
-
 
 html, body {
   height: 100%;
@@ -824,7 +865,6 @@ html, body {
   height: 100%;
   position: relative;
 }
-
 
 /* Add to your global.css file */
 
@@ -1086,4 +1126,225 @@ input:checked + .toggle-slider:before {
   text-transform: uppercase;
   color: #777;
   margin-bottom: 8px;
+}
+
+/* Adjust default border colors in dark mode */
+.dark .border {
+  @apply border-gray-700;
+}
+.dark [class*=" border-"]:not([class*="border-opacity"]) {
+  @apply border-gray-700;
+}
+
+/* Dark Mode Component Adjustments */
+.dark .form-label {
+  /* Inherits color from html.dark */
+}
+
+.dark .form-input,
+.dark .form-select,
+.dark .form-textarea {
+  @apply bg-gray-700 border-gray-600 placeholder-gray-400; /* Removed text-blue-400 */
+  /* Color will inherit from html.dark */
+  @apply focus:ring-blue-500 focus:border-blue-500;
+}
+
+.dark .form-input-error,
+.dark .form-select-error,
+.dark .form-textarea-error {
+  @apply border-red-500 text-red-400 placeholder-red-500;
+  @apply focus:ring-red-500 focus:border-red-500;
+}
+
+.dark .form-error {
+  @apply text-red-400;
+}
+
+.dark .btn-primary {
+  @apply bg-blue-600 text-white;
+  @apply hover:bg-blue-700 focus:ring-blue-500;
+}
+
+.dark .btn-secondary {
+  @apply bg-gray-600 text-white;
+  @apply hover:bg-gray-700 focus:ring-gray-500;
+}
+
+.dark .btn-success {
+  @apply bg-green-600 text-white;
+  @apply hover:bg-green-700 focus:ring-green-500;
+}
+
+.dark .btn-danger {
+  @apply bg-red-600 text-white;
+  @apply hover:bg-red-700 focus:ring-red-500;
+}
+
+.dark .btn-warning {
+  @apply bg-yellow-500 text-gray-900; /* Ensure contrast */
+  @apply hover:bg-yellow-600 focus:ring-yellow-500;
+}
+
+.dark .btn-info {
+  @apply bg-sky-600 text-white; /* Changed to sky for better contrast */
+  @apply hover:bg-sky-700 focus:ring-sky-500;
+}
+
+/* .dark .btn-outline already styled */
+
+.dark .btn-outline-primary {
+  @apply border-blue-500 text-blue-400;
+  @apply hover:bg-gray-700 focus:ring-blue-500;
+}
+
+.dark .btn-disabled {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+.dark .badge-primary {
+  @apply bg-blue-900 text-blue-300;
+}
+
+.dark .badge-secondary {
+  @apply bg-gray-700 text-gray-300;
+}
+
+.dark .badge-success {
+  @apply bg-green-900 text-green-300;
+}
+
+.dark .badge-danger {
+  @apply bg-red-900 text-red-300;
+}
+
+.dark .badge-warning {
+  @apply bg-yellow-900 text-yellow-300;
+}
+
+.dark .badge-info {
+  @apply bg-sky-900 text-sky-300; /* Changed to sky */
+}
+
+.dark .alert {
+  @apply border-gray-600;
+}
+
+.dark .alert-primary {
+  @apply bg-blue-900/50 border-blue-700 text-blue-300;
+}
+
+.dark .alert-success {
+  @apply bg-green-900/50 border-green-700 text-green-300;
+}
+
+.dark .alert-danger {
+  @apply bg-red-900/50 border-red-700 text-red-300;
+}
+
+.dark .alert-warning {
+  @apply bg-yellow-900/50 border-yellow-700 text-yellow-300;
+}
+
+.dark .alert-info {
+  @apply bg-sky-900/50 border-sky-700 text-sky-300; /* Changed to sky */
+}
+
+.dark ::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-gray-600;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
+}
+
+.dark .loading-spinner {
+    border-top-color: var(--primary); /* Use CSS variable */
+    border-color: rgba(255, 255, 255, 0.2);
+    border-top-color: var(--primary);
+}
+
+/* Keyframe animations - defined if not using Tailwind's built-in animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Additions for default text elements */
+.dark h3, .dark h4 {
+  @apply text-gray-200;
+}
+
+/* Target specific component classes */
+.dark .fixed-cycle-header h3,
+.dark .fixed-cycles-info-panel h3 {
+  @apply text-gray-200;
+}
+
+.dark .param-field label {
+   @apply text-gray-300;
+}
+
+.dark .param-description,
+.dark .param-input-group .unit,
+.dark .cycle-depth,
+.dark .cycle-increment {
+  @apply text-gray-400;
+}
+
+.dark .fixed-cycle-gcode {
+    @apply bg-gray-700 text-gray-300;
+}
+
+.dark .fixed-cycle-editor,
+.dark .fixed-cycles-info-panel {
+    @apply bg-gray-800 shadow-md;
+}
+
+.dark .cycle-item {
+    @apply bg-gray-700 border-gray-600 text-gray-300;
+}
+.dark .cycle-item:hover {
+    @apply bg-gray-600 border-gray-500;
+}
+
+.dark .apply-button {
+    @apply bg-blue-600 hover:bg-blue-700 text-white;
+}
+
+.dark .cycle-buttons button {
+    @apply bg-green-600 hover:bg-green-700 text-white;
+}
+
+.dark .cycle-buttons button:disabled {
+    @apply bg-gray-600 text-gray-400 cursor-not-allowed;
+}
+
+/* Default SVG text color */
+.dark svg text {
+  fill: theme('colors.gray.300');
+}
+
+/* Style for option elements in dark mode */
+.dark select option {
+  background-color: theme('colors.gray.700');
+  color: theme('colors.gray.200');
+}
+
+/* Style for select elements without .form-select in dark mode */
+.dark select:not(.form-select) {
+  background-color: theme('colors.gray.700');
+  /* Color inherits from html.dark */
+  border-color: theme('colors.gray.600');
+}
+
+/* Keyframe animations - defined if not using Tailwind's built-in animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 } 

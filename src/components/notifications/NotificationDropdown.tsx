@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { Check, Trash2, X, MessageCircle, Folder, Box } from 'react-feather';
 import useNotificationStore from '@/src/store/notificationStore';
 import { formatDistanceToNow } from 'date-fns';
-import { it } from 'date-fns/locale';
+import { enUS } from 'date-fns/locale';
 
 const NotificationDropdown: React.FC = () => {
   const router = useRouter();
@@ -70,9 +70,9 @@ const NotificationDropdown: React.FC = () => {
   
   const formatTime = (date: string) => {
     try {
-      return formatDistanceToNow(new Date(date), { addSuffix: true, locale: it });
+      return formatDistanceToNow(new Date(date), { addSuffix: true, locale: enUS });
     } catch (error) {
-      return 'data sconosciuta';
+      return 'unknown date';
     }
   };
   
@@ -86,10 +86,10 @@ const NotificationDropdown: React.FC = () => {
     >
       <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-700">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Notifiche
+          Notifications
           {unreadCount > 0 && (
             <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100 rounded-full">
-              {unreadCount} nuove
+              {unreadCount} new
             </span>
           )}
         </h3>
@@ -98,9 +98,9 @@ const NotificationDropdown: React.FC = () => {
           <button
             onClick={markAllAsRead}
             className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none"
-            aria-label="Segna tutto come letto"
+            aria-label="Mark all as read"
           >
-            Segna tutto come letto
+            Mark all as read
           </button>
         )}
       </div>
@@ -113,7 +113,7 @@ const NotificationDropdown: React.FC = () => {
         ) : notifications.length === 0 ? (
           <div className="p-4 text-center text-gray-500 dark:text-gray-400">
             <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Nessuna notifica</p>
+            <p>No notifications</p>
           </div>
         ) : (
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -155,7 +155,7 @@ const NotificationDropdown: React.FC = () => {
                     <button
                       onClick={() => markAsRead(notification.id)}
                       className="p-1 rounded-full text-gray-400 hover:text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900"
-                      aria-label="Segna come letto"
+                      aria-label="Mark as read"
                     >
                       <Check className="h-4 w-4" />
                     </button>
@@ -163,7 +163,7 @@ const NotificationDropdown: React.FC = () => {
                   <button
                     onClick={() => deleteNotification(notification.id)}
                     className="p-1 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
-                    aria-label="Elimina notifica"
+                    aria-label="Delete notification"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -179,7 +179,7 @@ const NotificationDropdown: React.FC = () => {
           onClick={() => setIsOpen(false)}
           className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none"
         >
-          Chiudi
+          Close
         </button>
       </div>
     </div>

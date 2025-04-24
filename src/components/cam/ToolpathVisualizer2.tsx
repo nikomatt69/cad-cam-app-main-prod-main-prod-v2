@@ -997,7 +997,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     // Add a helper arrow to make the tool more visible
     const arrowHelper = new THREE.ArrowHelper(
       new THREE.Vector3(0, 0, -1),  // Direction pointing down
-      new THREE.Vector3(0, 0, 0),   // Origin at tool center
+      new THREE.Vector3(0, 0, 100),   // Origin at tool center
       diameter * 2,                 // Length
       0xFF0000,                     // Color
       diameter * 0.5,               // Head length
@@ -1597,7 +1597,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     });
     
     // Salva i punti per l'animazione
-    const points = parseGCode(gcode, arcResolution);
+    toolpathPointsRef.current = parseGCode(gcode, arcResolution);
     
     // Rimuovi il percorso utensile esistente, se presente
     if (toolpathRef.current) {
@@ -1635,7 +1635,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     }
     
     setCurrentLine(0);
-  }, [gcode]);
+  }, [arcResolution, gcode, parseGCode]);
 
   // Effetto per gestire l'animazione del percorso utensile
   
@@ -1945,6 +1945,44 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     toolpathGroup.add(cutGroup);
     toolpathGroup.add(arcGroup);
     toolpathGroup.add(shapeGroup);
+    
+    // If no points were rendered, add a placeholder visualization
+    if (points.length === 0 || (rapidGroup.children.length === 0 && cutGroup.children.length === 0 
+                               && arcGroup.children.length === 0 && shapeGroup.children.length === 0)) {
+      console.log('Creating placeholder for toolpath with no elements');
+      
+      // Create a visual placeholder - a simple cube with text
+      const placeholderGeometry = new THREE.BoxGeometry(50, 50, 10);
+      const placeholderMaterial = new THREE.MeshStandardMaterial({
+        color: 0x3f51b5,
+        wireframe: true,
+        opacity: 0.7,
+        transparent: true
+      });
+      
+      const placeholder = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
+      placeholder.position.set(0, 0, 5); // Position at origin, slightly elevated
+      placeholder.userData.isToolpathPlaceholder = true;
+      toolpathGroup.add(placeholder);
+      
+      // Add an axial cross to mark the position
+      const axisHelper = new THREE.AxesHelper(30);
+      toolpathGroup.add(axisHelper);
+      
+      // Create a plane with circular pattern
+      const gridGeometry = new THREE.CircleGeometry(40, 32);
+      const gridMaterial = new THREE.MeshBasicMaterial({
+        color: 0x4caf50,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3
+      });
+      
+      const gridPlane = new THREE.Mesh(gridGeometry, gridMaterial);
+      gridPlane.rotation.x = -Math.PI / 2; // Lay flat on XY plane
+      gridPlane.position.set(0, 0, -0.1); // Position just under the origin
+      toolpathGroup.add(gridPlane);
+    }
     
     return toolpathGroup;
   };
@@ -2390,11 +2428,24 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     } else {
       // Create a default tool if none is selected
       const defaultTool = new THREE.Mesh(
+
         new THREE.CylinderGeometry(0.3, 0.3, 5, 32), 
         new THREE.MeshStandardMaterial({ 
           color: 0xFF4500,  // Colore arancione brillante
           emissive: 0xFF0000,
-          emissiveIntensity: 0.5
+          emissiveIntensity: 0.5,
+          transparent: false,
+          opacity: 1,
+          side: THREE.DoubleSide,
+          precision: 'highp',
+          dithering: true,
+          toneMapped: true,
+          colorWrite: true,
+          clipShadows:true,
+         
+         
+          
+
         })
       );
       defaultTool.rotation.x = Math.PI / 2;
@@ -2890,7 +2941,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       />
       
       {/* View Cube */}
-      <div className="absolute bottom-10 right-10 z-10">
+      <div className="absolute bottom-14 right-10 z-10">
         <EnhancedViewCube 
           currentView={currentView}
           onViewChange={setCurrentView}
@@ -3197,7 +3248,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       
       {/* Bottom playback controls */}
       {showControls && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gray-800 bg-opacity-75 text-white p-2 z-10">
+        <div className="absolute bottom-0 left-0 right-0 bg-gray-800 bg-opacity-75 text-white p-1 z-10">
           <div className="w-full space-y-2">
             {/* Progress bar */}
             <div 
@@ -3368,7 +3419,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       
       {/* Right side panel */}
       {isPanelOpen && (
-        <div className="absolute top-16 right-4 w-72 bg-gray-800 bg-opacity-90 text-white p-3 rounded-md z-10 max-h-[calc(100%-200px)] overflow-y-auto">
+        <div className="absolute top-16 right-14 w-72 bg-gray-800 bg-opacity-90 text-white p-3 rounded-md z-10 max-h-[calc(100%-200px)] overflow-y-auto">
           {/* Info panel */}
           {activePanel === 'info' && (
             <div className="space-y-4">
@@ -4044,7 +4095,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
 
       {/* Point selection tooltip */}
       {selectedPointIndex >= 0 && showAllPoints && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white px-3 py-2 rounded-md text-xs z-20 pointer-events-none">
+        <div className="absolute bottom-30 left-14 transform -translate-x-1/2 -translate-y-1/2 bg-black bg-opacity-75 text-white px-3 py-2 rounded-md text-xs z-20 pointer-events-none">
           <div className="font-medium">Point #{selectedPointIndex}</div>
           <div>X: {toolpathPointsRef.current[selectedPointIndex]?.x.toFixed(3)}</div>
           <div>Y: {toolpathPointsRef.current[selectedPointIndex]?.y.toFixed(3)}</div>

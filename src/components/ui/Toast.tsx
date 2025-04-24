@@ -80,7 +80,7 @@ const Toast: React.FC<ToastProps> = ({ toast, onClose }) => {
             {getIcon()}
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+            <h3 className="font-semibold text-sm text-gray-900">
               {toast.title || getTitle()}
             </h3>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">

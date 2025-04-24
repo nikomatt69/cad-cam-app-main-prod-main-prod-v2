@@ -45,15 +45,19 @@ const WorkpieceSetup: React.FC = () => {
     const fetchMachineConfigs = async () => {
       try {
         setIsLoading(true);
-        const response = await axios.get('/api/machine-configs');
-        if (response.data && response.data.data) {
-          setMachineConfigs(Array.isArray(response.data.data) ? response.data.data : []);
+        // Specificare il tipo atteso nella risposta Axios
+        const response = await axios.get<{ data: MachineConfig[] }>('/api/machine-configs');
+        
+        // Controllo più robusto: verifica che 'data' esista e sia un array
+        if (response.data && Array.isArray(response.data.data)) {
+          setMachineConfigs(response.data.data);
         } else {
-          setMachineConfigs([]);
+          console.warn('API /api/machine-configs non ha restituito un array in response.data.data');
+          setMachineConfigs([]); // Imposta array vuoto se i dati non sono nel formato atteso
         }
       } catch (error) {
         console.error('Errore nel caricamento delle configurazioni macchina:', error);
-        setMachineConfigs([]); // Set empty array on error
+        setMachineConfigs([]); // Imposta array vuoto in caso di errore
       } finally {
         setIsLoading(false);
       }

@@ -1,7 +1,7 @@
 // src/components/ai/AIMessageInput.tsx
 import { LightbulbIcon } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type, Edit3, Trash, ExternalLink } from 'react-feather';
+import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type, Edit3, Trash, ExternalLink, Plus } from 'react-feather';
 import toast from 'react-hot-toast';
 
 // Define and export tool types for clarity
@@ -233,6 +233,16 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
             : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
         >
           <Type size={14} />
+        </button>
+        <button
+          onClick={() => handleToolButtonClick('generateCADElement')}
+          title="Force Text-to-CAD"
+          disabled={isProcessing}
+          className={`p-1.5 rounded border text-xs ${activeTool === 'generateCADElement' 
+            ? 'bg-purple-100 border-purple-400 text-purple-700' 
+            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+        >
+          <Plus size={14} />
         </button>
         <button
           onClick={() => handleToolButtonClick('updateCADElement')}

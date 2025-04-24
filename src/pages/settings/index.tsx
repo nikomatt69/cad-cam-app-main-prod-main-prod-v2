@@ -32,7 +32,7 @@ export default function Settings() {
     }
     
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('L\'immagine deve essere inferiore a 2MB');
+      toast.error('Image must be smaller than 2MB');
       return;
     }
 
@@ -48,10 +48,10 @@ export default function Settings() {
       setProfileImage(imageBase64);
       setStoreProfileImage(imageBase64);
       
-      toast.success('Immagine caricata con successo');
+      toast.success('Image uploaded successfully');
     } catch (error) {
       console.error('Errore durante il caricamento:', error);
-      toast.error('Errore durante il caricamento dell\'immagine');
+      toast.error('Error uploading image');
     } finally {
       setIsUploading(false);
     }
@@ -66,7 +66,7 @@ export default function Settings() {
     
     setProfileImage(null);
     setStoreProfileImage(null);
-    toast.success('Immagine rimossa');
+    toast.success('Image removed');
   };
   
   
@@ -97,7 +97,7 @@ export default function Settings() {
     setDeleteError(null);
 
     // Confirmation dialog
-    if (!window.confirm('Sei sicuro di voler eliminare il tuo account? Questa azione è irreversibile e tutti i tuoi dati verranno persi.')) {
+    if (!window.confirm('Are you sure you want to delete your account? This action is irreversible and all your data will be lost.')) {
       return;
     }
 
@@ -119,7 +119,7 @@ export default function Settings() {
       }
 
       // Account deleted successfully
-      toast.success("Account eliminato con successo.");
+      toast.success("Account deleted successfully.");
 
       // Sign out and redirect
       await signOut({ redirect: false, callbackUrl: '/' });
@@ -128,8 +128,8 @@ export default function Settings() {
     } catch (error) {
       console.error('Account deletion error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during deletion.';
-      setDeleteError(errorMessage);
-      toast.error(`Errore Eliminazione Account: ${errorMessage}`);
+      setDeleteError(`Account Deletion Error: ${errorMessage}`);
+      toast.error(`Account Deletion Error: ${errorMessage}`);
     } finally {
       setIsDeleting(false);
     }
@@ -170,12 +170,12 @@ export default function Settings() {
   }
 
   const tabs = [
-    { id: 'profile', name: 'Profilo', icon: <User size={18} /> },
+    { id: 'profile', name: 'Profile', icon: <User size={18} /> },
     { id: 'account', name: 'Account', icon: <Shield size={18} /> },
-    { id: 'billing', name: 'Abbonamento', icon: <Tag size={18} /> },
-    { id: 'notifications', name: 'Notifiche', icon: <Bell size={18} /> },
+    { id: 'billing', name: 'Subscription', icon: <Tag size={18} /> },
+    { id: 'notifications', name: 'Notifications', icon: <Bell size={18} /> },
     { id: 'ai', name: 'AI', icon: <Cpu size={18} /> },
-    { id: 'language', name: 'Lingua', icon: <Globe size={18} /> },
+    { id: 'language', name: 'Language', icon: <Globe size={18} /> },
    
    
    
@@ -188,13 +188,13 @@ export default function Settings() {
     <EnhancedLayout>
       <MetaTags
   ogImage="/og-default.png" 
-        title="CAM/CAM FUN IMPOSTAZIONI" 
+        title="CAD/CAM FUN SETTINGS" 
       />
 
       <div className="px-4 sm:px-0 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Impostazioni</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
         <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Gestisci il tuo profilo, account e preferenze
+          Manage your profile, account, and preferences
         </p>
       </div>
 
@@ -248,7 +248,7 @@ export default function Settings() {
               <div className="relative group">
                 <button className="flex flex-col items-center py-2 px-3 text-xs font-medium text-gray-500 dark:text-gray-400">
                   <span className="mb-1">•••</span>
-                  Altro
+                  More
                 </button>
                 <div className="hidden group-hover:block absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
                   {tabs.slice(4).map((tab) => (
@@ -272,16 +272,16 @@ export default function Settings() {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Informazioni profilo</h3>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Profile Information</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Queste informazioni verranno mostrate pubblicamente, quindi fai attenzione a cosa condividi.
+                  This information will be displayed publicly, so be careful what you share.
                 </p>
               </div>
 
               <div className=" flex flex-col grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                 <div className="col-span-full sm:col-span-4">
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Nome completo
+                    Full name
                   </label>
                   <div className="mt-1">
                     <input
@@ -289,7 +289,7 @@ export default function Settings() {
                       name="name"
                       id="name"
                       defaultValue={session?.user?.name || ''}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-800 rounded-md"
+                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 bg-white text-gray-900 rounded-md"
                     />
                   </div>
                 </div>
@@ -304,34 +304,34 @@ export default function Settings() {
                       name="email"
                       id="email"
                       defaultValue={session?.user?.email || ''}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-800 rounded-md"
+                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 bg-gray-100 text-gray-500 rounded-md cursor-not-allowed"
                       disabled
                     />
                   </div>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">L&apos;email non può essere modificata</p>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Email cannot be changed</p>
                 </div>
 
                 <div className="col-span-full">
                   <label htmlFor="about" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Biografia
+                    Bio
                   </label>
                   <div className="mt-1">
                     <textarea
                       id="about"
                       name="about"
                       rows={4}
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 dark:border-gray-700 dark:bg-gray-800 rounded-md"
-                      placeholder="Descrivi brevemente te stesso e la tua esperienza"
+                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 bg-white text-gray-900 rounded-md placeholder-gray-400"
+                      placeholder="Briefly describe yourself and your experience"
                     ></textarea>
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Breve descrizione delle tue competenze e interessi.
+                    Brief description of your skills and interests.
                   </p>
                 </div>
 
                 <div className="col-span-full">
                   <label htmlFor="photo" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Foto
+                    Photo
                   </label>
                   <div className="mt-1 flex flex-col sm:flex-row items-start sm:items-center">
                     <div className="relative group">
@@ -357,7 +357,7 @@ export default function Settings() {
                       {/* Overlay on hover */}
                       <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
                            onClick={() => fileInputRef.current?.click()}>
-                        <div className="text-white text-xs font-medium">Cambia foto</div>
+                        <div className="text-white text-xs font-medium">Change photo</div>
                       </div>
                     </div>
                     
@@ -375,7 +375,7 @@ export default function Settings() {
                         onClick={() => fileInputRef.current?.click()}
                         className="bg-white dark:bg-gray-800 py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto"
                       >
-                        Carica nuova foto
+                        Upload new photo
                       </button>
                       {profileImage && (
                         <button
@@ -383,11 +383,11 @@ export default function Settings() {
                           onClick={handleRemoveImage}
                           className="py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm leading-4 font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full sm:w-auto"
                         >
-                          Rimuovi foto
+                          Remove photo
                         </button>
                       )}
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        JPG, PNG o GIF. Massimo 2MB.
+                        JPG, PNG, or GIF. Max 2MB.
                       </p>
                     </div>
                   </div>
@@ -417,23 +417,23 @@ export default function Settings() {
                         setProfileImage(null);
                         setStoreProfileImage(null);
                       }
-                      toast.success('Modifiche annullate');
+                      toast.success('Changes cancelled');
                     }}
                     className="w-full sm:w-auto bg-white dark:bg-gray-800 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    Annulla
+                    Cancel
                   </button>
                   <button
                     type="button"
                     onClick={() => {
                       // Simula il salvataggio
                       setTimeout(() => {
-                        toast.success('Modifiche salvate con successo');
+                        toast.success('Changes saved successfully');
                       }, 500);
                     }}
                     className="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
-                    Salva
+                    Save
                   </button>
                 </div>
               </div>
@@ -448,27 +448,12 @@ export default function Settings() {
                   Gestisci le impostazioni del tuo account.
                 </p>
               </div>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Security</h3>
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Configura le impostazioni di sicurezza.
-                  </p>
-                </div>
-                <div className="mt-6">
-                  <fieldset>
-                    <legend className="text-base font-medium text-gray-900 dark:text-white">Security Settings</legend>
-                    <div className="mt-4 space-y-4">
-                      <ProfileSettingsPage />
-                    </div>
-                  </fieldset>
-                </div>
-              </div>
+              
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h4 className="text-base font-medium text-gray-900 dark:text-white">Eliminazione account</h4>
+                <h4 className="text-base font-medium text-gray-900 dark:text-white">Account Deletion</h4>
                 <div className="mt-2">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Una volta che hai eliminato il tuo account, non potrai più tornare indietro. Tutti i tuoi dati verranno rimossi permanentemente. Per favore, sii certo.
+                    Once you delete your account, you cannot go back. All your data will be permanently removed. Please be certain.
                   </p>
                 </div>
                 <div className="mt-4">
@@ -478,7 +463,7 @@ export default function Settings() {
                     disabled={isDeleting}
                     className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 dark:text-red-100 dark:bg-red-900/40 dark:hover:bg-red-900/60 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isDeleting ? 'Eliminazione...' : 'Elimina account'}
+                    {isDeleting ? 'Deleting...' : 'Delete account'}
                   </button>
                   {deleteError && (
                     <p className="mt-2 text-sm text-red-600 dark:text-red-400">{deleteError}</p>
@@ -492,10 +477,10 @@ export default function Settings() {
             <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-                  Impostazioni lingua
+                  Language Settings
                 </h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Seleziona la lingua preferita per l&apos;interfaccia
+                  Select your preferred interface language
                 </p>
               </div>
 
@@ -503,33 +488,33 @@ export default function Settings() {
                 <div className="mt-6 grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
                   <div className="sm:col-span-4">
                     <label htmlFor="language" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Lingua
+                      Language
                     </label>
                     <div className="mt-1">
                       <LanguageSelector />
                     </div>
                     <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                      La lingua attualmente selezionata è: {SUPPORTED_LANGUAGES['it']}
+                      The currently selected language is: {SUPPORTED_LANGUAGES['en']}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-8">
                   <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                    Lingue disponibili
+                    Available Languages
                   </h4>
                   <div className="mt-4 space-y-4">
                     {Object.entries(SUPPORTED_LANGUAGES).map(([code, name]) => (
                       <div key={code} className="flex items-center">
                         <div className="flex-shrink-0">
-                          {code === 'it' && (
+                          {code === 'en' && (
                             <span className="inline-block h-2 w-2 rounded-full bg-blue-600"></span>
                           )}
                         </div>
                         <div className="ml-3">
                           <p className="text-sm text-gray-700 dark:text-gray-300">{name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {code === 'it' ? 'Lingua attuale' : ''}
+                            {code === 'en' ? 'Current language' : ''}
                           </p>
                         </div>
                       </div>
@@ -544,11 +529,11 @@ export default function Settings() {
                     </div>
                     <div className="ml-3">
                       <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                        Informazioni sulla traduzione
+                        Translation Information
                       </h4>
                       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Le traduzioni vengono caricate automaticamente quando cambi lingua.
-                        Se riscontri problemi con alcune traduzioni, contatta il supporto.
+                        Translations are loaded automatically when you change language.
+                        If you encounter any issues with translations, please contact support.
                       </p>
                     </div>
                   </div>
@@ -561,9 +546,9 @@ export default function Settings() {
           {activeTab === 'notifications' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Preferenze notifiche</h3>
+                <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Notification Preferences</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Decidi come e quando ricevere aggiornamenti.
+                  Decide how and when you receive updates.
                 </p>
               </div>
               
@@ -579,12 +564,12 @@ export default function Settings() {
                           name="comments"
                           type="checkbox"
                           defaultChecked
-                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700"
                         />
                       </div>
                       <div className="ml-3 text-sm">
                         <label htmlFor="comments" className="font-medium text-gray-700 dark:text-gray-300">Commenti</label>
-                        <p className="text-gray-500 dark:text-gray-400">Ricevi notifiche quando qualcuno commenta i tuoi post.</p>
+                        <p className="text-gray-500 dark:text-gray-400">Get notified when someone comments on your posts.</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -594,12 +579,12 @@ export default function Settings() {
                           name="mentions"
                           type="checkbox"
                           defaultChecked
-                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
+                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded bg-gray-100 dark:bg-gray-700"
                         />
                       </div>
                       <div className="ml-3 text-sm">
                         <label htmlFor="mentions" className="font-medium text-gray-700 dark:text-gray-300">Menzioni</label>
-                        <p className="text-gray-500 dark:text-gray-400">Ricevi notifiche quando qualcuno ti menziona.</p>
+                        <p className="text-gray-500 dark:text-gray-400">Get notified when someone mentions you.</p>
                       </div>
                     </div>
                   </div>
@@ -609,7 +594,7 @@ export default function Settings() {
               {/* Notifiche push */}
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <fieldset>
-                  <legend className="text-base font-medium text-gray-900 dark:text-white">Notifiche push</legend>
+                  <legend className="text-base font-medium text-gray-900 dark:text-white">Push Notifications</legend>
                   <div className="mt-4 space-y-4">
                     <div className="flex items-start">
                       <div className="flex items-center h-5">
@@ -618,12 +603,12 @@ export default function Settings() {
                           name="push-notifications"
                           type="radio"
                           defaultChecked
-                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
                         />
                       </div>
                       <div className="ml-3 text-sm">
                         <label htmlFor="push-everything" className="font-medium text-gray-700 dark:text-gray-300">Tutte le notifiche</label>
-                        <p className="text-gray-500 dark:text-gray-400">Ricevi tutte le notifiche push.</p>
+                        <p className="text-gray-500 dark:text-gray-400">Receive all push notifications.</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -632,12 +617,12 @@ export default function Settings() {
                           id="push-email"
                           name="push-notifications"
                           type="radio"
-                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
                         />
                       </div>
                       <div className="ml-3 text-sm">
                         <label htmlFor="push-email" className="font-medium text-gray-700 dark:text-gray-300">Solo email</label>
-                        <p className="text-gray-500 dark:text-gray-400">Ricevi solo le notifiche via email.</p>
+                        <p className="text-gray-500 dark:text-gray-400">Only receive notifications via email.</p>
                       </div>
                     </div>
                     <div className="flex items-start">
@@ -646,12 +631,12 @@ export default function Settings() {
                           id="push-nothing"
                           name="push-notifications"
                           type="radio"
-                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+                          className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
                         />
                       </div>
                       <div className="ml-3 text-sm">
                         <label htmlFor="push-nothing" className="font-medium text-gray-700 dark:text-gray-300">Nessuna notifica</label>
-                        <p className="text-gray-500 dark:text-gray-400">Non ricevere notifiche push.</p>
+                        <p className="text-gray-500 dark:text-gray-400">Do not receive push notifications.</p>
                       </div>
                     </div>
                   </div>
@@ -665,7 +650,7 @@ export default function Settings() {
               <div>
                 <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">AI</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Configura le impostazioni dell&apos;AI.
+                  Configure the AI settings.
                 </p>
               </div>
               
@@ -687,7 +672,7 @@ export default function Settings() {
               <div>
                 <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white">Billing</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Configura le impostazioni di fatturazione.
+                  Configure billing settings.
                 </p>
               </div>
               
@@ -714,10 +699,10 @@ export default function Settings() {
                 {tabs.find(tab => tab.id === activeTab)?.icon}
               </div>
               <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
-                Impostazioni {tabs.find(tab => tab.id === activeTab)?.name}
+                {tabs.find(tab => tab.id === activeTab)?.name} Settings
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Questa sezione è in fase di sviluppo. Torna a trovarci presto!
+                This section is under development. Check back soon!
               </p>
             </div>
           )}

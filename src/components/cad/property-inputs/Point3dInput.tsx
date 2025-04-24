@@ -16,7 +16,7 @@ interface Point3dInputProps {
 }
 
 /**
- * Componente per modificare coordinate 3D (x, y, z)
+ * Component to edit 3D coordinates (x, y, z)
  * 
  * @example
  * <Point3dInput
@@ -41,38 +41,38 @@ export const Point3dInput: React.FC<Point3dInputProps> = ({
 
   return (
     <div className="mb-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-blue-400 mb-1">{label}</label>
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">X</label>
+          <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">X</label>
           <input
             type="number"
             value={value?.x ?? 0}
             onChange={(e) => handleChange('x', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
             step={step}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Y</label>
+          <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">Y</label>
           <input
             type="number"
             value={value?.y ?? 0}
             onChange={(e) => handleChange('y', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
             step={step}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Z</label>
+          <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">Z</label>
           <input
             type="number"
             value={value?.z ?? 0}
             onChange={(e) => handleChange('z', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
             step={step}
           />
         </div>

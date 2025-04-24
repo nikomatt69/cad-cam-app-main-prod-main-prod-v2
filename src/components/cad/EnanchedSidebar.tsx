@@ -1,4 +1,3 @@
-// src/components/cad/EnhancedSidebar.tsx
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -36,6 +35,7 @@ import UnifiedLibraryBrowser from './UnifiedLibraryBrowser';
 import UnifiedToolsBrowser, { ToolLibraryItem } from './UnifiedToolsBrowser';
 import ToolMenus from '../cam/ToolMenus';
 import { Puzzle } from 'lucide-react';
+
 interface EnhancedSidebarProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
@@ -278,56 +278,56 @@ const EnhancedSidebar: React.FC<EnhancedSidebarProps> = ({
     
     return (
       <div key={item.name} className="mb-1">
-        <div
-          className={`group flex items-center justify-between px-1 py-1 text-sm font-medium rounded-md cursor-pointer transition-colors ${textColor} ${bgColor} ${disabled}`}
-          onClick={() => {
-            if (hasChildren) {
-              toggleExpanded(item.name.toLowerCase());
-            } else if (item.href !== '#') {
-              router.push(item.href);
-            }
-          }}
-        >
-          <div className="flex items-center">
-            <span className={`${item.current ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'} mr-3`}>
-              {item.icon}
-            </span>
-            {isOpen && <span>{item.name}</span>}
-          </div>
-          {isOpen && hasChildren && (
-            <div className="ml-2">
-              {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </div>
-          )}
-        </div>
-        
-        {isOpen && hasChildren && isExpanded && (
-          <div className="mt-1 ml-4 space-y-1">
-            {item.children?.map(child => (
-              <div
-                key={child.name}
-                className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
-                  child.current
-                  ? 'text-blue-700 dark:text-blue-400 bg-gray-100 dark:bg-blue-900/20'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60'
-              }`}
-              onClick={() => router.push(child.href)}
-            >
-              <span className="mr-3 text-gray-500 dark:text-gray-400">{child.icon}</span>
-              <span>{child.name}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
+       <div
+           className={`group flex items-center justify-between px-1 py-1 text-sm font-medium rounded-md cursor-pointer transition-colors ${textColor} ${bgColor} ${disabled}`}
+           onClick={() => {
+             if (hasChildren) {
+               toggleExpanded(item.name.toLowerCase());
+             } else if (item.href !== '#') {
+               router.push(item.href);
+             }
+           }}
+         >
+           <div className="flex items-center">
+             <span className={`${item.current ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'} mr-3`}>
+               {item.icon}
+             </span>
+             {isOpen && <span>{item.name}</span>}
+           </div>
+           {isOpen && hasChildren && (
+             <div className="ml-2">
+               {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+             </div>
+           )}
+         </div>
+ 
+         {isOpen && hasChildren && isExpanded && (
+           <div className="mt-1 ml-4 space-y-1">
+             {item.children?.map(child => (
+               <div
+                 key={child.name}
+                 className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer ${
+                   child.current
+                   ? 'text-blue-700 dark:text-blue-400 bg-gray-100 dark:bg-blue-900/20'
+                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60'
+               }`}
+               onClick={() => router.push(child.href)}
+             >
+               <span className="mr-3 text-gray-500 dark:text-gray-400">{child.icon}</span>
+               <span>{child.name}</span>
+             </div>
+           ))}
+         </div>
+        )}
+      </div>
+    );
+  };
+  
 // Content for sidebar based on active tab
 const renderSidebarContent = () => {
   if (!isOpen) {
     return (
-      <div className="py-4 px-2 flex flex-col items-center">
+      <div className="py-4 px-2 flex flex-col dark:bg-gray-800 items-center">
         {activeSidebarTab === 'machine' && (
           
            <>
@@ -338,8 +338,8 @@ const renderSidebarContent = () => {
       <LibrarySection 
         mode="cam" 
         onSelectTool={(tool) => setSelectedLibraryTool(tool.name)}
-      />
-    </div>
+       />
+     </div>
   </>
         )}
         
@@ -381,7 +381,7 @@ const renderSidebarContent = () => {
         <>
         
         <OriginControls/>
-          <WorkpieceSetup />
+          <CAMWorkpieceSetup/>
           
           
           <div className="mt-6 pt-4 border-t border-gray-200">
@@ -470,7 +470,7 @@ return (
       }`}
     >
       {/* Sidebar tabs */}
-      <div className="w-full border-b rounded-xl border-gray-200 bg-gray-50">
+      <div className="w-full border-b rounded-xl border-gray-200 bg-gray-50 dark:bg-gray-800">
         {isOpen ? (
           <>
             
@@ -603,4 +603,4 @@ return (
 );
 };
 
-export default EnhancedSidebar;
+export default EnhancedSidebar; 

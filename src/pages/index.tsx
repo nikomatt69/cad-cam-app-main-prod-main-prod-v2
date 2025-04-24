@@ -240,17 +240,22 @@ export default function Home() {
       </div>
     );
   }
-
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" />
+      title="CAD/CAM FUN"
+      description="A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI."
+      ogImage="/og-default.png" />
       <Layout>
         <div className="p-4 sm:p-6" ref={contentRef}>
           {/* Welcome section with system overview */}
           <div className="mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl flex items-center px-2 sm:px-5 font-bold text-gray-900">
-              <img src='/logo.png' className='h-12 sm:h-28 mr-2' alt="Logo"/>
+              <Image src='/logo.png' className='h-12 sm:h-28 mr-2' alt="Logo"/>
             </h1>
             <p className="mt-2 text-base sm:text-lg text-gray-600 px-2 sm:px-0">
               A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI.

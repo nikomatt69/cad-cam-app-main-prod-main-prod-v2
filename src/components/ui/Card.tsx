@@ -29,7 +29,7 @@ export function CardHeader({ children, className = '', ...props }: CardProps) {
 export function CardTitle({ children, className = '', ...props }: CardProps) {
   return (
     <h3 
-      className={`text-xl font-bold text-gray-900 dark:text-white ${className}`} 
+      className={`text-xl font-bold text-gray-900 ${className}`}
       {...props}
     >
       {children}

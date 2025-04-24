@@ -411,36 +411,23 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               {showSettings && (
                 <div className="overflow-y-auto max-h-96 border-b border-gray-200 dark:border-gray-700">
                   <AISettingsPanel/>
-                  {generationHistory.length > 0 && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-            <h3 className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
-              Recent Generations
-            </h3>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-              {generationHistory.map((item) => (
-                <div 
-                  key={item.id}
-                  className="p-2 border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-                    {item.description}
-                  </p>
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {item.elements.length} elementi • {new Date(item.timestamp).toLocaleString()}
-                    </span>
-                    <button
-                      onClick={() => handleAddFromHistory(item)}
-                      className="px-2 py-1 bg-blue-50 dark:bg-blue-800/30 text-blue-600 dark:text-blue-300 rounded text-xs hover:bg-blue-100 dark:hover:bg-blue-800/50"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+                 <motion.div
+                 initial={{ height: 0, opacity: 0 }}
+                 animate={{ height: 'auto', opacity: 1 }}
+                 exit={{ height: 0, opacity: 0 }}
+                 className="border-b border-gray-200 overflow-hidden"
+               >
+                 <div className="p-3 space-y-2 text-sm bg-gray-50">
+                   <button
+                     onClick={clearMessages}
+                     className="flex items-center text-xs text-red-600 hover:text-red-800"
+                   >
+                     <X size={12} className="mr-1" />
+                     Clear Conversation
+                   </button>
+                 </div>
+               </motion.div>
+             
                 </div>
               )}
             </AnimatePresence>

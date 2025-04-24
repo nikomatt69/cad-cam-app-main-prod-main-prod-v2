@@ -148,6 +148,9 @@ export default function ImportExportDialog({
                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   >
                     <option value="json">JSON (.json)</option>
+                    <option value="stl">STL (.stl)</option>
+                    <option value="obj">OBJ (.obj)</option>
+                    <option value="step">STEP (.step)</option>
                     <option value="cad">CAD/CAM FUN Format (.cad)</option>
                   </select>
                 </div>
@@ -193,7 +196,7 @@ export default function ImportExportDialog({
                             id="file-upload"
                             name="file-upload"
                             type="file"
-                            accept=".json,.cad"
+                            accept=".json,.cad,.stl,.obj,.step"
                             className="sr-only"
                             onChange={handleFileSelection}
                           />
@@ -201,7 +204,7 @@ export default function ImportExportDialog({
                         <p className="pl-1">or drag and drop</p>
                       </div>
                       <p className="text-xs text-gray-500">
-                        JSON or CAD/CAM FUN files
+                        JSON, STL, OBJ, STEP or CAD/CAM FUN files
                       </p>
                     </div>
                   </div>

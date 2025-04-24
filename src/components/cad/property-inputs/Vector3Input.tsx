@@ -17,8 +17,8 @@ interface Vector3InputProps {
 }
 
 /**
- * Componente per modificare vettori 3D (x, y, z) con unità di misura
- * Utile per rotazioni, scale e altri vettori tridimensionali
+ * Component to edit 3D vectors (x, y, z) with units
+ * Useful for rotations, scales, and other 3D vectors
  * 
  * @example
  * <Vector3Input
@@ -45,38 +45,38 @@ export const Vector3Input: React.FC<Vector3InputProps> = ({
 
   return (
     <div className="mb-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-blue-400 mb-1">{label}</label>
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">X {unit}</label>
+          <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">X {unit}</label>
           <input
             type="number"
             value={value?.x ?? 0}
             onChange={(e) => handleChange('x', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
             step={step}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Y {unit}</label>
+          <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">Y {unit}</label>
           <input
             type="number"
             value={value?.y ?? 0}
             onChange={(e) => handleChange('y', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
             step={step}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Z {unit}</label>
+          <label className="block text-xs text-gray-500 dark:text-blue-400 mb-1">Z {unit}</label>
           <input
             type="number"
             value={value?.z ?? 0}
             onChange={(e) => handleChange('z', e.target.value)}
             disabled={disabled}
-            className="w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-xs focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-blue-400"
             step={step}
           />
         </div>

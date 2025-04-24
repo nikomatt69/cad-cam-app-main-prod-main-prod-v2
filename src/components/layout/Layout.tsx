@@ -227,7 +227,7 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
           {/* Main content with scrolling */}
           <main 
             ref={mainRef}
-            className="flex-1 overflow-y-auto dark:bg-gray-900 dark:text-white scrollbar-thin bg-gray-50 rounded-xl scrollbar-thumb-gray-300 scrollbar-track-transparent" 
+            className="flex-1 flex-grow overflow-y-auto dark:bg-gray-900 dark:text-white scrollbar-thin bg-gray-50 rounded-xl scrollbar-thumb-gray-300 scrollbar-track-transparent" 
             style={{ scrollBehavior: 'smooth' }}
           >
             
@@ -259,23 +259,22 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
               
             />
             <ToastContainer />
-            {/* Footer */}
-            <footer className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white shadow-inner mt-6 sm:mt-8 pb-16 sm:pb-0">
-              <div className="max-w-7xl mx-auto px-3 py-4 sm:px-6 sm:py-6 text-center sm:text-left">
-                <div className="flex flex-col md:flex-row justify-between items-center">
-                  <div className="mb-3 md:mb-0">
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      &copy; {new Date().getFullYear()} CAD/CAM FUN. All rights reserved.
-                    </p>
-                  </div>
-                  <div className="flex space-x-3 sm:space-x-6 text-xs sm:text-sm">
-                    <Footer/>
-                  </div>
-                </div>
-              </div>
-            </footer>
-            <div className="fixed bottom-4 right-4 z-60"><AIAssistantOpenai/></div>
             
+            {/* Notification Prompt */}
+            {showNotificationPrompt && (
+              <NotificationPermissionPrompt 
+                onClose={() => {
+                  // Persist dismissal state if not already granted
+                  if (Notification.permission !== 'granted') {
+                     localStorage.setItem('notificationsPromptDismissed', 'true');
+                  }
+                  setShowNotificationPrompt(false);
+                }}
+              />
+            )}
+            
+            {/* AI Assistant Integration */}
+            <AIAssistantOpenai /> 
             
             {/* Bottom Navigation for Mobile */}
             <div className="sm:hidden">
@@ -283,14 +282,17 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
             </div>
           </main>
           
+          {/* Footer - Placed correctly here after main */}
+          <Footer />
+          
           {/* Back to Top button - positioned higher on mobile to avoid bottom nav */}
           {showScrollTop && (
             <button
               onClick={scrollToTop}
-              className="fixed bottom-16 sm:bottom-6 right-4 sm:right-6 p-2 sm:p-3 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none transition-all duration-300 z-40"
-              aria-label="Back to top"
+              className="fixed bottom-20 right-5 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-full shadow-lg transition-opacity duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-40"
+              aria-label="Scroll to top"
             >
-              <ChevronUp size={16} className="sm:h-5 sm:w-5" />
+              <ChevronUp size={20} />
             </button>
           )}
         </div>
@@ -298,12 +300,6 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
       
       {/* Cookie Consent Banner - at the very bottom with bottom padding for mobile */}
       <CookieConsentBanner />
-      
-      {showNotificationPrompt && (
-        <NotificationPermissionPrompt
-          onClose={() => setShowNotificationPrompt(false)}
-        />
-      )}
     </div>
   );
 };

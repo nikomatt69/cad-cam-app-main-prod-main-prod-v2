@@ -108,7 +108,7 @@ const Modal: React.FC<ModalProps> = ({
             <div className="sticky top-0 z-10 px-4 pt-5 pb-4 sm:p-6 sm:pb-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <motion.h3 
-                  className="text-lg font-medium text-gray-900 dark:text-white truncate pr-8"
+                  className="text-lg font-medium text-gray-900 truncate pr-8"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
@@ -116,7 +116,7 @@ const Modal: React.FC<ModalProps> = ({
                   {title}
                 </motion.h3>
                 <motion.button
-                  className="rounded-full p-1 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600"
+                  className="rounded-full p-1 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600"
                   onClick={onClose}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}

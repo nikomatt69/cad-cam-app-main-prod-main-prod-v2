@@ -3,22 +3,23 @@ import React, { useEffect, useState } from 'react';
 import { Moon, Sun } from 'react-feather';
 
 const ThemeToggle: React.FC = () => {
-  // Initialize with system preference or stored preference
+  // Initialize state, default to false (light mode)
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   // Initialize theme on component mount
   useEffect(() => {
-    // Check if user has a stored preference
     const savedTheme = localStorage.getItem('theme');
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    // Set initial state based on saved preference or system preference
-    if (savedTheme === 'light' || (!savedTheme && systemPrefersDark)) {
+    // Determine initial theme
+    if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+      // Set to dark mode
+      document.documentElement.classList.add('dark');
       setIsDarkMode(true);
-      document.documentElement.classList.add('light');
     } else {
+      // Set to light mode
+      document.documentElement.classList.remove('dark');
       setIsDarkMode(false);
-      document.documentElement.classList.remove('light');
     }
   }, []);
 
@@ -26,13 +27,13 @@ const ThemeToggle: React.FC = () => {
   const toggleTheme = () => {
     if (isDarkMode) {
       // Switch to light mode
-      document.documentElement.classList.remove('light');
-      localStorage.setItem('theme', 'dark');
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
       setIsDarkMode(false);
     } else {
       // Switch to dark mode
-      document.documentElement.classList.add('light');
-      localStorage.setItem('theme', 'light');
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
       setIsDarkMode(true);
     }
   };

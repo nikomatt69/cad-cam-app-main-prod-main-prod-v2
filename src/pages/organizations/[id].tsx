@@ -185,8 +185,8 @@ export default function OrganizationDetailPage() {
     return (
       <DynamicLayout>
         <div className="p-6 text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Organizzazione non trovata</h1>
-          <p className="text-gray-600 mb-6">L&apos;organizzazione che stai cercando non esiste o non hai accesso a essa.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Organization not found</h1>
+          <p className="text-gray-600 mb-6">The organization you are looking for does not exist or you do not have access to it.</p>
           <button
             onClick={() => router.push('/profile')}
             className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -206,21 +206,21 @@ export default function OrganizationDetailPage() {
       ogImage={`/api/og-image/organization/${organization.id}?title=${encodeURIComponent(organization.name)}`} />
       <DynamicLayout>
         <div className="p-6">
-          {/* Organization header */}
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white shadow-md rounded-lg p-6 mb-6">
+          {/* Organization header - Apply dark mode */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-[#F8FBFF] dark:bg-gray-800 shadow-md rounded-lg p-6 mb-6">
             <div>
               <div className="flex items-center">
-                <div className="mr-4 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-blue-600" />
+                <div className="mr-4 h-12 w-12 rounded-full bg-blue-100 dark:bg-gray-700 flex items-center justify-center">
+                  <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">{organization.name}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-blue-400">{organization.name}</h1>
                   {organization.description && (
-                    <p className="text-gray-600 mt-1">{organization.description}</p>
+                    <p className="text-gray-600 dark:text-gray-400 mt-1">{organization.description}</p>
                   )}
                 </div>
               </div>
-              <div className="mt-2 text-sm text-gray-500">
+              <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 <span className="mr-3">Created: {formatDate(organization.createdAt)}</span>
                 <span>Members: {members.length}</span>
               </div>
@@ -246,44 +246,44 @@ export default function OrganizationDetailPage() {
             </div>
           </div>
           
-          {/* Tabs */}
-          <div className="border-b border-gray-200 mb-6">
+          {/* Tabs - Apply dark mode hover styles */}
+          <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
             <nav className="-mb-px flex space-x-8">
               <button
-                className={`px-1 py-4 border-b-2 font-medium text-sm ${
+                className={`whitespace-nowrap px-3 py-2 border-b-2 font-medium text-sm rounded-md ${
                   activeTab === 'overview'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setActiveTab('overview')}
               >
                 Overview
               </button>
               <button
-                 className={`px-1 py-4 border-b-2 font-medium text-sm ${
+                 className={`whitespace-nowrap px-3 py-2 border-b-2 font-medium text-sm rounded-md ${
                  activeTab === 'chat'
-                 ? 'border-blue-500 text-blue-600'
-                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                 ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700'
                  }`}
                  onClick={() => router.push(`/organizations/${organization.id}/chat`)}
                 >
                  Chat
               </button>
               <button
-                className={`px-1 py-4 border-b-2 font-medium text-sm ${
+                className={`whitespace-nowrap px-3 py-2 border-b-2 font-medium text-sm rounded-md ${
                   activeTab === 'members'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setActiveTab('members')}
               >
                 Members
               </button>
               <button
-                className={`px-1 py-4 border-b-2 font-medium text-sm ${
+                className={`whitespace-nowrap px-3 py-2 border-b-2 font-medium text-sm rounded-md ${
                   activeTab === 'projects'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700'
                 }`}
                 onClick={() => setActiveTab('projects')}
               >
@@ -291,10 +291,10 @@ export default function OrganizationDetailPage() {
               </button>
               {canManageSettings && (
                 <button
-                  className={`px-1 py-4 border-b-2 font-medium text-sm ${
+                  className={`whitespace-nowrap px-3 py-2 border-b-2 font-medium text-sm rounded-md ${
                     activeTab === 'settings'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600 dark:hover:bg-gray-700'
                   }`}
                   onClick={() => setActiveTab('settings')}
                 >
@@ -304,46 +304,46 @@ export default function OrganizationDetailPage() {
             </nav>
           </div>
           
-          {/* Tab content */}
-          <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white shadow-md rounded-lg">
-            {/* Overview */}
+          {/* Tab content - Apply dark mode container */}
+          <div className="bg-[#F8FBFF] dark:bg-gray-800 shadow-md rounded-lg">
+            {/* Overview - Apply dark mode */}
             {activeTab === 'overview' && (
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">About</h2>
-                    <p className="text-gray-600">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-blue-400 mb-4">About</h2>
+                    <p className="text-gray-600 dark:text-gray-400">
                       {organization.description || 'No description available.'}
                     </p>
                     
-                    <h3 className="text-md font-medium text-gray-900 mt-6 mb-2">Details</h3>
-                    <div className="bg-gray-50 rounded-md p-4">
+                    <h3 className="text-md font-medium text-gray-900 dark:text-blue-400 mt-6 mb-2">Details</h3>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="block text-gray-500">Created</span>
-                          <span>{formatDate(organization.createdAt)}</span>
+                          <span className="block text-gray-500 dark:text-gray-400">Created</span>
+                          <span className="dark:text-gray-300">{formatDate(organization.createdAt)}</span>
                         </div>
                         <div>
-                          <span className="block text-gray-500">Updated</span>
-                          <span>{formatDate(organization.updatedAt)}</span>
+                          <span className="block text-gray-500 dark:text-gray-400">Updated</span>
+                          <span className="dark:text-gray-300">{formatDate(organization.updatedAt)}</span>
                         </div>
                         <div>
-                          <span className="block text-gray-500">Members</span>
-                          <span>{members.length}</span>
+                          <span className="block text-gray-500 dark:text-gray-400">Members</span>
+                          <span className="dark:text-gray-300">{members.length}</span>
                         </div>
                         <div>
-                          <span className="block text-gray-500">Projects</span>
-                          <span>{projects.length}</span>
+                          <span className="block text-gray-500 dark:text-gray-400">Projects</span>
+                          <span className="dark:text-gray-300">{projects.length}</span>
                         </div>
                       </div>
                     </div>
                   </div>
                   
                   <div>
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h2>
-                    <div className="border rounded-md divide-y">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-blue-400 mb-4">Recent Activity</h2>
+                    <div className="border dark:border-gray-700 rounded-md divide-y dark:divide-gray-700">
                       {/* Activity items would go here */}
-                      <div className="p-4 text-center text-gray-500">
+                      <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                         No recent activity to display.
                       </div>
                     </div>
@@ -352,11 +352,11 @@ export default function OrganizationDetailPage() {
               </div>
             )}
             
-            {/* Members */}
+            {/* Members - Apply dark mode */}
             {activeTab === 'members' && (
               <div>
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                  <h2 className="text-lg font-medium text-gray-900">Organization Members</h2>
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-blue-400">Organization Members</h2>
                   {canManageMembers && (
                     <button
                       onClick={() => setShowInviteModal(true)}
@@ -369,26 +369,26 @@ export default function OrganizationDetailPage() {
                 </div>
                 <div className="p-6">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                      <thead className="bg-gray-50 dark:bg-gray-700">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Member
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Role
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             Joined
                           </th>
                           {canManageMembers && (
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Actions
                             </th>
                           )}
                         </tr>
                       </thead>
-                      <tbody className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white divide-y divide-gray-200">
+                      <tbody className="bg-[#F8FBFF] dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                         {members.map((member) => (
                           <tr key={member.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -402,35 +402,35 @@ export default function OrganizationDetailPage() {
                                       alt={member.user.name || 'User'} 
                                     />
                                   ) : (
-                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                      <User className="h-6 w-6 text-gray-400" />
+                                    <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                                      <User className="h-6 w-6 text-gray-400 dark:text-gray-500" />
                                     </div>
                                   )}
                                 </div>
                                 <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
+                                  <div className="text-sm font-medium text-gray-900 dark:text-blue-400">
                                     {member.user.name || 'Unnamed User'}
                                   </div>
-                                  <div className="text-sm text-gray-500">
+                                  <div className="text-sm text-gray-500 dark:text-gray-400">
                                     {member.user.email}
                                   </div>
                                 </div>
                               </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(member.role)}`}>
+                              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(member.role)} dark:text-gray-900`}>
                                 {member.role}
                               </span>
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {formatDate(member.joinedAt)}
                             </td>
                             {canManageMembers && (
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button className="text-blue-600 hover:text-blue-900 mr-3">
+                                <button className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 mr-3">
                                   Edit
                                 </button>
-                                <button className="text-red-600 hover:text-red-900">
+                                <button className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
                                   Remove
                                 </button>
                               </td>
@@ -444,11 +444,11 @@ export default function OrganizationDetailPage() {
               </div>
             )}
             
-            {/* Projects */}
+            {/* Projects - Apply dark mode */}
             {activeTab === 'projects' && (
               <div>
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                  <h2 className="text-lg font-medium text-gray-900">Organization Projects</h2>
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-blue-400">Organization Projects</h2>
                   <button
                     onClick={handleCreateProject}
                     className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center text-sm"
@@ -461,7 +461,7 @@ export default function OrganizationDetailPage() {
                   {projects.length === 0 ? (
                     <div className="text-center py-12">
                       <svg 
-                        className="mx-auto h-12 w-12 text-gray-400" 
+                        className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" 
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -473,15 +473,14 @@ export default function OrganizationDetailPage() {
                           d="M9 12h6m-6 4h6m-6-8h6M9 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-4m-7 9.5V4.7c0-1 .573-1.902 1.465-2.332A2.066 2.066 0 0111.535 2c.365 0 .72.13 1 .366.28.236.47.56.535.92L14 8"
                         />
                       </svg>
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">No projects</h3>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-blue-400">No projects</h3>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Get started by creating a new project.
                       </p>
                       <div className="mt-6">
                         <button
                           type="button"
                           onClick={handleCreateProject}
-// src/pages/organizations/[id].tsx (continued)
                           className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                         >
                           Create Project
@@ -493,19 +492,19 @@ export default function OrganizationDetailPage() {
                       {projects.map((project) => (
                         <div
                           key={project.id}
-                          className="border rounded-md shadow-sm hover:shadow-md transition-shadow bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white overflow-hidden cursor-pointer"
+                          className="border dark:border-gray-700 rounded-md shadow-sm hover:shadow-md transition-shadow bg-[#F8FBFF] dark:bg-gray-900 overflow-hidden cursor-pointer"
                           onClick={() => router.push(`/projects/${project.id}`)}
                         >
                           <div className="p-4">
-                            <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-blue-400">{project.name}</h3>
                             {project.description && (
-                              <p className="mt-1 text-sm text-gray-600 line-clamp-2">{project.description}</p>
+                              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">{project.description}</p>
                             )}
-                            <div className="mt-3 flex items-center text-sm text-gray-500">
-                              <User className="flex-shrink-0 mr-1.5 h-4 w-4" />
+                            <div className="mt-3 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                              <User className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
                               <span>Owner: {project.owner.name || 'Unknown'}</span>
                             </div>
-                            <div className="mt-1 text-sm text-gray-500">
+                            <div className="mt-1 text-sm text-gray-500 dark:text-gray-500">
                               Created: {formatDate(project.createdAt)}
                             </div>
                           </div>
@@ -517,39 +516,39 @@ export default function OrganizationDetailPage() {
               </div>
             )}
             
-            {/* Settings */}
+            {/* Settings - Apply dark mode */}
             {activeTab === 'settings' && canManageSettings && (
               <div>
-                <div className="p-6 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">Organization Settings</h2>
-                  <p className="mt-1 text-sm text-gray-500">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-blue-400">Organization Settings</h2>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Manage organization information and preferences.
                   </p>
                 </div>
                 <div className="p-6">
                   <form className="space-y-6">
                     <div>
-                      <label htmlFor="orgName" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="orgName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Organization Name
                       </label>
                       <input
                         type="text"
                         name="orgName"
                         id="orgName"
-                        className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                         defaultValue={organization.name}
                       />
                     </div>
                     
                     <div>
-                      <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Description
                       </label>
                       <textarea
                         id="description"
                         name="description"
                         rows={3}
-                        className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                        className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                         defaultValue={organization.description || ''}
                       ></textarea>
                     </div>
@@ -564,15 +563,15 @@ export default function OrganizationDetailPage() {
                     </div>
                   </form>
                   
-                  <div className="mt-10 pt-10 border-t border-gray-200">
-                    <h3 className="text-lg font-medium text-red-700">Danger Zone</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                  <div className="mt-10 pt-10 border-t border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-medium text-red-700 dark:text-red-500">Danger Zone</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                       Once you delete an organization, there is no going back. Please be certain.
                     </p>
                     <div className="mt-3">
                       <button
                         type="button"
-                        className="inline-flex justify-center py-2 px-4 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="inline-flex justify-center py-2 px-4 border border-red-300 dark:border-red-600 shadow-sm text-sm font-medium rounded-md text-red-700 dark:text-red-400 bg-[#F8FBFF] dark:bg-red-900/20 hover:bg-red-50 dark:hover:bg-red-800/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                       >
                         Delete Organization
                       </button>
@@ -592,32 +591,32 @@ export default function OrganizationDetailPage() {
               
               <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
               
-              <div className="inline-block align-bottom bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="inline-block align-bottom bg-[#F8FBFF] dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <form onSubmit={handleInviteMember}>
-                  <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="bg-[#F8FBFF] dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div className="sm:flex sm:items-start">
-                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                        <Mail className="h-6 w-6 text-blue-600" />
+                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 dark:bg-gray-700 sm:mx-0 sm:h-10 sm:w-10">
+                        <Mail className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                       </div>
                       <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                        <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-blue-400" id="modal-title">
                           Invite Team Member
                         </h3>
                         <div className="mt-2">
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
                             Send an invitation email to add a new member to this organization.
                           </p>
                         </div>
                         
                         <div className="mt-4">
-                          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Email Address
                           </label>
                           <input
                             type="email"
                             name="email"
                             id="email"
-                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md"
+                            className="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                             placeholder="colleague@example.com"
                             value={inviteEmail}
                             onChange={(e) => setInviteEmail(e.target.value)}
@@ -626,13 +625,13 @@ export default function OrganizationDetailPage() {
                         </div>
                         
                         <div className="mt-4">
-                          <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                          <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Role
                           </label>
                           <select
                             id="role"
                             name="role"
-                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             value={inviteRole}
                             onChange={(e) => setInviteRole(e.target.value as 'ADMIN' | 'MANAGER' | 'MEMBER')}
                           >
@@ -646,7 +645,7 @@ export default function OrganizationDetailPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                  <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                     <button
                       type="submit"
                       disabled={isSubmitting}
@@ -656,7 +655,7 @@ export default function OrganizationDetailPage() {
                     </button>
                     <button
                       type="button"
-                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                      className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-[#F8FBFF] dark:bg-gray-700 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                       onClick={() => setShowInviteModal(false)}
                     >
                       Cancel

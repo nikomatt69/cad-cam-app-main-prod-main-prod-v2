@@ -2814,34 +2814,34 @@ M5`;
   };
 
   return (
-    <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-lg shadow-md overflow-hidden">
-      <div className="bg-gray-50 border-b border-gray-200 p-4">
-        <h2 className="text-lg font-medium text-gray-900">Cicli di Lavorazione</h2>
-        <p className="text-sm text-gray-500">
+    <div className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white rounded-lg shadow-md overflow-hidden">
+      <div className="bg-gray-50 border-b border-gray-200 dark:bg-gray-700 dark:border-gray-600 p-4">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Cicli di Lavorazione</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           Seleziona e configura cicli predefiniti per {controllerType === 'fanuc' ? 'Fanuc' : 'Heidenhain'}
         </p>
       </div>
       
       <div className="list md:grid-cols-2 gap-4 p-4">
         {/* Pannello di selezione dei cicli */}
-        <div className="border rounded-md overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2 border-b">
-            <h3 className="text-md font-medium text-gray-900">Cicli Disponibili</h3>
+        <div className="border rounded-md overflow-hidden dark:border-gray-600">
+          <div className="bg-gray-50 px-4 py-2 border-b dark:bg-gray-700 dark:border-gray-600">
+            <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Cicli Disponibili</h3>
           </div>
           <div className="p-2 max-h-72 overflow-y-auto">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {availableCycles.map((cycle) => (
                 <button
                   key={cycle.id}
-                  className={`p-3 rounded-md text-center hover:bg-gray-50 transition-colors flex flex-col items-center ${
-                    selectedCycleId === cycle.id ? 'bg-blue-50 border border-blue-200' : 'border border-gray-200'
+                  className={`p-3 rounded-md text-center hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors flex flex-col items-center ${
+                    selectedCycleId === cycle.id ? 'bg-blue-100 border border-blue-300 dark:bg-blue-900 dark:border-blue-700' : 'border border-gray-200 dark:border-gray-600'
                   }`}
                   onClick={() => handleCycleSelection(cycle.id)}
                 >
-                  <div className="w-10 h-10 flex items-center justify-center mb-2 text-gray-600">
+                  <div className="w-10 h-10 flex items-center justify-center mb-2 text-gray-600 dark:text-gray-400">
                     {cycle.icon}
                   </div>
-                  <span className="text-sm font-medium block">{cycle.name}</span>
+                  <span className="text-sm font-medium block text-gray-800 dark:text-gray-200">{cycle.name}</span>
                 </button>
               ))}
             </div>
@@ -2849,20 +2849,20 @@ M5`;
         </div>
         
         {/* Pannello configurazione e anteprima */}
-        <div className="border rounded-md overflow-hidden">
+        <div className="border rounded-md overflow-hidden dark:border-gray-600">
           {selectedCycleId ? (
             <>
-              <div className="bg-gray-50 px-4 py-2 border-b">
-                <h3 className="text-md font-medium text-gray-900">
+              <div className="bg-gray-50 px-4 py-2 border-b dark:bg-gray-700 dark:border-gray-600">
+                <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">
                   {cycleTemplates.find(c => c.id === selectedCycleId)?.name || 'Configurazione Ciclo'}
                 </h3>
               </div>
               <div className="p-4 max-h-72 overflow-y-auto">
                 {cycleTemplates.find(c => c.id === selectedCycleId)?.parameters.map((param) => (
                   <div key={param.name} className="mb-3">
-                    <label htmlFor={param.name} className="block text-sm font-medium text-gray-700">
+                    <label htmlFor={param.name} className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       {param.label}
-                      {param.unit && <span className="text-gray-500 ml-1">({param.unit})</span>}
+                      {param.unit && <span className="text-gray-500 dark:text-gray-400 ml-1">({param.unit})</span>}
                     </label>
                     
                     {param.type === 'number' && (
@@ -2875,7 +2875,7 @@ M5`;
                           step={param.step}
                           value={cycleParams[param.name]}
                           onChange={(e) => handleParamChange(param.name, parseFloat(e.target.value))}
-                          className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md sm:text-sm border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                          className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md sm:text-sm border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                         />
                       </div>
                     )}
@@ -2885,7 +2885,7 @@ M5`;
                         id={param.name}
                         value={cycleParams[param.name]}
                         onChange={(e) => handleParamChange(param.name, e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       >
                         {param.options?.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -2902,25 +2902,25 @@ M5`;
                           id={param.name}
                           checked={cycleParams[param.name]}
                           onChange={(e) => handleParamChange(param.name, e.target.checked)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600 dark:ring-offset-gray-800"
                         />
-                        <label htmlFor={param.name} className="ml-2 block text-sm text-gray-500">
+                        <label htmlFor={param.name} className="ml-2 block text-sm text-gray-500 dark:text-gray-400">
                           {param.description}
                         </label>
                       </div>
                     )}
                     
                     {param.type !== 'checkbox' && param.description && (
-                      <p className="mt-1 text-xs text-gray-500">{param.description}</p>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{param.description}</p>
                     )}
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="p-4 text-center text-gray-500">
+            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
               <div className="my-4">
-                <CycleIcon className="mx-auto mb-2 h-12 w-12 text-gray-400" />
+                <CycleIcon className="mx-auto mb-2 h-12 w-12 text-gray-400 dark:text-gray-500" />
                 <p>Seleziona un ciclo per configurarlo</p>
               </div>
             </div>
@@ -2930,17 +2930,17 @@ M5`;
       
       {/* Anteprima del codice */}
       {selectedCycleId && (
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-600">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-md font-medium text-gray-900">Anteprima Codice</h3>
+            <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Anteprima Codice</h3>
             <button
               onClick={handleInsertCycle}
-              className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-600"
             >
               Inserisci Ciclo
             </button>
           </div>
-          <pre className="bg-gray-50 p-3 rounded-md text-sm font-mono overflow-x-auto max-h-60">
+          <pre className="bg-gray-100 p-3 rounded-md text-sm font-mono overflow-x-auto max-h-60 dark:bg-gray-900 dark:text-gray-300">
             {previewCode}
           </pre>
         </div>

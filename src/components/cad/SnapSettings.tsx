@@ -9,7 +9,7 @@ const SnapSettings: React.FC = () => {
   const { snapSettings, updateSnapSettings, toggleSnapType } = useSnap();
 
   return (
-    <div className="bg-white rounded-md shadow-sm p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-md shadow-sm p-4">
       <h3 className="text-sm font-medium mb-2">Snap Settings</h3>
       
       <div className="mb-3">
