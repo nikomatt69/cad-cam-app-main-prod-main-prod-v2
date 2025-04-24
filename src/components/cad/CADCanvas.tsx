@@ -37,6 +37,7 @@ import router from 'next/router';
 import toast from 'react-hot-toast';
 import SmartRenderer from '@/src/lib/canvas/SmartRenderer';
 import CanvasPool from '@/src/lib/canvas/CanvasPool';
+import { useConstraints } from '@/src/contexts/ConstraintContext';
 
 interface CADCanvasProps {
   width?: string | number;
@@ -99,7 +100,7 @@ const CADCanvas: React.FC<CADCanvasProps> = ({
   const [logMessages, setLogMessages] = useState<string[]>([]);
   // Riferimenti per controlli di trasformazione avanzati
   const transformControlsRef = useRef<TransformControls | null>(null);
-  
+  const [activeRightPanel, setActiveRightPanel] = useState<'proprieties' | 'trasform' | 'constraints'>('proprieties');
   // Nuovi stati per ottimizzazioni e migliori UX
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate');
   const [isDraggingComponent, setIsDraggingComponent] = useState(false);
@@ -144,6 +145,47 @@ const toggleMultiSelectMode = useCallback(() => {
 }, []);
 // Attiva gli shortcut
 useCADShortcuts();
+
+
+const { getConstraintsForEntity } = useConstraints();
+  
+// Find the existing object selection handler in your code
+// For example, modify the existing selection handler:
+
+const handleObjectSelection = (object: THREE.Object3D, multiSelect: boolean = false) => {
+  // Your existing object selection code
+  
+  // After selecting an object, check if it has constraints
+  if (object.userData?.elementId) {
+    const elementId = object.userData.elementId;
+    const constraints = getConstraintsForEntity(elementId);
+    
+    // Optionally highlight or visualize constrained objects
+    if (constraints.length > 0) {
+      console.log(`Selected object has ${constraints.length} constraints`);
+      // You might want to highlight related objects or show constraint indicators
+    }
+  }
+};
+
+useEffect(() => {
+  const connectSelectionToConstraints = () => {
+    // Every time selectedElementIds changes, we could potentially
+    // update the constraint system or UI to highlight constraints
+    if (selectedElementIds.length > 0) {
+      // Example: if you want to auto-select these elements for constraints
+      // when in parametric mode
+      if (activeRightPanel === 'constraints') {
+        // You could trigger some action or update state here
+        console.log("Connecting elements to parametric system:", selectedElementIds);
+      }
+    }
+  };
+  
+  connectSelectionToConstraints();
+}, [selectedElementIds, activeRightPanel]);
+
+
 const worldToScreen = useCallback((position: { x: number, y: number, z: number }) => {
   if (!canvasRef.current || !cameraRef.current) return null;
   
