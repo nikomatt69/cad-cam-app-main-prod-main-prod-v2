@@ -30,7 +30,7 @@ export class UnifiedAIService {
   private apiKey: string;
   private allowBrowser: boolean = true;
   private defaultModel: AIModelType = 'claude-3-7-sonnet-20250219';
-  private defaultMaxTokens: number = 6000;
+  private defaultMaxTokens: number = 8000;
   private mcpEnabled: boolean = false;
   private mcpStrategy: 'aggressive' | 'balanced' | 'conservative' = 'balanced';
   private mcpCacheLifetime: number = 3600000; // 1 ora in millisecondi
@@ -373,7 +373,8 @@ export class UnifiedAIService {
       constraints, 
       style = 'precise', 
       complexity = 'moderate',
-      context = [] 
+      context = [],
+      structuredContext
     } = request;
     
     // Costruisce il prompt di sistema utilizzando il template
@@ -388,7 +389,7 @@ export class UnifiedAIService {
     }
     if (context && context.length > 0) {
       userPrompt += '\n\nReference Context:\n';
-      const maxContextLength = 3000; // Limit context size
+      const maxContextLength = 5000; // Limit context size
       context.forEach((contextItem, index) => {
         const truncatedContext = contextItem.length > maxContextLength 
           ? contextItem.substring(0, maxContextLength) + '... [content truncated]' 
@@ -396,6 +397,12 @@ export class UnifiedAIService {
         userPrompt += `\n--- Context Document ${index + 1} ---\n${truncatedContext}\n`;
       });
       userPrompt += '\n\nPlease consider the above reference context...';
+    }
+    
+    // Aggiungi contesto strutturato se disponibile
+    if (structuredContext && Object.keys(structuredContext).length > 0) {
+      userPrompt += '\n\nStructured Context Information:\n' + JSON.stringify(structuredContext, null, 2);
+      userPrompt += '\n\nPlease use this structured context to guide your element generation.';
     }
     
     // Revert to calling this.processRequest
@@ -422,12 +429,23 @@ export class UnifiedAIService {
   /**
    * Analizza progetti CAD e fornisce suggerimenti
    */
-  async analyzeDesign(elements: Element[]): Promise<AIResponse<AIDesignSuggestion[]>> {
+  async analyzeDesign(elements: Element[], enhancedContext?: string, structuredContext?: Record<string, any>): Promise<AIResponse<AIDesignSuggestion[]>> {
     const prompt = promptTemplates.designAnalysis.user
       .replace('{{elements}}', JSON.stringify(elements, null, 2));
     
+    // Aggiungi contesto avanzato se disponibile
+    let userPrompt = prompt;
+    if (enhancedContext) {
+      userPrompt += '\n\nAdditional Context:\n' + enhancedContext;
+    }
+    
+    // Aggiungi contesto strutturato se disponibile
+    if (structuredContext && Object.keys(structuredContext).length > 0) {
+      userPrompt += '\n\nStructured Context Information:\n' + JSON.stringify(structuredContext, null, 2);
+    }
+    
     return this.processRequest<AIDesignSuggestion[]>({
-      prompt,
+      prompt: userPrompt,
       systemPrompt: promptTemplates.designAnalysis.system,
       model: 'claude-3-7-sonnet-20250219', // Usa il modello più potente per analisi approfondite
       temperature: 0.3, // Temperatura bassa per risposte più analitiche
@@ -443,7 +461,7 @@ export class UnifiedAIService {
   /**
    * Ottimizza G-code per macchine CNC
    */
-  async optimizeGCode(gcode: string, machineType: string, material?: string): Promise<AIResponse<string>> {
+  async optimizeGCode(gcode: string, machineType: string, enhancedContext?: string, structuredContext?: Record<string, any>, material?: string): Promise<AIResponse<string>> {
     const systemPrompt = promptTemplates.gcodeOptimization.system
       .replace('{{machineType}}', machineType);
     
@@ -452,11 +470,21 @@ export class UnifiedAIService {
     - Ensure safe machine operation
     - Follow ${machineType} best practices`;
     
-    const prompt = promptTemplates.gcodeOptimization.user
+    let prompt = promptTemplates.gcodeOptimization.user
       .replace('{{machineType}}', machineType)
       .replace('{{material}}', material || 'unknown material')
       .replace('{{gcode}}', gcode)
       .replace('{{constraints}}', constraints);
+    
+    // Aggiungi contesto avanzato se disponibile
+    if (enhancedContext) {
+      prompt += '\n\nAdditional Context:\n' + enhancedContext;
+    }
+    
+    // Aggiungi contesto strutturato se disponibile
+    if (structuredContext && Object.keys(structuredContext).length > 0) {
+      prompt += '\n\nStructured Context Information:\n' + JSON.stringify(structuredContext, null, 2);
+    }
     
     return this.processRequest<string>({
       prompt,
@@ -796,7 +824,8 @@ export class UnifiedAIService {
     complexityLevel: ComplexityLevel = "moderate",
     assistantRole: AssistantRole = "General AI",
     forceToolChoice?: ForceToolChoice,
-    modelOverride?: AIModelType
+    modelOverride?: AIModelType,
+    structuredContext?: Record<string, any>
   ): Promise<AIResponse<any>> { 
     
     const modelToUse = modelOverride || this.defaultModel;
@@ -853,6 +882,11 @@ export class UnifiedAIService {
       // 1. Construct System Prompt
       let systemPrompt = `You are an AI assistant integrated into a CAD/CAM application. Your role is: ${assistantRole}. `; 
       systemPrompt += `Current context: ${context}. `;
+      
+      // Aggiungi contesto strutturato al prompt di sistema se disponibile
+      if (structuredContext && Object.keys(structuredContext).length > 0) {
+        systemPrompt += `\n\nStructured Context Information:\n${JSON.stringify(structuredContext, null, 2)}\n\n`;
+      }
       systemPrompt += `Respond in a ${responseStyle} manner, appropriate for a user with ${complexityLevel} understanding. `;
       if (availableActions.length > 0) {
         systemPrompt += `You have the following tools available: ${availableActions.join(', ')}. Only use tools when specifically requested or clearly necessary based on the user's request.`;

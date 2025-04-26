@@ -93,7 +93,8 @@ export class OpenAIService {
     responseStyle: ResponseStyle = "detailed",
     complexityLevel: ComplexityLevel = "moderate",
     assistantRole: AssistantRole = "General AI",
-    forceToolChoice?: ForceToolChoice
+    forceToolChoice?: ForceToolChoice,
+    structuredContext : string = ""
   ): Promise<OpenAIResponse> {
     // --- Caching Logic Modification --- 
     // Basic check: Disable cache if the last message contains images
@@ -119,7 +120,8 @@ export class OpenAIService {
         complexityLevel,
         assistantRole,
         forceToolChoice,
-        model: this.defaultModel
+        model: this.defaultModel,
+        
       };
       cacheKey = aiCache.getKeyForRequest(cacheKeyPayload);
       cachedResponse = aiCache.get<OpenAIResponse>(cacheKey);

@@ -27,6 +27,9 @@ import AIProcessingIndicator from '../AIProcessingIndicator';
 import { useElementsStore } from '@/src/store/elementsStore';
 import { AIMessage as AIMessageComponent } from './AIMessage';
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/Tabs";
+import { ContextAwareGenerationPanel } from './ContextAwareGenerationPanel';
+
 interface ConstraintPreset {
   id: string;
   name: string;
@@ -65,8 +68,8 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [selectedModel, setSelectedModel] = useState<AIModelType>(availableModels[0] || 'gpt-4.1' as AIModelType);
-  const [maxTokens, setMaxTokens] = useState<number>(6000);
+  const [selectedModel, setSelectedModel] = useState<AIModelType>(state.currentModel || availableModels[0] || 'gpt-4.1' as AIModelType);
+  const [maxTokens, setMaxTokens] = useState<number>(state.settings.maxTokens || 6000);
   const [complexity, setComplexity] = useState<number>(0.5);
   const [selectedPresetId, setSelectedPresetId] = useState<string>('custom');
   const [customMaxWidth, setCustomMaxWidth] = useState<number>(200);
@@ -80,6 +83,8 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     timestamp: number;
     elements: any[];
   }>>([]);
+
+  const [activeTab, setActiveTab] = useState('assistant');
 
   const submitFeedbackHandler = async (messageId: string, comment: string) => {
     console.log(`Feedback Submitted - Message ID: ${messageId}, Comment: ${comment}`);
@@ -95,6 +100,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit feedback');
       }
+      toast.success('Feedback submitted. Thank you!');
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast.error('Could not submit feedback. Please try again.');
@@ -132,18 +138,13 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     if (rating === 'good') {
       toast.success('Thanks for the feedback!', { duration: 1500 });
       try {
-        const response = await fetch('/api/ai/feedback', {
+        await fetch('/api/ai/feedback', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messageId, rating: 'good' }),
         });
-        if (!response.ok) {
-           console.error('Failed to submit positive feedback:', await response.text());
-        }
       } catch (error) {
-         console.error("Error submitting positive feedback:", error);
+        console.error("Error submitting positive feedback:", error);
       }
     } else {
       toast.custom(
@@ -162,8 +163,13 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     }
   };
   
-  const handleModelChange = (model: AIModelType) => setSelectedModel(model);
-  const handleMaxTokensChange = (tokens: number) => setMaxTokens(tokens);
+  const handleModelChange = (model: AIModelType) => {
+    setSelectedModel(model);
+    dispatch({ type: 'SET_MODEL', payload: model });
+  };
+  const handleMaxTokensChange = (tokens: number) => {
+    setMaxTokens(tokens);
+  };
   const handleComplexityChange = (complexity: number) => setComplexity(complexity);
   const handlePresetChange = (presetId: string) => setSelectedPresetId(presetId);
   const handleCustomMaxWidthChange = (width: number) => setCustomMaxWidth(width);
@@ -176,10 +182,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
   }, [state.history.length]);
   
   const handleSendMessage = async (messageText: string, filesData?: SelectedFileData[], activeTool?: ToolName | null) => {
-    // --- DEBUG LOG --- 
     console.log(`[CADAssistantOpenai] handleSendMessage called. Message: "${messageText}", Active Tool:`, activeTool);
-    // --- END DEBUG LOG ---
-
     let textContents: string[] = [];
     let imageDataUrls: string[] = [];
 
@@ -200,11 +203,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
       activeTool === 'textToCAD' || 
       (!activeTool && generationKeywords.some(keyword => messageText.toLowerCase().trim().startsWith(keyword)));
 
-    // --- DEBUG LOG --- 
-    console.log(`[CADAssistantOpenai] useTextToCAD evaluated to: ${useTextToCAD} (Active Tool: ${activeTool})`);
-    // --- END DEBUG LOG ---
-
-    if (useTextToCAD) {
+    if (useTextToCAD && contextTextToCAD) {
       console.log("[CADAssistantOpenai] Handling as Text-to-CAD request.");
       let constraintsToSend = {};
       if (selectedPresetId === 'custom') {
@@ -230,9 +229,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
         toast.error("An error occurred during CAD generation.");
       }
     } else {
-      // --- DEBUG LOG --- 
       console.log(`[CADAssistantOpenai] Handling as general assistant message or specific tool call (${activeTool || 'No specific tool'}). Passing to contextSendAssistantMessage.`);
-      // --- END DEBUG LOG ---
       if (contextSendAssistantMessage) {
         contextSendAssistantMessage(messageText, imageDataUrls, activeTool); 
       } else {
@@ -245,9 +242,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     addElements(historyItem.elements);
   };
   const handleExecuteAction = async (action: AIAction) => {
-    // --- REMOVED ADDED LOGGING --- 
-    // console.log(`[CADAssistantOpenai] >>>>>> handleExecuteAction CALLED with action: ${action.type}`);
-    // --- END REMOVED ADDED LOGGING --- 
+    console.log(`[CADAssistantOpenai] Executing action: ${action.type}`);
     if (!executePendingAction) {
       console.error("executePendingAction prop is not provided!");
       toast.error("Cannot execute action.");
@@ -343,15 +338,12 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
     return null;
   };
 
-  
-
   const indicatorStatus = state.isProcessing ? 'processing' : 'idle';
 
-  // Placeholder message object for the typing indicator
   const typingIndicatorMessage: AIMessageType = {
     id: 'ai-typing-indicator',
     role: 'assistant',
-    content: '', // Content is not rendered for typing indicator
+    content: '',
     timestamp: Date.now(),
   };
 
@@ -378,7 +370,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                 <div>
                   <h3 className="font-medium">CAD Assistant</h3> 
                   <div className="text-xs text-blue-100">
-                    {contextData.elementCount || 0} elements on canvas
+                    {state.pendingActions.length || contextData.elementCount || 0} elements on canvas
                   </div>
                 </div>
               </div>
@@ -409,8 +401,8 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
             
             <AnimatePresence>
               {showSettings && (
-                <div className="overflow-y-auto max-h-96 border-b border-gray-200 dark:border-gray-700">
-                  <AISettingsPanel/>
+                <div className="overflow-y-auto max-h-full border-b border-gray-200 dark:border-gray-700">
+                  <AISettingsPanel />
                  <motion.div
                  initial={{ height: 0, opacity: 0 }}
                  animate={{ height: 'auto', opacity: 1 }}
@@ -432,57 +424,73 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               )}
             </AnimatePresence>
             
-            <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800 flex flex-col">
-              {state.history.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
-                  <Cpu size={32} className="mb-2" />
-                  <p className="text-sm">I&apos;m your CAD assistant. How can I help?</p>
-                  <p className="text-xs text-center mt-2 text-gray-400">
-                    Try asking me to create models, modify elements, or optimize your design.
-                  </p>
-                </div>
-              ) : (
-                [...state.history].reverse().map((item) => { 
-                  const message = mapHistoryItemToAIMessage(item);
-                  if (!message) return null; 
-                  return (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-grow min-h-0">
+              <TabsList className="shrink-0 border-b bg-gray-50 dark:bg-gray-750">
+                <TabsTrigger value="assistant">Assistant</TabsTrigger>
+                <TabsTrigger value="contextual">Contextual</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="assistant" className="flex flex-col flex-grow min-h-0 overflow-hidden mt-0">
+                <div className="flex-grow overflow-y-auto p-3 space-y-2 bg-white dark:bg-gray-800 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                  {state.history.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-gray-500">
+                      <Cpu size={32} className="mb-2" />
+                      <p className="text-sm">I&apos;m your CAD assistant. How can I help?</p>
+                      <p className="text-xs text-center mt-2 text-gray-400">
+                        Try asking me to create models, modify elements, or optimize your design.
+                      </p>
+                    </div>
+                  ) : (
+                    [...state.history].reverse().map((item) => { 
+                      const message = mapHistoryItemToAIMessage(item);
+                      if (!message) return null; 
+                      return (
+                        <AIMessageComponent 
+                          key={message.id} 
+                          message={message} 
+                          onFeedback={handleFeedback}
+                          onExecuteAction={handleExecuteAction}
+                        />
+                      )
+                    })
+                  )}
+                  {state.isProcessing && !state.pendingActions.length && (
                     <AIMessageComponent 
-                      key={message.id} 
-                      message={message} 
-                      onFeedback={handleFeedback}
-                      onExecuteAction={handleExecuteAction}
+                      key="typing-indicator"
+                      message={typingIndicatorMessage} 
+                      isTypingIndicator={true} 
                     />
-                  )
-                })
-              )}
-              {/* AI Typing Indicator */}
-              {state.isProcessing && (
-                <AIMessageComponent 
-                  key="typing-indicator"
-                  message={typingIndicatorMessage} 
-                  isTypingIndicator={true} 
-                />
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-            
-            {pendingActions && pendingActions.length > 0 && handleExecuteAction &&(
-              <AIActionHandler
-                key="action-handler"
-                actions={pendingActions}
-                onExecute={handleExecuteAction}
-                isProcessing={state.isProcessing}
-              />
-            )}
-             <div className="p-2 border-b border-gray-200 dark:border-gray-700"> 
-              <AIProcessingIndicator status={indicatorStatus} progress={progress} />
-            </div> 
-            
-            <AIMessageInput
-              onSendMessage={handleSendMessage}
-              isProcessing={state.isProcessing}
-              placeholder="Describe what you want to create or modify..."
-            />
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+                
+                {state.pendingActions && state.pendingActions.length > 0 && handleExecuteAction &&(
+                  <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 shrink-0">
+                    <AIActionHandler
+                      key="action-handler-assistant-tab"
+                      actions={state.pendingActions}
+                      onExecute={handleExecuteAction}
+                      isProcessing={state.isProcessing}
+                    />
+                  </div>
+                )}
+                 <div className="p-2 border-t border-gray-200 dark:border-gray-700 shrink-0"> 
+                  <AIProcessingIndicator status={indicatorStatus} progress={progress} />
+                </div> 
+                
+                <div className="shrink-0">
+                  <AIMessageInput
+                    onSendMessage={handleSendMessage}
+                    isProcessing={state.isProcessing}
+                    placeholder="Describe what you want to create or modify..."
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="contextual" className="flex-grow overflow-y-auto p-4 mt-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                <ContextAwareGenerationPanel />
+              </TabsContent>
+            </Tabs>
           </div>
         ) : (
           <div className="flex items-center p-2 space-x-2">

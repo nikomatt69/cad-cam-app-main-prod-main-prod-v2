@@ -116,7 +116,7 @@ const validateJSON = (jsonString: string) => {
 };
 
 // 3D Preview Component
-const ThreeDPreview = ({ componentData }: { componentData: any }) => {
+export const ThreeDPreview = ({ componentData }: { componentData: any }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {

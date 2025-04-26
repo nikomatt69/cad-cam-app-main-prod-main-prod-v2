@@ -1,7 +1,9 @@
 import React from 'react';
 import { AIAction } from '@/src/types/AITypes';
 import { CADElementPreview } from './CADElementPreview';
-
+import { ComponentPreviewSection } from '../ComponentPreviewSection';
+import { ThreeDPreview } from 'src/pages/components/[id]';
+import { ComponentData } from '@/src/types/component';
 interface CADActionHandlerProps {
   actions: AIAction[];
   onExecute: (action: AIAction) => void;
@@ -66,53 +68,15 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
               </pre>
             </div>
             
+            {/* Aggiungi l'anteprima per le azioni di generazione */}
+            <ComponentPreviewSection action={action.payload} />
+           
             {/* Specific previews (can be removed if general payload is sufficient) */}
             {/* Example: Keep specific preview for generateCADElement if needed */}
-            {/* 
+             
             {action.type === 'generateCADElement' && (
               <CADElementPreview action={action} />
             )}
-            */} 
-            
-            {/* Remove other specific previews if general one covers them */}
-            {/*
-            {action.type === 'updateCADElement' && (
-              <div className="mt-2 bg-white p-2 rounded border border-gray-200 text-xs">
-                <div className="font-medium">Element ID: {action.payload.id}</div>
-                <div className="mt-1">Properties to update:</div>
-                <pre className="mt-1 text-xs bg-gray-50 p-1 rounded">
-                  {JSON.stringify(action.payload.properties, null, 2)}
-                </pre>
-              </div>
-            )}
-            */}
-            
-            {/*
-            {action.type === 'removeCADElement' && (
-              <div className="mt-2 bg-white p-2 rounded border border-gray-200 text-xs">
-                <div className="font-medium text-red-600">
-                  Remove element with ID: {action.payload.id}
-                </div>
-              </div>
-            )}
-            */}
-            
-            {/*
-            {action.type === 'groupCADElements' && (
-              <div className="mt-2 bg-white p-2 rounded border border-gray-200 text-xs">
-                <div className="font-medium">
-                  Group {action.payload.elementIds?.length || 0} elements
-                  {action.payload.groupName ? ` as "${action.payload.groupName}"` : ''}
-                </div>
-                <div className="mt-1">Element IDs:</div>
-                <div className="mt-1 bg-gray-50 p-1 rounded max-h-20 overflow-y-auto">
-                  {action.payload.elementIds?.map((id: string) => (
-                    <div key={id} className="text-xs">{id}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-            */}
           </div>
         ))}
       </div>
