@@ -1,53 +1,57 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getRegistryInstance } from '@/src/server/pluginRegistryInstance';
+// import { getRegistryInstance } from '@/src/server/pluginRegistryInstance'; // REMOVED
+import { PluginRegistry } from '@/src/plugins/core/registry'; // Import type
+import { withRegistry, ApiHandlerWithRegistry } from '@/src/server/middleware/withRegistry'; // Import HOF
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<{ success: boolean } | { error: string }>
-) {
-  // Only allow PUT requests
-  if (req.method !== 'PUT') {
-    res.setHeader('Allow', ['PUT']);
-    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
-  }
+// This handler assumes the registry has methods like `getPluginConfig` and `updatePluginConfig`
 
+const configHandler: ApiHandlerWithRegistry = async (req, res, registry) => {
   const { id } = req.query;
-
   if (typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid plugin ID' });
   }
 
-  // Ensure request body is present and is an object
-  if (!req.body || typeof req.body !== 'object') {
-       return res.status(400).json({ error: 'Invalid request body: Configuration object expected.' });
+  const storage = registry.getStorage();
+  if (!storage) {
+      console.error('[API Config] Storage provider not available via registry.');
+      throw new Error('Storage provider not available.'); 
   }
-
-  const newConfigData = req.body; // Next.js automatically parses JSON body if Content-Type is correct
 
   try {
-    const registry = getRegistryInstance();
-    const storage = registry.getStorage();
-    if (!storage) { throw new Error('Storage provider not available.'); }
-
-    // --- Check if plugin exists directly via storage --- 
-    const allPlugins = await storage.getPlugins(); 
-    const pluginExists = allPlugins.some(p => p.id === id);
+    // Check if plugin exists first? Optional, storage methods should handle not found.
     
-    if (!pluginExists) {
-        return res.status(404).json({ error: `Plugin with ID '${id}' not found.` });
+    if (req.method === 'GET') {
+        console.log(`[API Config] Getting config for plugin ${id}`);
+        // Assuming storage has getPluginConfig
+        const config = await storage.getPluginConfig(id);
+        res.status(200).json(config || {}); // Return empty object if no config
+
+    } else if (req.method === 'POST' || req.method === 'PUT') { // Allow POST or PUT to update/set config
+        const newConfig = req.body;
+        // TODO: Add validation against manifest schema if available
+        console.log(`[API Config] Updating config for plugin ${id}:`, newConfig);
+        // Assuming storage has savePluginConfig
+        await storage.savePluginConfig(id, newConfig);
+        res.status(200).json({ message: 'Configuration updated successfully.' });
+
+    } else {
+        res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+        res.status(405).json({ error: 'Method Not Allowed' });
     }
-    // ----------------------------------------------------
-
-    // TODO: Add validation here? Compare newConfigData against plugin.manifest.configuration schema?
-    // This would require fetching the specific plugin manifest, potentially add storage.getPlugin(id)
-
-    await storage.savePluginConfig(id, newConfigData);
-
-    console.log(`Configuration saved successfully for plugin ${id}`);
-    res.status(200).json({ success: true });
 
   } catch (error) {
-    console.error(`Failed to save configuration for plugin ${id}:`, error);
-    res.status(500).json({ error: `Failed to save configuration: ${error instanceof Error ? error.message : String(error)}` });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process plugin configuration';
+    console.error(`[API Config] Error processing config for plugin ${id}:`, error);
+    // Determine specific status codes
+    let statusCode = 500;
+    // Assuming storage methods might throw specific errors or codes
+    if ((error as any).code === 'PLUGIN_NOT_FOUND' || errorMessage.includes('not found')) {
+         statusCode = 404;
+    } else if (errorMessage.includes('Validation')) {
+        statusCode = 400;
+    }
+    res.status(statusCode).json({ error: errorMessage });
   }
-} 
+};
+
+export default withRegistry(configHandler); 

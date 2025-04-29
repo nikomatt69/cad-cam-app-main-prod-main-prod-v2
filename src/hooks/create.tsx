@@ -85,7 +85,7 @@ export default function CreateComponentPage() {
   return (
     <>
        <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="COMPONENTS" 
      
       />

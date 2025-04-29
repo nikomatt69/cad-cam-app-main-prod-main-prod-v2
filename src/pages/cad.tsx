@@ -408,7 +408,7 @@ export default function CADPage() {
   return (
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
       <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="CAD Editor" 
         description="Design and create 2D/3D components in our advanced CAD editor"
       />
@@ -500,18 +500,7 @@ export default function CADPage() {
                   <Tool size={16} className="mr-1" />
                   Proprieties
                 </button>
-                <button
-                  onClick={() => setActiveRightPanel('trasform')}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeRightPanel === 'trasform'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100  border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                  }`}
-                >
-                  <Box size={16} className="mr-1" />
-                  Trasform
-                  Controls
-                </button>
+               
                 <button
                   onClick={() => setActiveRightPanel('constraints')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${

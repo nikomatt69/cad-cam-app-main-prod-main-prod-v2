@@ -122,7 +122,7 @@ export default function AnalyticsDashboardPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title="Analytics Dashboard" />
+  ogImage="/og-image.png" title="Analytics Dashboard" />
       
       <Layout>
         <div className="px-4 py-6">

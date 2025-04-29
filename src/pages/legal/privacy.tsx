@@ -19,7 +19,7 @@ export default function PrivacyPage() {
   return (
     <>
        <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="PRIVACY FUN" 
      
       />

@@ -40,7 +40,7 @@ const defaultSandboxOptions: SandboxOptions = {
         imgSrc: ["'self'", "https:", "data:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'", "https://*"],
-        frameSrc: ["'none'"], // Example: Disallow framing by default
+        frameSrc: ["'self'", "https://*"], // Example: Disallow framing by default
     },
     allowEval: false,
     allowParentAccess: false, 
@@ -124,8 +124,6 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
       }
       // --------------------------------
 
-      activeHostsRef.current.set(pluginId, host);
-      setHostMapVersion(v => v + 1); // Trigger re-render
       console.log(`[Client] Host instance created for ${pluginId}. Loading...`);
       
       await host.load();
@@ -134,6 +132,11 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
       await host.activate();
       console.log(`[Client] Host activated successfully for ${pluginId}`);
       
+      // --- Add host to map NOW --- 
+      activeHostsRef.current.set(pluginId, host);
+      setHostMapVersion(v => v + 1); // Trigger re-render NOW
+      console.log(`[Client] Host added to active map for ${pluginId}`);
+
       // Update host state in map if needed (though activation should handle internal state)
       // No need to call setActiveHosts - the ref update + version bump handles it.
 
@@ -143,6 +146,7 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
       console.error(`[Client] Failed to activate plugin ${pluginId}:`, err);
       // Clean up if activation failed
       if (activeHostsRef.current.has(pluginId)) {
+        // This block might be less likely to be hit now, but keep for safety
         const failedHost = activeHostsRef.current.get(pluginId);
         activeHostsRef.current.delete(pluginId);
         setHostMapVersion(v => v + 1); // Trigger re-render
@@ -191,7 +195,9 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
       throw new Error(`Cannot execute command: Plugin ${pluginId} host not found.`);
     }
     // Add check for host state if needed (e.g., only if ACTIVATED)
-    // if (host.getState() !== PluginState.ACTIVATED) { ... }
+     if (host.getState() !== PluginState.ACTIVATED) {
+      throw new Error(`Cannot execute command: Plugin ${pluginId} is not activated.`);
+     }
     
     try {
       const bridge = host.getBridge();

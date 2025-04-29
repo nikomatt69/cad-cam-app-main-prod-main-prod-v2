@@ -72,7 +72,7 @@ const OrganizationChatPage = () => {
   return (
     <Layout>
       <MetaTags
-  ogImage="/og-default.png" title="Chat dell'organizzazione" />
+  ogImage="/og-image.png" title="Chat dell'organizzazione" />
       
       <div className="p-4 h-[calc(100vh-74px)]">
         <div className="flex items-center mb-4">

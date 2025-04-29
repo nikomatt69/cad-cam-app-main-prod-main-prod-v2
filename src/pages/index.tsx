@@ -25,6 +25,8 @@ import { UserHistory } from '@/src/components/analytics/UserHistory';
 import { AnalyticsOverview } from '../components/analytics/AnalyticsOverview';
 import ActivityChart from '../components/analytics/ActivityChart';
 import dynamic from 'next/dynamic';
+import axios from 'axios';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 interface DashboardStats {
   totalProjects: number;
@@ -129,64 +131,7 @@ export default function Home() {
   const isAdmin = false;
 
   // Use mock data if API isn't implemented yet
-  useEffect(() => {
-    if (!stats && !isLoading && status === 'authenticated') {
-      const mockStats: DashboardStats = {
-        totalProjects: 12,
-        totalDrawings: 45,
-        totalComponents: 27,
-        totalTools: 18,
-        recentActivities: [
-          {
-            id: '1',
-            type: 'project',
-            action: 'updated',
-            itemName: 'CNC Fixture',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            userId: '1',
-            userName: session?.user?.name || 'User'
-          },
-          {
-            id: '2',
-            type: 'drawing',
-            action: 'created',
-            itemName: 'Front Panel',
-            timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            userId: '1',
-            userName: session?.user?.name || 'User'
-          },
-          {
-            id: '3',
-            type: 'gcode',
-            action: 'exported',
-            itemName: 'Pocket Operation',
-            timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            userId: '1',
-            userName: session?.user?.name || 'User'
-          },
-          {
-            id: '4',
-            type: 'component',
-            action: 'created',
-            itemName: 'Mounting Bracket',
-            timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            userId: '1',
-            userName: session?.user?.name || 'User'
-          },
-          {
-            id: '5',
-            type: 'tool',
-            action: 'updated',
-            itemName: '1/4" End Mill',
-            timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            userId: '1',
-            userName: session?.user?.name || 'User'
-          }
-        ]
-      };
-      setStats(mockStats);
-    }
-  }, [stats, isLoading, status, session]);
+ 
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -232,6 +177,57 @@ export default function Home() {
         return <Clock size={20} className="text-gray-500" />;
     }
   };
+  interface UserMetricsSummary {
+    totalAiRequests: number;
+    totalCadDrawings: number;
+    totalStorageUsage: number; // e.g., in MB
+    totalProjects: number;
+    totalComponents: number;
+    totalToolpaths: number;
+    totalActivityCount?: number; // Include if added in API
+  }
+  
+  const { data: generalAnalyticsData, isLoading: isGeneralLoading, error: generalError } = useAnalytics({
+    
+    groupBy: 'day'
+  });
+  // Interface for the API response structure (only summary needed here now)
+  interface UserMetricsApiResponse {
+    summary: UserMetricsSummary;
+  }
+  const [metricsSummary, setMetricsSummary] = useState<UserMetricsSummary | null>(null);
+  const [isSummaryLoading, setIsSummaryLoading] = useState<boolean>(true);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  // Effect to fetch user metrics summary data
+  useEffect(() => {
+    const fetchMetricsSummary = async () => {
+      setIsSummaryLoading(true);
+      setSummaryError(null);
+      try {
+        const params = {
+          startDate: new Date().toISOString(),
+          endDate: new Date().toISOString(),
+        };
+        const response = await axios.get<UserMetricsApiResponse>('/api/analytics/user-metrics', {
+          params,
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (response.data && response.data.summary) {
+             setMetricsSummary(response.data.summary);
+        } else {
+            throw new Error("Summary data not found in API response");
+        }
+      } catch (err) {
+        console.error("Failed to fetch user metrics summary:", err);
+        setSummaryError(err instanceof Error ? err.message : 'Failed to load metrics summary');
+      } finally {
+        setIsSummaryLoading(false);
+      }
+    };
+
+    fetchMetricsSummary();
+  }, []);
 
   if (status === 'loading') {
     return (
@@ -249,13 +245,13 @@ export default function Home() {
       <MetaTags
       title="CAD/CAM FUN"
       description="A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI."
-      ogImage="/og-default.png" />
+      ogImage="/og-image.png" />
       <Layout>
         <div className="p-4 sm:p-6" ref={contentRef}>
           {/* Welcome section with system overview */}
           <div className="mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl flex items-center px-2 sm:px-5 font-bold text-gray-900">
-              <Image src='/logo.png' className='h-12 sm:h-28 mr-2' alt="Logo"/>
+              <Image src='/logo.png' className='h-12 sm:h-28 mr-2' width={300} height={100} alt="Logo"/>
             </h1>
             <p className="mt-2 text-base sm:text-lg text-gray-600 px-2 sm:px-0">
               A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI.
@@ -355,7 +351,7 @@ export default function Home() {
                     <div>
                       <h3 className="text-sm sm:text-md font-medium text-gray-900">Materials</h3>
                       <p className="text-xs sm:text-sm text-gray-500">
-                        {stats ? `${stats.totalComponents} materials` : 'Manage materials'}
+                        {!stats ? `${metricsSummary?.totalCadDrawings} materials` : 'Manage Materials'}
                       </p>
                     </div>
                   </Link>
@@ -368,30 +364,34 @@ export default function Home() {
                     <div>
                       <h3 className="text-sm sm:text-md font-medium text-gray-900">Components</h3>
                       <p className="text-xs sm:text-sm text-gray-500">
-                        {stats ? `${stats.totalComponents} components` : 'Reusable parts library'}
+                        {!stats ? `${metricsSummary?.totalComponents} components` : 'Reusable parts Library'}
                       </p>
                     </div>
                   </Link>
                   
                   {/* Machine Configurations */}
-                  <Link href="/machine" className="flex items-center p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <Link href={`/drawings/[id]`} className="flex items-center p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3 sm:mr-4">
                       <Settings className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-md font-medium text-gray-900">Machine Configs</h3>
-                      <p className="text-xs sm:text-sm text-gray-500">CNC machine settings</p>
+                      <h3 className="text-sm sm:text-md font-medium text-gray-900">Drawings</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                      {!stats ? `${metricsSummary?.totalCadDrawings} cad drawings` : 'Cad Drawings'}
+                      </p>
                     </div>
                   </Link>
                   
                   {/* Drawing Instruments */}
-                  <Link href="/drawing-instruments" className="flex items-center p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <Link href="/toolpaths" className="flex items-center p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-purple-100 flex items-center justify-center mr-3 sm:mr-4">
                       <Pen className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-md font-medium text-gray-900">Drawing Instruments</h3>
-                      <p className="text-xs sm:text-sm text-gray-500">Configure drawing tools</p>
+                      <h3 className="text-sm sm:text-md font-medium text-gray-900">Toolpaths</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {!stats ? `${metricsSummary?.totalToolpaths} toolpaths` : 'Generated Toolpaths'}
+                      </p>
                     </div>
                   </Link>
                 </div>
@@ -403,20 +403,20 @@ export default function Home() {
               <div className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white shadow-md rounded-lg overflow-hidden">
                 <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 flex justify-between items-center">
                   <h2 className="text-base sm:text-lg font-semibold text-gray-900">Tools</h2>
-                  <Link href={`/tools`} className="text-xs sm:text-sm text-blue-600 hover:text-blue-800">
+                  <Link href={`/toolpaths`} className="text-xs sm:text-sm text-blue-600 hover:text-blue-800">
                     View all
                   </Link>
                 </div>
                 <div className="p-4 sm:p-6">
-                  {stats && stats.totalTools > 0 ? (
+                  {stats   ? (
                     <div className="text-center py-3 sm:py-4">
                       <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-2 sm:mb-3">
                         <Tool className="h-8 w-8 sm:h-10 sm:w-10 text-orange-600" />
                       </div>
-                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900">{stats.totalTools}</h3>
-                      <p className="text-sm sm:text-base text-gray-500">Cutting tools ready for use</p>
-                      <Link href="/tools/index" className="mt-3 sm:mt-4 inline-block text-xs sm:text-sm text-blue-600 hover:text-blue-800">
-                        Add a new tool
+                      <h3 className="text-xl sm:text-2xl font-bold text-gray-900">{metricsSummary?.totalToolpaths}</h3>
+                      <p className="text-sm sm:text-base text-gray-500">Toolpaths ready for use</p>
+                      <Link href="/toolpaths" className="mt-3 sm:mt-4 inline-block text-xs sm:text-sm text-blue-600 hover:text-blue-800">
+                        Generate New Toolpaths
                       </Link>
                     </div>
                   ) : (
@@ -424,16 +424,16 @@ export default function Home() {
                       <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3 sm:mb-4">
                         <Tool className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
                       </div>
-                      <h3 className="text-sm sm:text-base text-gray-900 font-medium mb-2">No Tools Yet</h3>
+                      <h3 className="text-sm sm:text-base text-gray-900 font-medium mb-2">No Toolpaths Yet</h3>
                       <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
-                        Add your cutting tools to use in CAM operations
+                        Generate Toolpaths into the CAM
                       </p>
                       <Link 
-                        href="/tools"
+                        href="/toolpaths"
                         className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-2 border border-transparent text-xs sm:text-sm leading-4 font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                       >
                         <Plus className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                        Add First Tool
+                        Add First ToolPaths
                       </Link>
                     </div>
                   )}

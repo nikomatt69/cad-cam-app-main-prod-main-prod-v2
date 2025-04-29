@@ -381,7 +381,7 @@ export default function ToolsList() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={'Tool Library'} />
+  ogImage="/og-image.png" title={'Tool Library'} />
       
       <Layout>
         <div className="p-4 md:p-6">

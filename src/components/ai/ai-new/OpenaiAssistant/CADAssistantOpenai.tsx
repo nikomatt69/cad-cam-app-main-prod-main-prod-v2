@@ -424,8 +424,8 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
               )}
             </AnimatePresence>
             
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-grow min-h-0">
-              <TabsList className="shrink-0 border-b bg-gray-50 dark:bg-gray-750">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col dark:bg-gray-800 flex-grow min-h-0">
+              <TabsList className="shrink-0 border-b bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300">
                 <TabsTrigger value="assistant">Assistant</TabsTrigger>
                 <TabsTrigger value="contextual">Contextual</TabsTrigger>
               </TabsList>

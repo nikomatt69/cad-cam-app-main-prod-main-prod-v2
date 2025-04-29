@@ -29,7 +29,7 @@ export default function UserHistoryPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title="Your Activity History" />
+  ogImage="/og-image.png" title="Your Activity History" />
       
       <Layout>
         <div className="px-4 py-6">

@@ -78,7 +78,7 @@ export default function CreateOrganizationPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={'Create Organization'} description="Create a new organization to collaborate with your team" />
+  ogImage="/og-image.png" title={'Create Organization'} description="Create a new organization to collaborate with your team" />
       <DynamicLayout>
         <div className="p-6">
           <div className="mb-6 flex items-center">

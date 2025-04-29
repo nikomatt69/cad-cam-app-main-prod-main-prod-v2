@@ -112,9 +112,9 @@ const PluginsPage = () => {
               {plugins.map((plugin) => (
                 <li key={plugin.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <div className="flex-1 min-w-0">
-                      <Link href={`/plugins/${plugin.id}`} className="text-sm font-medium text-blue-600 dark:text-blue-400 truncate hover:underline">
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
                          {plugin.manifest.name || plugin.id}
-                      </Link>
+                      </span>
                     <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                        v{plugin.version} - {plugin.manifest.description || 'No description'}
                     </p>
@@ -130,9 +130,9 @@ const PluginsPage = () => {
                      >
                         {plugin.enabled ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                      </button>
-                     <Link href={`/plugins/${plugin.id}`} title="Plugin Details" className="text-gray-400 hover:text-blue-500">
+                     <span title="Plugin Info (No separate page)" className="text-gray-400 cursor-default">
                         <Info size={18} />
-                     </Link>
+                     </span>
                      <button
                         onClick={() => handleUninstall(plugin.id)}
                         title="Uninstall Plugin"

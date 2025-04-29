@@ -227,7 +227,7 @@ export default function DrawingInstrumentsPage() {
   return (
     <>
        <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="CAM/CAM FUN DRAWING INSTRUMENTS" 
      
       />

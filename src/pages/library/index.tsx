@@ -233,7 +233,7 @@ const LibraryPage: NextPage = () => {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title="Library Manager" description="Library Manager for CAD/CAM FUN" />
+  ogImage="/og-image.png" title="Library Manager" description="Library Manager for CAD/CAM FUN" />
       
       <Layout>
         <div className="container mx-auto px-4 py-8">

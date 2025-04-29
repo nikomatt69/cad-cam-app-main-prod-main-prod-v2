@@ -218,7 +218,7 @@ export default function ToolDetailPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={tool ? `${tool.name} | Tool Editor` : 'Tool Editor'} />
+  ogImage="/og-image.png" title={tool ? `${tool.name} | Tool Editor` : 'Tool Editor'} />
       
       <Layout>
         <div className="flex flex-col h-full">

@@ -9,14 +9,14 @@ import { IPluginHost } from '../../plugins/core/host/pluginHost'; // Import base
 interface PluginHostContainerProps {
   pluginId: string;
   entryPoint: 'sidebar' | 'panel' | 'modal' | string; // Keep for potential future use by host
-  // onMessage?: (message: any) => void; // Communication handled via bridge obtained from host
+   onMessage?: (message: any) => void; // Communication handled via bridge obtained from host
   className?: string;
 }
 
 const PluginHostContainer: React.FC<PluginHostContainerProps> = ({
   pluginId,
   entryPoint,
-  // onMessage,
+   onMessage,
   className = ''
 }) => {
   // const { plugins, registry } = usePluginRegistry(); // Remove
@@ -48,6 +48,24 @@ const PluginHostContainer: React.FC<PluginHostContainerProps> = ({
 
     hostRef.current = host; // Store the found host
     console.log(`[HostContainer] Found host for ${pluginId}. Ensuring UI is visible...`);
+    
+    // --- Set the target element for the host --- 
+    if (typeof (host as any).setTargetElement === 'function') {
+        if (containerRef.current) {
+            (host as any).setTargetElement(containerRef.current);
+            console.log(`[HostContainer] Target element set for host ${pluginId}.`);
+        } else {
+             console.error(`[HostContainer] Container ref is not available when trying to set target for ${pluginId}.`);
+             // Handle error? Maybe set status to error?
+             setStatus('error');
+             setErrorMessage('Internal error: Plugin container reference missing.');
+             return;
+        }
+    } else {
+        console.warn(`[HostContainer] Host for ${pluginId} does not have setTargetElement method.`);
+        // If target element is mandatory for this container, treat as error?
+    }
+    // ------------------------------------------
     
     try {
         // Check if the host has a show method (expected for IFramePluginHost)

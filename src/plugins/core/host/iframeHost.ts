@@ -50,11 +50,22 @@ class IFrameConnection implements IPluginConnection {
       delete (this as any)._messageListener;
     }
     
-    // Remove the iframe from the DOM
-    if (this.iframe.parentNode) {
-      this.iframe.parentNode.removeChild(this.iframe);
-    }
+    // Cleanup is handled by the host during unload, not the connection itself
+    // this.cleanupIFrame(); 
   }
+
+   // Moved cleanupIFrame here for use in close() and unload() - Correction: cleanupIFrame is on Host, not Connection
+  /* Remove this cleanup from connection, it belongs to the host 
+  private cleanupIFrame(): void {
+    if (this.iframe) {
+      if (this.iframe.parentNode) {
+        this.iframe.parentNode.removeChild(this.iframe);
+      }
+      this.iframe = null;
+      // this.targetElement = null; // Cannot access targetElement here
+    }
+  } 
+  */
 }
 
 /**
@@ -64,8 +75,9 @@ class IFrameConnection implements IPluginConnection {
 export class IFramePluginHost extends PluginHostBase {
   private iframe: HTMLIFrameElement | null = null;
   private sandbox: PluginSandbox;
-  private container: HTMLElement | null = null;
+  // private container: HTMLElement | null = null; // Removed - use targetElement
   private allowedOrigin: string;
+  private targetElement: HTMLElement | null = null; // Element to append iframe to
   
   constructor(
     manifest: PluginManifest,
@@ -79,14 +91,31 @@ export class IFramePluginHost extends PluginHostBase {
   }
 
   /**
+   * Sets the target HTML element where the plugin's iframe should be rendered.
+   * This should be called *before* load() or show().
+   * @param element The container element.
+   */
+  public setTargetElement(element: HTMLElement | null): void {
+    console.log(`[IFrameHost ${this.manifest.id}] Setting target element:`, element);
+    this.targetElement = element;
+    // If iframe already exists and is not in the DOM, append it now?
+    // Or rely on load() to append it. Let's rely on load().
+  }
+
+  /**
    * Load the plugin in an iFrame
    */
   public async load(): Promise<void> {
     if (this.state !== PluginState.INSTALLED) {
       throw new Error(`Cannot load plugin ${this.manifest.id} in state ${this.state}`);
     }
+    if (this.iframe) {
+       console.warn(`[IFrameHost ${this.manifest.id}] Load called but iframe already exists.`);
+       return; // Already loaded or loading
+    }
 
     try {
+       console.log(`[IFrameHost ${this.manifest.id}] Starting load...`);
       // Create an iframe element
       this.iframe = document.createElement('iframe');
       
@@ -97,6 +126,7 @@ export class IFramePluginHost extends PluginHostBase {
       this.iframe.style.border = 'none';
       this.iframe.style.width = '100%';
       this.iframe.style.height = '100%';
+      this.iframe.style.display = 'none'; // Initially hidden
       this.iframe.title = `Plugin: ${this.manifest.name}`;
       this.iframe.allow = this.getAllowAttribute();
       
@@ -104,8 +134,8 @@ export class IFramePluginHost extends PluginHostBase {
       const frameName = `plugin-${this.manifest.id}-${Date.now()}`;
       this.iframe.name = frameName;
       
-      // Find or create the container for the iframe
-      this.container = this.findOrCreateContainer();
+      // Find or create the container for the iframe - REMOVED
+      // this.container = this.findOrCreateContainer(); 
       
       // Create the iframe content with the bootstrap code
       const iframeContent = this.createIFrameContent();
@@ -113,8 +143,19 @@ export class IFramePluginHost extends PluginHostBase {
       // Load the iframe with the content
       this.iframe.srcdoc = iframeContent;
       
-      // Append the iframe to the container
-      this.container.appendChild(this.iframe);
+      // Append the iframe to the TARGET element
+      if (!this.targetElement) {
+          console.warn(`[IFrameHost ${this.manifest.id}] No target element set before load. Appending iframe might fail or be delayed.`);
+          // Optional: Fallback to old behavior or throw error
+          // For now, we rely on setTargetElement being called before/during activation
+          // and show() potentially re-appending if needed. Or error here?
+          throw new Error(`[IFrameHost ${this.manifest.id}] Target element must be set via setTargetElement() before load.`);
+      } else {
+          // Ensure target is empty before appending? Or allow multiple? Let's clear it.
+          this.targetElement.innerHTML = ''; 
+          this.targetElement.appendChild(this.iframe);
+          console.log(`[IFrameHost ${this.manifest.id}] Appended iframe to target element.`);
+      }
       
       // Set up the connection for the bridge
       const connection = new IFrameConnection(this.iframe, this.allowedOrigin);
@@ -138,20 +179,21 @@ export class IFramePluginHost extends PluginHostBase {
         window.addEventListener('message', messageHandler);
         
         // Handle load errors
-        const errorHandler = () => {
+        const errorHandler = (errorEvent: ErrorEvent) => { // Get more details if possible
+          console.error(`[IFrameHost ${this.manifest.id}] Iframe load error:`, errorEvent);
           window.removeEventListener('message', messageHandler);
-          this.iframe?.removeEventListener('error', errorHandler);
-          reject(new Error('Failed to load plugin iframe'));
+          this.iframe?.removeEventListener('error', errorHandler as EventListener); // Cast needed
+          reject(new Error(`Failed to load plugin iframe content. Check Content-Security-Policy and script URLs. Error: ${errorEvent.message}`));
         };
 
-        this.iframe?.addEventListener('error', errorHandler);
+        this.iframe?.addEventListener('error', errorHandler as EventListener); // Cast needed
 
         // Set a timeout for initialization
         setTimeout(() => {
           window.removeEventListener('message', messageHandler);
-          this.iframe?.removeEventListener('error', errorHandler);
+          this.iframe?.removeEventListener('error', errorHandler as EventListener); // Cast needed
           reject(new Error('Plugin initialization timed out'));
-        }, 10000);
+        }, 15000); // Increased timeout slightly
       });
       
       // Update state to loaded
@@ -160,7 +202,7 @@ export class IFramePluginHost extends PluginHostBase {
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.handleError(err, 'load');
-      this.cleanupIFrame();
+      this.cleanupIFrame(); // Ensure cleanup on error
       throw err;
     }
   }
@@ -169,6 +211,7 @@ export class IFramePluginHost extends PluginHostBase {
    * Unload the plugin and remove the iframe
    */
   public async unload(): Promise<void> {
+    console.log(`[IFrameHost ${this.manifest.id}] Unloading... Current state: ${this.state}`);
     if (this.state === PluginState.INSTALLED) {
       return;
     }
@@ -176,21 +219,21 @@ export class IFramePluginHost extends PluginHostBase {
     try {
       // Deactivate first if active
       if (this.state === PluginState.ACTIVATED) {
-        await this.deactivate();
+        await this.deactivate(); // Deactivate should ideally message the plugin first
       }
 
       // Clean up the bridge
       this.bridge.dispose();
       
       // Remove the iframe
-      this.cleanupIFrame();
+      this.cleanupIFrame(); // Use the class method
 
       this.state = PluginState.INSTALLED;
       console.log(`Plugin ${this.manifest.id} unloaded successfully`);
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
       this.handleError(err, 'unload');
-      this.cleanupIFrame();
+      this.cleanupIFrame(); // Ensure cleanup on error
       throw err;
     }
   }
@@ -199,70 +242,55 @@ export class IFramePluginHost extends PluginHostBase {
    * Show the plugin UI
    */
   public show(): void {
-    if (this.iframe && this.container) {
-      this.iframe.style.display = 'block';
-      this.container.style.display = 'block';
+    if (!this.iframe) {
+       console.warn(`[IFrameHost ${this.manifest.id}] Cannot show: iframe not created yet (call load first).`);
+       return;
     }
+    // Ensure iframe is in the correct target element if it was somehow removed
+    if (this.targetElement && this.iframe.parentNode !== this.targetElement) {
+       console.warn(`[IFrameHost ${this.manifest.id}] Iframe was not in target element during show(). Re-appending.`);
+       // Ensure target is empty before appending? Or allow multiple? Let's clear it.
+       this.targetElement.innerHTML = ''; 
+       this.targetElement.appendChild(this.iframe);
+    } else if (!this.targetElement) {
+        console.error(`[IFrameHost ${this.manifest.id}] Cannot show: No target element set.`);
+        return;
+    }
+    
+    // Make iframe visible
+    this.iframe.style.display = 'block';
+    // Also ensure target element is visible (though host component should manage this)
+    // this.targetElement.style.display = 'block'; // Or manage via host component className
+    console.log(`[IFrameHost ${this.manifest.id}] UI shown.`);
   }
   
   /**
    * Hide the plugin UI
    */
   public hide(): void {
-    if (this.iframe && this.container) {
+    if (this.iframe) {
       this.iframe.style.display = 'none';
-      this.container.style.display = 'none';
+       console.log(`[IFrameHost ${this.manifest.id}] UI hidden.`);
+      // Also hide target element? Let host component manage visibility
+      // if (this.targetElement) {
+      //   this.targetElement.style.display = 'none';
+      // }
     }
   }
 
-  /**
-   * Clean up the iframe
-   */
+  // Moved cleanupIFrame to be accessible by close() and unload()
   private cleanupIFrame(): void {
     if (this.iframe) {
+      console.log(`[IFrameHost ${this.manifest.id}] Cleaning up iframe.`);
       if (this.iframe.parentNode) {
         this.iframe.parentNode.removeChild(this.iframe);
       }
       this.iframe = null;
+      this.targetElement = null; // Also clear target element ref
     }
   }
 
-  /**
-   * Find or create the container for the plugin iframe
-   */
-  private findOrCreateContainer(): HTMLElement {
-    // Try to find an existing container
-    let container = document.getElementById(`plugin-container-${this.manifest.id}`);
-    
-    // Create one if it doesn't exist
-    if (!container) {
-      container = document.createElement('div');
-      container.id = `plugin-container-${this.manifest.id}`;
-      container.className = 'plugin-container';
-      container.style.display = 'none'; // Initially hidden
-      
-      // Find the plugin container root element
-      const pluginRoot = document.getElementById('plugin-container-root');
-      if (!pluginRoot) {
-        // Create the root container if it doesn't exist
-        const root = document.createElement('div');
-        root.id = 'plugin-container-root';
-        root.style.position = 'absolute';
-        root.style.zIndex = '1000';
-        document.body.appendChild(root);
-        root.appendChild(container);
-      } else {
-        pluginRoot.appendChild(container);
-      }
-    }
-    
-    // Set styles specific to this plugin's container
-    container.style.overflow = 'hidden';
-    container.style.height = '100%';
-    container.style.width = '100%';
-    
-    return container;
-  }
+  // REMOVED findOrCreateContainer method entirely
 
   /**
    * Determine the allowed origin for postMessage security
@@ -287,10 +315,11 @@ export class IFramePluginHost extends PluginHostBase {
     // Ha bisogno dell'ID del plugin e del percorso relativo del file (manifest.main)
     
     if (!this.manifest.main || typeof this.manifest.main !== 'string') {
-       throw new Error(`Plugin ${this.manifest.id} manifest does not specify a valid 'main' entry point.`);
+       throw new Error(`Plugin ${this.manifest.id} manifest does not specify a valid \'main\' entry point.`);
     }
     
-    const relativeMainPath = path.normalize(this.manifest.main).replace(/^(\.\.(\/|\\|\$))+/, '');
+    // Corrected path normalization regex
+    const relativeMainPath = path.normalize(this.manifest.main).replace(/^(\.\.(\/|\\))+/, '');
      if (relativeMainPath.includes('..')) {
        throw new Error(`Invalid 'main' path in manifest for plugin ${this.manifest.id}: ${this.manifest.main}`);
     }
@@ -337,14 +366,16 @@ export class IFramePluginHost extends PluginHostBase {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=0.8">
   <meta http-equiv="Content-Security-Policy" content="${cspPolicy}">
   <title>Plugin Loader: ${this.manifest.name}</title>
   <style>
-    body { margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; }
+    body { margin: 0; padding: 0; font-family: sans-serif; overflow: hidden; height: 100%; } /* Ensure body takes height */
+    html { height: 100%; } /* Ensure html takes height */
     #plugin-root { width: 100%; height: 100%; overflow: auto; }
     .plugin-loading { display: flex; align-items: center; justify-content: center; height: 100vh; width: 100%; }
     .plugin-error-state { color: red; padding: 10px; text-align: center; }
+    /* Removed container styles as iframe is appended directly */
   </style>
 </head>
 <body>

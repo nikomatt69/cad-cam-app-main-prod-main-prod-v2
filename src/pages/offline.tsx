@@ -13,7 +13,7 @@ export default function Offline() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title="You're Offline - CAM/CAM FUN" />
+  ogImage="/og-image.png" title="You're Offline - CAM/CAM FUN" />
       
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gray-50">
         <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg text-center">

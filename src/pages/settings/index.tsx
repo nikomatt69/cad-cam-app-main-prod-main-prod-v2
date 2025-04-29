@@ -187,7 +187,7 @@ export default function Settings() {
   return (
     <EnhancedLayout>
       <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="CAD/CAM FUN SETTINGS" 
       />
 

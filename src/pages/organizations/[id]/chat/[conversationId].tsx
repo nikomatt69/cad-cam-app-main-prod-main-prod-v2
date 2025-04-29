@@ -76,7 +76,7 @@ const ConversationPage = () => {
   return (
     <Layout>
       <MetaTags
-  ogImage="/og-default.png" title={activeConversation?.name || 'Chat della conversazione'} description="Chat della conversazione" />
+  ogImage="/og-image.png" title={activeConversation?.name || 'Chat della conversazione'} description="Chat della conversazione" />
       
       <div className="p-4 h-[calc(100vh-84px)]">
         <div className="flex h-full gap-4">

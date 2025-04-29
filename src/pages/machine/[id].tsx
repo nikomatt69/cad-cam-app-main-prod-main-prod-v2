@@ -221,7 +221,7 @@ export default function MachineConfigDetailPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={machineConfig ? `${machineConfig.name} | Machine Configuration` : 'Machine Configuration'} />
+  ogImage="/og-image.png" title={machineConfig ? `${machineConfig.name} | Machine Configuration` : 'Machine Configuration'} />
       
       <Layout>
         <div className="flex flex-col h-full">

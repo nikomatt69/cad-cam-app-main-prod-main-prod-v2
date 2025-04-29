@@ -66,7 +66,7 @@ const NewDirectMessagePage = () => {
   return (
     <Layout>
       <MetaTags
-  ogImage="/og-default.png" title="Nuovo messaggio diretto" />
+  ogImage="/og-image.png" title="Nuovo messaggio diretto" />
       
       <div className="p-4 h-[calc(100vh-64px)]">
         <div className="flex h-full gap-4">

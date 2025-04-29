@@ -447,7 +447,7 @@ export default function ComponentsList() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={'Components Library'}  description="Components Library for CAD/CAM FUN" /> 
+  ogImage="/og-image.png" title={'Components Library'}  description="Components Library for CAD/CAM FUN" /> 
       
       <Layout>
         <div className="p-4 md:p-6">

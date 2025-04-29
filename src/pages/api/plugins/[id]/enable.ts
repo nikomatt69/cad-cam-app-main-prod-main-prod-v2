@@ -1,26 +1,30 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { getRegistryInstance } from '@/src/server/pluginRegistryInstance';
+import { PluginRegistry } from '@/src/plugins/core/registry';
+import { withRegistry, ApiHandlerWithRegistry } from '@/src/server/middleware/withRegistry';
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<{ success: boolean } | { error: string }>
-) {
+const enableHandler: ApiHandlerWithRegistry = async (req, res, registry) => {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   const { id } = req.query;
-
   if (typeof id !== 'string') {
     return res.status(400).json({ error: 'Invalid plugin ID' });
   }
 
   try {
-    const registry = getRegistryInstance();
     await registry.enablePlugin(id);
-    res.status(200).json({ success: true });
+    console.log(`[API Enable] Plugin ${id} enabled.`);
+    res.status(200).json({ message: `Plugin ${id} enabled successfully.` });
   } catch (error) {
-    console.error(`Failed to enable plugin ${id}:`, error);
-    res.status(500).json({ error: `Failed to enable plugin: ${error instanceof Error ? error.message : String(error)}` });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to enable plugin';
+    console.error(`[API Enable] Error enabling plugin ${id}:`, error);
+    // Determine specific status codes
+    let statusCode = 500;
+    if ((error as any).code === 'PLUGIN_NOT_FOUND') statusCode = 404;
+    res.status(statusCode).json({ error: errorMessage });
   }
-} 
+};
+
+export default withRegistry(enableHandler); 

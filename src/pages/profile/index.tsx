@@ -205,7 +205,7 @@ export default function ProfilePage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title={`${profile.name || 'User'} | Profile`}
         description={`View ${profile.name || 'User'}'s profile, projects and components.`}
       />

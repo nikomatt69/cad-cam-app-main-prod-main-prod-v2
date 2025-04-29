@@ -151,7 +151,7 @@ export default function ProjectDrawingsList({ projectId }: ProjectDrawingsListPr
     <MotionConfig reducedMotion="user">
       <div className="my-6 px-4 md:px-0 max-w-7xl mx-auto">
         <MetaTags
-  ogImage="/og-default.png" title={'Drawings'} />
+  ogImage="/og-image.png" title={'Drawings'} />
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
           <motion.h2 
             className="text-xl font-semibold text-gray-900 dark:text-white"

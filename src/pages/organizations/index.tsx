@@ -96,7 +96,7 @@ export default function OrganizationsList() {
     
     <Layout>
       <MetaTags
-  ogImage="/og-default.png" title={'Organizations'} />
+  ogImage="/og-image.png" title={'Organizations'} />
     <div className="p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Your Organizations</h1>

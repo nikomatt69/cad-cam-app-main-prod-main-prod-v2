@@ -112,7 +112,7 @@ export default function CreateProjectPage() {
   return (
     <Layout>
       <MetaTags
-  ogImage="/og-default.png" title={'Create New Project'} />
+  ogImage="/og-image.png" title={'Create New Project'} />
       
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-6">

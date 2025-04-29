@@ -59,13 +59,15 @@
   html.dark .sidebar-tab:hover
   {
     /* Apply a subtle light blue background tint */
-    background-color: theme('colors.blue.900 / 30%');
+    /* background-color: theme('colors.blue.900 / 30%'); */
+    box-shadow: inset 0 0 0 9999px theme('colors.blue.900 / 15%'); /* Use inset shadow instead */
   }
 
   /* Ensure outline buttons also use a less bright hover */
   html.dark .btn-outline:hover,
   html.dark .btn-outline-primary:hover {
-     background-color: theme('colors.blue.900 / 20%');
+     /* background-color: theme('colors.blue.900 / 20%'); */
+     box-shadow: inset 0 0 0 9999px theme('colors.blue.900 / 10%'); /* Use inset shadow instead */
      border-color: theme('colors.gray.500');
   }
   html.dark .btn-outline-primary:hover {
@@ -521,32 +523,56 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
 
   .btn-primary {
     @apply bg-blue-600 text-white;
-    @apply hover:bg-blue-700 focus:ring-blue-500;
+    @apply focus:ring-blue-500;
+  }
+
+  .btn-primary:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
   }
 
   .btn-secondary {
     @apply bg-gray-600 text-white;
-    @apply hover:bg-gray-700 focus:ring-gray-500;
+    @apply focus:ring-gray-500;
+  }
+
+  .btn-secondary:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
   }
 
   .btn-success {
     @apply bg-green-600 text-white;
-    @apply hover:bg-green-700 focus:ring-green-500;
+    @apply focus:ring-green-500;
+  }
+
+  .btn-success:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
   }
 
   .btn-danger {
     @apply bg-red-600 text-white;
-    @apply hover:bg-red-700 focus:ring-red-500;
+    @apply focus:ring-red-500;
+  }
+
+  .btn-danger:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
   }
 
   .btn-warning {
-    @apply bg-yellow-500 text-white;
-    @apply hover:bg-yellow-600 focus:ring-yellow-500;
+    @apply bg-yellow-500 text-gray-900; /* Ensure contrast */
+    @apply focus:ring-yellow-500;
+  }
+
+  .btn-warning:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.1)]; /* Subtle black inner shadow for light bg */
   }
 
   .btn-info {
-    @apply bg-blue-500 text-white;
-    @apply hover:bg-blue-600 focus:ring-blue-500;
+    @apply bg-sky-600 text-white; /* Changed to sky for better contrast */
+    @apply focus:ring-sky-500;
+  }
+
+  .btn-info:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
   }
 
   .btn-outline {
@@ -555,8 +581,8 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   }
 
   .btn-outline-primary {
-    @apply border border-blue-500 text-blue-500;
-    @apply hover:bg-gray-50 focus:ring-blue-500;
+    @apply border border-blue-500 text-blue-400;
+    @apply focus:ring-blue-500;
   }
 
   .btn-disabled {
@@ -566,9 +592,13 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   /* Card with improved styling */
   .card {
     @apply bg-[#F9FCFF] shadow-sm dark:bg-gray-900  rounded-lg overflow-hidden;
-    @apply border border-gray-200;
+    @apply border border-gray-200 dark:border-gray-700;
     @apply transition-shadow duration-150 ease-in-out;
-    @apply hover:shadow-md;
+  }
+
+  /* Add dark mode specific hover for card */
+  .dark .card:hover {
+    @apply shadow-[0_1px_3px_0_rgba(255,255,255,0.1),0_1px_2px_-1px_rgba(255,255,255,0.1)]; /* Subtle white shadow */
   }
 
   .card-header {
@@ -1162,39 +1192,63 @@ input:checked + .toggle-slider:before {
 
 .dark .btn-primary {
   @apply bg-blue-600 text-white;
-  @apply hover:bg-blue-700 focus:ring-blue-500;
+  @apply focus:ring-blue-500;
+}
+
+.dark .btn-primary:hover {
+  @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 .dark .btn-secondary {
   @apply bg-gray-600 text-white;
-  @apply hover:bg-gray-700 focus:ring-gray-500;
+  @apply focus:ring-gray-500;
+}
+
+.dark .btn-secondary:hover {
+  @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 .dark .btn-success {
   @apply bg-green-600 text-white;
-  @apply hover:bg-green-700 focus:ring-green-500;
+  @apply focus:ring-green-500;
+}
+
+.dark .btn-success:hover {
+  @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 .dark .btn-danger {
   @apply bg-red-600 text-white;
-  @apply hover:bg-red-700 focus:ring-red-500;
+  @apply focus:ring-red-500;
+}
+
+.dark .btn-danger:hover {
+  @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 .dark .btn-warning {
   @apply bg-yellow-500 text-gray-900; /* Ensure contrast */
-  @apply hover:bg-yellow-600 focus:ring-yellow-500;
+  @apply focus:ring-yellow-500;
+}
+
+.dark .btn-warning:hover {
+   @apply shadow-[inset_0_0_0_9999px_rgba(0,0,0,0.1)]; /* Subtle black inner shadow for light bg */
 }
 
 .dark .btn-info {
   @apply bg-sky-600 text-white; /* Changed to sky for better contrast */
-  @apply hover:bg-sky-700 focus:ring-sky-500;
+  @apply focus:ring-sky-500;
+}
+
+.dark .btn-info:hover {
+  @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 /* .dark .btn-outline already styled */
 
 .dark .btn-outline-primary {
   @apply border-blue-500 text-blue-400;
-  @apply hover:bg-gray-700 focus:ring-blue-500;
+  @apply focus:ring-blue-500;
 }
 
 .dark .btn-disabled {
@@ -1309,15 +1363,24 @@ input:checked + .toggle-slider:before {
     @apply bg-gray-700 border-gray-600 text-gray-300;
 }
 .dark .cycle-item:hover {
-    @apply bg-gray-600 border-gray-500;
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.05)]; /* Subtle white inner shadow */
+    @apply border-gray-500; /* Keep border change */
 }
 
 .dark .apply-button {
-    @apply bg-blue-600 hover:bg-blue-700 text-white;
+    @apply bg-blue-600 text-white;
+}
+
+.dark .apply-button:hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 .dark .cycle-buttons button {
-    @apply bg-green-600 hover:bg-green-700 text-white;
+    @apply bg-green-600 text-white;
+}
+
+.dark .cycle-buttons button:not(:disabled):hover {
+    @apply shadow-[inset_0_0_0_9999px_rgba(255,255,255,0.1)]; /* Subtle white inner shadow */
 }
 
 .dark .cycle-buttons button:disabled {
