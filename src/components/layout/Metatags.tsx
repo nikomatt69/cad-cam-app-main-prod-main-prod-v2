@@ -41,11 +41,13 @@ export default function MetaTags({
   structuredData,
 }: MetaTagsProps) {
   const router = useRouter();
-  const siteUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  const siteUrl = ('https://cadcamfun.xyz').replace(/\/$/, '');
   const currentPath = router.asPath;
   const fullUrl = canonicalUrl || `${siteUrl}${currentPath}`;
   const fullTitle = `${title}${title === 'CAD/CAM FUN' ? '' : ' | CAD/CAM FUN'}`;
-  const imageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${ogImage}`;
+  
+  const imagePath = ogImage.startsWith('/') ? ogImage : `/${ogImage}`;
+  const imageUrl = ogImage.startsWith('http') ? ogImage : `${siteUrl}${imagePath}`;
 
   // Generate JSON-LD structured data
   let jsonLd = null;
@@ -57,7 +59,7 @@ export default function MetaTags({
           '@type': 'Organization',
           name: 'CAD/CAM FUN',
           url: siteUrl,
-          logo: `${siteUrl}/logo.png`,
+          logo: `${siteUrl}logo.png`,
           sameAs: [
             'https://twitter.com/cadcamfun',
             'https://linkedin.com/company/cadcamfun',
@@ -96,7 +98,7 @@ export default function MetaTags({
             name: 'CAD/CAM FUN',
             logo: {
               '@type': 'ImageObject',
-              url: `${siteUrl}/logo.png`,
+              url: `${siteUrl}logo.png`,
             },
           },
           datePublished: publishedTime || new Date().toISOString(),
@@ -133,7 +135,7 @@ export default function MetaTags({
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />
-      <meta name="viewport" content="width=device-width, initial-scale=0.8, maximum-scale=1" />
+      <meta name="viewport" content="width=device-width, initial-scale=0.8, maximum-scale=0.8" />
       <meta name="author" content={author} />
       <meta name="application-name" content="CAD/CAM FUN" />
       

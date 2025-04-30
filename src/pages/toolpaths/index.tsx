@@ -441,7 +441,7 @@ export default function ToolpathsList() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={'Toolpaths Library'} />
+  ogImage="/og-image.png" title={'Toolpaths Library'} />
       
       <Layout>
         <div className="p-4 md:p-6">

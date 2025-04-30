@@ -17,7 +17,7 @@ export default function TermsPage() {
   return (
     <>
        <MetaTags
-        ogImage="/og-default.png" 
+        ogImage="/og-image.png" 
         title="CAM/CAM FUN TERMS" 
         description="Terms of Service for CAD/CAM FUN"
        

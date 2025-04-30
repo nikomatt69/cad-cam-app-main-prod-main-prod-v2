@@ -68,6 +68,10 @@ interface Statistics {
   fps: number;
   memory: number;
   timeRemaining: string;
+  totalPoints: number;
+  rapidMoves: number;
+  cuttingMoves: number;
+  totalEstimatedTime: string;
 }
 
 interface ViewCubeProps {
@@ -244,11 +248,15 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     objectCount: 0,
     fps: 0,
     memory: 0,
-    timeRemaining: '00:00'
+    timeRemaining: '00:00',
+    totalPoints: 0,
+    rapidMoves: 0,
+    cuttingMoves: 0,
+    totalEstimatedTime: '00:00',
   });
   
   // Enhanced visualization options
-  const [showDebugPoints, setShowDebugPoints] = useState(false);
+  const [showDebugPoints, setShowDebugPoints] = useState(true);
   const [showArcs, setShowArcs] = useState(true);
   const [showShapes, setShowShapes] = useState(true);
   const [arcResolution, setArcResolution] = useState(10); // mm per segment
@@ -499,7 +507,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     }
     
     if (viewMode === 'realistic') {
-      renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.0;
     }
@@ -594,6 +602,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
         return; // Stop animation if not playing and controls are not being used
       }
       
+      
       animationFrameRef.current = requestAnimationFrame(animate);
       
       if (controlsRef.current) {
@@ -629,12 +638,6 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       // Only render if necessary
       if (rendererRef.current && activeCamera && sceneRef.current) {
         rendererRef.current.render(sceneRef.current, activeCamera);
-      }
-      
-      // Update statistics less frequently
-      if (Date.now() - lastStatsUpdateRef.current > 1000) { // Update every second
-        // updateStatistics(); // Commented out to stop fetching performance stats
-        lastStatsUpdateRef.current = Date.now();
       }
     };
     
@@ -711,7 +714,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
         window.gc();
       }
     };
-  }, [optimizeScene, gridVisible, axisVisible, viewMode]);
+  }, [optimizeScene, gridVisible, axisVisible, viewMode, currentView]); // Removed isPlaying and updateStatistics if they were here
   
   // Update tool position during animation
   const updateToolPosition = useCallback(() => {
@@ -775,17 +778,38 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     }
   }, [currentPointIndex, playbackSpeed, showTool, onSimulationComplete, onSimulationProgress]);
 
+  // Helper function to calculate duration for a single segment
+  const calculateSegmentDuration = useCallback((p1: ToolpathPoint, p2: ToolpathPoint): number => {
+      const startVec = new THREE.Vector3(p1.x, p1.y, p1.z);
+      const endVec = new THREE.Vector3(p2.x, p2.y, p2.z);
+      const distance = startVec.distanceTo(endVec);
+
+      if (distance === 0) return 0; // No time for zero-length moves
+
+      const isRapidMove = p2.isRapid || p2.type === 'G0';
+       // Use feedrate of the *destination* point (p2) as it dictates the move speed *to* it
+      const feedrateMmMin = isRapidMove
+        ? RAPID_FEEDRATE_MM_MIN
+        : (p2.feedrate || p1.feedrate || DEFAULT_CUTTING_FEEDRATE_MM_MIN); // Fallback chain
+
+      if (feedrateMmMin > 0) {
+        const feedrateMmSec = feedrateMmMin / 60;
+        return distance / feedrateMmSec;
+      } else {
+         // Dwell or error
+         return 0.1; // Assign small fixed time
+      }
+  }, []); // No dependencies needed as it uses constants and args
+
   // Update statistics
   const updateStatistics = useCallback(() => {
     if (!sceneRef.current || !rendererRef.current) return;
-    
+
     let triangleCount = 0;
     let objectCount = 0;
-    
-    // Count triangles and objects
+
     sceneRef.current?.traverse((object) => {
       objectCount++;
-      
       if (object instanceof THREE.Mesh) {
         const geometry = object.geometry;
         if (geometry.index) {
@@ -795,32 +819,43 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
         }
       }
     });
-    
-    // Calculate time remaining
-    let timeRemaining = '00:00';
-    if (isPlaying && toolpathPointsRef.current.length > 0) {
-      const remainingPoints = toolpathPointsRef.current.length - currentPointIndex;
-      const secondsRemaining = Math.floor(remainingPoints / playbackSpeed / 60);
-      const minutes = Math.floor(secondsRemaining / 60);
-      const seconds = secondsRemaining % 60;
-      timeRemaining = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    // Calculate remaining time more accurately
+    let remainingSeconds = 0;
+    if (toolpathPointsRef.current.length > 1 && currentPointIndex < toolpathPointsRef.current.length -1) {
+       const points = toolpathPointsRef.current;
+       // Calculate duration for the remainder of the current segment
+       const currentSegmentProgress = 0; // Placeholder - need current segment progress if we want hyper-accuracy
+       // For simplicity, we calculate from the *next* full segment onwards
+       for (let i = currentPointIndex + 1; i < points.length -1; i++) {
+          remainingSeconds += calculateSegmentDuration(points[i], points[i+1]);
+       }
+       // Apply playback speed to the total remaining time
+       remainingSeconds /= playbackSpeed;
     }
-    
-    // Get renderer info
+
+    const minutes = Math.floor(remainingSeconds / 60);
+    const seconds = Math.floor(remainingSeconds % 60);
+    const timeRemaining = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+
     const memory = Math.round(
       window.performance && window.performance.memory
         ? window.performance.memory.usedJSHeapSize / 1048576
         : 0
     );
-    
-    setStatistics({
+
+    // Update only runtime stats
+    setStatistics(prevStats => ({
+      ...prevStats,
       triangleCount: Math.floor(triangleCount),
       objectCount,
-      fps: Math.round(rendererRef.current.info.render.frame || 0),
+      fps: Math.round(rendererRef.current?.info.render.frame || 0),
       memory,
-      timeRemaining
-    });
-  }, [isPlaying, currentPointIndex, playbackSpeed]);
+      timeRemaining // Update remaining time
+    }));
+    // Removed statistics.totalPoints, statistics.totalEstimatedTime from dependencies
+  }, [isPlaying, currentPointIndex, playbackSpeed, calculateSegmentDuration]); // Updated dependencies
 
   // Create tool mesh based on selected tool
   const createToolMesh = useCallback((toolName: string): THREE.Object3D | null => {
@@ -1642,21 +1677,21 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
 
   useEffect(() => {
     if (!isSimulating || !toolRef.current || toolpathPointsRef.current.length <= 1) return;
-    
+
     let startTime = 0;
     const animationDuration = (point: ToolpathPoint) => {
       // G0 (rapid) movements remain fast - 1 second
       if (point.type === 'G0' || point.type === 'rapid' || point.isRapid) {
-        return 5000;
+        return 6000*playbackSpeed;
       }
      
       // G1 (cutting) movements are extremely slow - 10 seconds
       else if (point.type === 'G1' || point.type === 'cutting') {
-        return 5000;
+        return 10000*playbackSpeed;
       }
       
       // Default duration for other movements
-      return 5000;
+        return 5000*playbackSpeed;
     };
     
     const animateToolPath = (timestamp: number) => {
@@ -1685,6 +1720,32 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       
       if (!startPoint || !endPoint) return;
       
+      // Calculate segment duration based on distance, feedrate, and type
+      const startVec = new THREE.Vector3(startPoint.x, startPoint.y, startPoint.z);
+      const endVec = new THREE.Vector3(endPoint.x, endPoint.y, endPoint.z);
+      const distance = startVec.distanceTo(endVec);
+
+      let segmentDurationSeconds = 0;
+      if (distance > 0) { // Avoid division by zero for zero-length segments
+        const isRapidMove = endPoint.isRapid || endPoint.type === 'G0';
+        const feedrateMmMin = isRapidMove
+          ? RAPID_FEEDRATE_MM_MIN
+          : (endPoint.feedrate || startPoint.feedrate || DEFAULT_CUTTING_FEEDRATE_MM_MIN); // Use endpoint feedrate, fallback to start, then default
+
+        if (feedrateMmMin > 0) {
+           const feedrateMmSec = feedrateMmMin / 60;
+           segmentDurationSeconds = distance / feedrateMmSec;
+        } else {
+           // Handle zero feedrate (could be dwell or error) - assign a small fixed time
+           segmentDurationSeconds = 0.1; // e.g., 100ms for dwell/zero feedrate moves
+        }
+      }
+
+       // Apply playback speed and ensure minimum duration
+       let moveDurationMs = (segmentDurationSeconds * 1000) / playbackSpeed;
+       moveDurationMs = Math.max(moveDurationMs, MIN_SEGMENT_DURATION_MS); // Ensure it takes at least a small amount of time
+
+
       if (!startTime) startTime = timestamp;
       
       // Determine animation duration based on the move type
@@ -1752,19 +1813,20 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
           return;
         }
       }
-      
+
       if (isSimulating) {
-        applyLOD(); // Apply level of detail optimizations
+        applyLOD();
         requestAnimationFrame(animateToolPath);
       }
     };
-    
+
     const animationId = requestAnimationFrame(animateToolPath);
-    
+
     return () => {
       cancelAnimationFrame(animationId);
     };
-  }, [isSimulating, currentLine, onSimulationComplete]);
+    // Dependencies need updateStatistics now
+  }, [isSimulating, currentLine, playbackSpeed, onSimulationComplete, updateStatistics, applyLOD]); // Added playbackSpeed
 
   // Create the enhanced toolpath visualization
   const createEnhancedToolpathVisualization = (
@@ -2927,6 +2989,73 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     // Mostra informazioni sul punto
     console.log(`Point ${index}:`, point);
   }, [focusCameraOnPosition]);
+
+  // Calculate initial statistics when G-code changes
+  useEffect(() => {
+    const points = toolpathPointsRef.current; // Use the parsed points
+    if (points.length > 0) {
+      const totalPoints = points.length;
+      let rapidMoves = 0;
+      let cuttingMoves = 0;
+      let totalSeconds = 0;
+
+      // Calculate total time accurately using segment durations
+      if (points.length > 1) {
+         for (let i = 0; i < points.length - 1; i++) {
+            totalSeconds += calculateSegmentDuration(points[i], points[i + 1]);
+         }
+      }
+
+      // Count move types (can be done in the same loop if needed)
+      points.forEach(point => {
+         // We look at the move *ending* at this point to classify
+         if (point.isRapid || point.type === 'G0') {
+           rapidMoves++;
+         } else if (point.type !== undefined){ // Exclude the very first point potentially
+           cuttingMoves++;
+         }
+      });
+      // Adjust counts if the first point shouldn't count as a move type
+      if (rapidMoves + cuttingMoves > totalPoints -1) {
+          // Simple correction logic might be needed depending on how types are assigned
+          // For now, assume counts are roughly correct
+      }
+
+
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = Math.floor(totalSeconds % 60);
+      const totalEstimatedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+      setStatistics(prevStats => ({
+        ...prevStats,
+        totalPoints,
+        rapidMoves,
+        cuttingMoves,
+        totalEstimatedTime,
+        timeRemaining: totalEstimatedTime, // Initialize remaining time
+      }));
+    } else {
+      // Reset stats if there's no toolpath
+       setStatistics({
+         triangleCount: 0,
+         objectCount: 0,
+         fps: 0,
+         memory: 0,
+         timeRemaining: '00:00',
+         totalPoints: 0,
+         rapidMoves: 0,
+         cuttingMoves: 0,
+         totalEstimatedTime: '00:00',
+       });
+    }
+    // Use parsed points length or processedToolpath as dependency?
+    // Using gcode might be best if parsing happens within another effect based on gcode
+  }, [gcode, calculateSegmentDuration, processedToolpath]); // Depend on gcode and the calculation helper, maybe processedToolpath if parsing uses it
+
+  // Add constants near the top of the component or in a separate config file
+  const DEFAULT_CUTTING_FEEDRATE_MM_MIN = 500; // Example: 500 mm/min
+  const RAPID_FEEDRATE_MM_MIN = 3000;          // Example: 3000 mm/min
+  const MIN_SEGMENT_DURATION_MS = 10;          // Minimum time for any segment
 
   return (
     <div 

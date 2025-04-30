@@ -6,13 +6,14 @@
 import { PluginManifest } from './pluginManifest';
 import path from 'path';
 import fs from 'fs/promises';
+import fsSync from 'fs'; // Keep for potential sync needs, but prefer async
 import { IPluginHost } from '../host/pluginHost';
 import { createPluginHost } from '../host/hostFactory';
 import { SandboxOptions } from '../host/sandbox';
 import { PluginState } from './pluginTypes';
-import unzipper from 'unzipper';
-import fsSync from 'fs';
-import streamBuffers from 'stream-buffers';
+// Remove unzipper and stream-buffers as we won't re-process the zip
+// import unzipper from 'unzipper'; 
+// import streamBuffers from 'stream-buffers';
 import { uploadToBucket, deleteFromBucket, listObjectKeysByPrefix, deleteMultipleObjects } from '@/src/lib/storageService';
 
 // Forward reference to avoid circular dependency
@@ -64,16 +65,63 @@ export class PluginLifecycle {
   }
 
   /**
-   * Install a plugin by uploading its files to the bucket
+   * Helper function to recursively upload directory contents
+   */
+  async uploadDirectoryContents(localDirPath: string, bucketPrefix: string, rootDir: string): Promise<string[]> {
+    const uploadedKeys: string[] = [];
+    const entries = await fs.readdir(localDirPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+        const currentLocalPath = path.join(localDirPath, entry.name);
+        // Calculate relative path from the root extraction dir for bucket key
+        const relativePath = path.relative(rootDir, currentLocalPath).replace(/\\/g, '/'); // Ensure forward slashes
+        const bucketKey = `${bucketPrefix}${relativePath}`;
+
+        if (entry.isDirectory()) {
+            // Recursively upload subdirectory contents
+            const subDirKeys = await this.uploadDirectoryContents(currentLocalPath, bucketPrefix, rootDir);
+            uploadedKeys.push(...subDirKeys);
+        } else if (entry.isFile()) {
+            try {
+                // console.log(`[Lifecycle] Uploading file: ${currentLocalPath} -> ${bucketKey}`);
+                const fileBuffer = await fs.readFile(currentLocalPath);
+                const contentType = 'application/octet-stream'; // Or determine based on file extension
+
+                // --- BEGIN ADDED LOGGING ---
+                console.log(`[Lifecycle DEBUG] Attempting upload: Local='${currentLocalPath}', BucketKey='${bucketKey}'`);
+                // --- END ADDED LOGGING ---
+
+                const uploadedPath = await uploadToBucket(bucketKey, fileBuffer, contentType);
+
+                // --- BEGIN ADDED LOGGING ---
+                console.log(`[Lifecycle DEBUG] Successfully uploaded to BucketKey='${bucketKey}' (Returned path: ${uploadedPath})`);
+                // --- END ADDED LOGGING ---
+
+                uploadedKeys.push(uploadedPath);
+            } catch (uploadErr) {
+                console.error(`[Lifecycle] Upload failed for ${currentLocalPath} to ${bucketKey}:`, uploadErr);
+                // --- BEGIN ADDED LOGGING ---
+                console.error(`[Lifecycle DEBUG] FAILED upload: Local='${currentLocalPath}', BucketKey='${bucketKey}'`, uploadErr);
+                // --- END ADDED LOGGING ---
+                throw new Error(`Upload failed for ${currentLocalPath}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`);
+            }
+        }
+    }
+    return uploadedKeys;
+  }
+
+  /**
+   * Install a plugin by uploading its extracted files to the bucket
    */
   public async installPlugin(manifest: PluginManifest, packagePath: string): Promise<PluginInstallationResult> {
     const pluginId = manifest.id;
-    const bucketPrefix = `plugins/${pluginId}/`; 
-    console.log(`[Lifecycle] Starting installation for ${pluginId} from ${packagePath} to bucket prefix ${bucketPrefix}`);
-    const uploadedKeys: string[] = []; 
+    // Ensure bucketPrefix ends with a slash
+    const bucketPrefix = `plugins/${pluginId}/`.replace(/\/\/$/, '/'); 
+    console.log(`[Lifecycle] Starting installation for ${pluginId} from extracted path ${packagePath} to bucket prefix ${bucketPrefix}`);
+    let uploadedKeys: string[] = []; 
 
     try {
-      // 1. Pulire eventuali file precedenti nel bucket per questo pluginId
+      // 1. Clean up previous files (same as before)
       console.log(`[Lifecycle] Cleaning up previous files (if any) for ${pluginId} under prefix ${bucketPrefix}...`);
       try {
         const keysToDelete = await listObjectKeysByPrefix(bucketPrefix);
@@ -85,79 +133,17 @@ export class PluginLifecycle {
            console.log(`[Lifecycle] No existing objects found for prefix ${bucketPrefix}. Skipping cleanup.`);
         }
       } catch (cleanupError) {
-         // Logga l'errore ma non bloccare l'installazione per questo motivo
-         // Potrebbe essere un problema temporaneo di list/delete o bucket non ancora esistente
          console.warn(`[Lifecycle] Non-fatal error during pre-install cleanup for prefix ${bucketPrefix}:`, cleanupError);
       }
       
-      // 2. Leggere lo zip e caricare ogni file nel bucket
-      await new Promise<void>((resolve, reject) => {
-        const promises: Promise<string>[] = []; 
-        fsSync.createReadStream(packagePath)
-          .pipe(unzipper.Parse())
-          .on('entry', (entry: unzipper.Entry) => {
-            const filePath = entry.path;
-            const type = entry.type; 
-            
-            if (type === 'File' && !filePath.endsWith('/')) { 
-              const bucketKey = `${bucketPrefix}${filePath}`;
-              // console.log(`[Lifecycle] Processing file entry: ${filePath} -> ${bucketKey}`);
-              const writableStreamBuffer = new streamBuffers.WritableStreamBuffer({
-                initialSize: (100 * 1024),  
-                incrementAmount: (10 * 1024) 
-              });
+      // 2. Upload the contents of the already extracted directory
+      console.log(`[Lifecycle] Uploading directory contents from ${packagePath} to ${bucketPrefix}...`);
+      // Pass packagePath as both the starting point and the root directory reference
+      uploadedKeys = await this.uploadDirectoryContents(packagePath, bucketPrefix, packagePath);
+      console.log(`[Lifecycle] Uploaded ${uploadedKeys.length} files for ${pluginId}.`);
 
-              entry.pipe(writableStreamBuffer)
-                .on('finish', () => {
-                  const buffer = writableStreamBuffer.getContents();
-                  if (buffer && buffer.length > 0) {
-                    const contentType = 'application/octet-stream'; 
-                    // console.log(`[Lifecycle] Uploading ${filePath} (${buffer.length} bytes) to ${bucketKey}`);
-                    const uploadPromise = uploadToBucket(bucketKey, buffer, contentType)
-                                         .then(uploadedPath => {
-                                            // console.log(`[Lifecycle] Successfully uploaded ${filePath} to ${uploadedPath}`);
-                                            uploadedKeys.push(uploadedPath); 
-                                            return uploadedPath;
-                                         })
-                                         .catch(uploadErr => {
-                                             console.error(`[Lifecycle] Upload failed for ${filePath} to ${bucketKey}:`, uploadErr);
-                                             throw new Error(`Upload failed for ${filePath}: ${uploadErr instanceof Error ? uploadErr.message : String(uploadErr)}`);
-                                         });
-                    promises.push(uploadPromise);
-                  } else {
-                     console.warn(`[Lifecycle] Empty buffer for file: ${filePath}. Skipping upload.`);
-                     entry.autodrain(); 
-                  }
-                })
-                .on('error', (streamError: Error) => { 
-                    console.error(`[Lifecycle] Error piping/buffering entry ${filePath}:`, streamError);
-                    entry.autodrain(); 
-                    reject(new Error(`Error processing entry ${filePath}: ${streamError.message}`));
-                });
-
-            } else {
-              entry.autodrain();
-            }
-          })
-          .on('error', (zipError: Error) => { 
-            console.error(`[Lifecycle] Error parsing zip stream for ${pluginId}:`, zipError);
-            reject(new Error(`Failed to parse package: ${zipError.message}`));
-          })
-          .on('close', async () => {
-            console.log(`[Lifecycle] Finished processing zip entries for ${pluginId}. Waiting for ${promises.length} uploads...`);
-            try {
-               await Promise.all(promises);
-               console.log(`[Lifecycle] All uploads completed successfully for ${pluginId}`);
-               resolve();
-            } catch (uploadError) {
-               console.error(`[Lifecycle] One or more uploads failed for ${pluginId}:`, uploadError);
-               // Non serve rigettare qui, l'errore individuale ha già rigettato la Promise esterna
-            }
-          });
-      }); // Fine Promise lettura zip
-
-      // 3. (Opzionale) Verificare che il manifest sia stato caricato nel bucket
-      console.log(`[Lifecycle] TODO: Implement check for ${bucketPrefix}manifest.json existence if needed.`);
+      // 3. Verification (optional)
+      console.log(`[Lifecycle] TODO: Verify required files exist in bucket if necessary.`);
       
       console.log(`[Lifecycle] Plugin ${pluginId} installed successfully to bucket prefix ${bucketPrefix}`);
       
@@ -166,13 +152,21 @@ export class PluginLifecycle {
         path: bucketPrefix, 
       };
     } catch (error) {
+      // Rollback logic (attempt to delete uploaded files)
       console.error(`[Lifecycle] Failed to install plugin ${pluginId} to bucket:`, error);
-      console.log(`[Lifecycle] Rolling back installation for ${pluginId}. Deleting ${uploadedKeys.length} uploaded files...`);
       if (uploadedKeys.length > 0) {
-         const deletePromises = uploadedKeys.map(key => deleteFromBucket(key).catch(delErr => console.error(`[Lifecycle] Rollback deletion failed for key ${key}:`, delErr)));
-         await Promise.all(deletePromises);
+         console.log(`[Lifecycle] Rolling back installation for ${pluginId}. Deleting ${uploadedKeys.length} uploaded files...`);
+         try {
+            // Use the actual bucket keys for deletion
+            const keysToDelete = uploadedKeys.map(key => key.startsWith(bucketPrefix) ? key : `${bucketPrefix}${path.relative(packagePath, key).replace(/\\/g, '/')}`); // Reconstruct keys if needed, though uploadDirectoryContents should return full keys
+            await deleteMultipleObjects(keysToDelete);
+            console.log(`[Lifecycle] Rollback successful for ${pluginId}.`);
+         } catch (rollbackError) {
+            console.error(`[Lifecycle] Rollback deletion failed for ${pluginId}:`, rollbackError);
+         }
+      } else {
+          console.log(`[Lifecycle] No files were uploaded, skipping rollback deletion for ${pluginId}.`);
       }
-      console.log(`[Lifecycle] Rollback finished for ${pluginId}.`);
 
       return {
         success: false,
@@ -180,10 +174,10 @@ export class PluginLifecycle {
         error: error instanceof Error ? error.message : String(error),
       };
     } finally {
-       if (packagePath) {
-           console.log(`[Lifecycle] Cleaning up temporary package file: ${packagePath}`);
-           await fs.rm(packagePath, { force: true, recursive: true }).catch(e => console.warn(`[Lifecycle] Failed to cleanup temp package ${packagePath}:`, e));
-       }
+       // Cleanup of the temporary EXTRACTION directory now happens in install.ts
+       // if (packagePath) {
+       //     console.log(`[Lifecycle] Note: Cleanup of temp directory ${packagePath} is handled by the caller (install API route).`);
+       // }
     }
   }
 
@@ -192,42 +186,49 @@ export class PluginLifecycle {
    * Loads the host if it's not already loaded.
    */
   public async getOrCreateHost(pluginId: string): Promise<IPluginHost | null> {
+    console.log(`[Lifecycle] getOrCreateHost called for: ${pluginId}`);
     if (this.activeHosts.has(pluginId)) {
-      return this.activeHosts.get(pluginId)!;
+      const existingHost = this.activeHosts.get(pluginId)!;
+      console.log(`[Lifecycle] Returning active host for ${pluginId} with state: ${existingHost.getState()}`);
+      return existingHost;
     }
 
-    const plugin = await this.registry.get(pluginId);
-    if (!plugin || plugin.state === PluginState.DISABLED || plugin.state === PluginState.ERROR) {
-        console.warn(`[Lifecycle] Cannot get/create host for plugin ${pluginId} (not found or disabled/error state).`);
-        return null;
+    const plugin = await this.registry.getPlugin(pluginId);
+    if (!plugin) {
+      console.warn(`[Lifecycle] Plugin ${pluginId} not found in registry.`);
+      return null;
+    }
+    if (plugin.state === PluginState.DISABLED || plugin.state === PluginState.ERROR) {
+      console.warn(`[Lifecycle] Cannot create host for plugin ${pluginId} because its state is ${plugin.state}.`);
+      return null;
+    }
+    if (!plugin.enabled) {
+      console.warn(`[Lifecycle] Cannot create host for plugin ${pluginId} because it is not enabled.`);
+      return null;
     }
 
-    console.info(`[Lifecycle] Creating host for plugin ${pluginId}`);
+    console.log(`[Lifecycle] Creating new host instance for plugin ${pluginId}`);
+    let host: IPluginHost | null = null;
     try {
-        const manifest = plugin.manifest;
-        
-        // Use the factory function with the locally defined default options
-        const host = createPluginHost(manifest, this.defaultSandboxOptions);
-        
-        this.activeHosts.set(pluginId, host);
-        console.info(`[Lifecycle] Host created for ${pluginId}. Loading...`);
+      const manifest = plugin.manifest;
+      host = createPluginHost(manifest, this.defaultSandboxOptions);
+      this.activeHosts.set(pluginId, host);
+      console.log(`[Lifecycle] Host instance created for ${pluginId}. Attempting to load...`);
 
-        // Load the host (this should handle its internal state transition)
-        await host.load(); 
-        console.info(`[Lifecycle] Host loaded for ${pluginId}`);
+      await host.load(); 
+      console.log(`[Lifecycle] Host successfully loaded for ${pluginId}. Final state: ${host.getState()}`);
 
-        // Update plugin state in registry after successful load
-        await this.registry.updateState(pluginId, PluginState.LOADED);
-        
-        return host;
+      await this.registry.updateState(pluginId, host.getState());
+      
+      return host;
     } catch (error) {
-        console.error(`[Lifecycle] Failed to create or load host for plugin ${pluginId}:`, error);
-        await this.registry.updateState(pluginId, PluginState.ERROR);
-        // Remove from active hosts if creation failed
-        if (this.activeHosts.has(pluginId)) {
-            this.activeHosts.delete(pluginId);
-        }
-        return null;
+      console.error(`[Lifecycle] Failed during create or load for host ${pluginId}:`, error);
+      this.registry.recordPluginError(pluginId, `Host creation/load failed: ${error instanceof Error ? error.message : String(error)}`);
+      
+      if (this.activeHosts.has(pluginId)) {
+        this.activeHosts.delete(pluginId);
+      }
+      return null;
     }
   }
 

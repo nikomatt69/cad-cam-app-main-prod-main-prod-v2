@@ -242,7 +242,7 @@ export default function ProfileSettingsPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="Profile Settings" 
       />
      <Layout>

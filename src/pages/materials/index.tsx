@@ -321,7 +321,7 @@ export default function MaterialsList() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={'Materials Library'} />
+  ogImage="/og-image.png" title={'Materials Library'} />
       
       <Layout>
         <div className="p-4 md:p-6">

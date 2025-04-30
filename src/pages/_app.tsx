@@ -100,8 +100,9 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
       <SessionProvider session={session}>
         <AuthProvider>
           <LanguageProvider>
-            <MetaTags ogImage="/og-default.png" />
+            <MetaTags ogImage="/og-image.png" />
             <main className={`${camFont.style.fontFamily} antialiased bg-white dark:bg-gray-900`}>
+            <div id="plugin-container-root" style={{ position: 'relative', zIndex: 1000 }} />
             <ThemeProvider>
               <SubscriptionProvider>
                 <NotificationProvider>

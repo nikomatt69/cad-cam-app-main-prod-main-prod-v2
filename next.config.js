@@ -1,6 +1,3 @@
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
 
 
 /** @type {import('next').NextConfig} */
@@ -35,17 +32,6 @@ const nextConfig = {
     // Imposta il fallback di risoluzione dei moduli per il modulo fs su false
     config.resolve.fallback = { fs: false, tls: false, net: false };
 
-    // Exclude plugin files from Next.js handling to prevent global CSS import errors
-    config.module.rules.push({
-      test: /\.module\.css$/,
-      include: /public\/plugins/,
-      use: [
-        {
-          // Use a custom loader for plugin CSS modules
-          loader: 'null-loader',
-        },
-      ],
-    });
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
@@ -63,26 +49,6 @@ const nextConfig = {
     //   type: 'webassembly/async',
     // });
 
-    // Handle plugin TypeScript files
-    config.module.rules.push({
-      test: /\.(ts|tsx)$/,
-      include: /public\/plugins/,
-      use: [
-        {
-          loader: 'ts-loader',
-          options: {
-            transpileOnly: true,
-            compilerOptions: {
-              module: 'esnext',
-              moduleResolution: 'node',
-              target: 'es2015',
-              jsx: 'preserve',
-            },
-          },
-        },
-      ],
-    });
-
     return config;
   },
 
@@ -99,10 +65,6 @@ const nextConfig = {
       {
         source: '/og-image/:path*',
         destination: '/api/og-image/:path*',
-      },
-      {
-        source: '/plugins/:path*',
-        destination: '/public/plugins/:path*',
       },
     ];
   },
@@ -180,35 +142,9 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'private, no-cache, no-store, must-revalidate' }
         ]
       },
-      {
-        source: '/plugins/:path*/dist/index.js',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/javascript',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      {
-        source: '/plugins/:path*/dist/styles.module.css',
-        headers: [
-          {
-            key: 'Content-Type',
-            value: 'text/css',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
     ];
   }
 };
 
 // Esporta la configurazione per l'utilizzo da parte di Next.js
-module.exports = withBundleAnalyzer(nextConfig);
+module.exports = (nextConfig);

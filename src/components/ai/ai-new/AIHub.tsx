@@ -9,7 +9,10 @@ import {
   Settings, 
   X, 
   ChevronRight,
-  BarChart2
+  BarChart2,
+  Database,
+  Package,
+  
 } from 'react-feather';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAI } from './AIContextProvider';
@@ -17,7 +20,9 @@ import { aiAnalytics } from '@/src/lib/ai/ai-new/aiAnalytics';
 import { MODEL_CAPABILITIES } from '@/src/lib/ai/ai-new/aiConfigManager';
 
 import TextToCADPanel from './TextToCADPanel';
-
+import { AIDashboard } from './AIDashboard';
+import { ComponentLibrary } from './ComponentLibrary';
+import MLDashboard from '../MLDashboard';
 
 import AISettingsPanel from './AISettingsPanel';
 import { AIModelType } from '@/src/types/AITypes';
@@ -27,10 +32,13 @@ import MCPInsightsPanel from './MCPSettingsPage';
 import OpenAISetupPanel from './OpenAISetupPanel';
 import AIProviderBadge from './AIProviderBadge';
 import AIProviderSelector from './AIProviderSelector';
+import { useElementsStore } from '@/src/store/elementsStore';
+import { Brain } from 'lucide-react';
+import { ContextAwareGenerationPanel } from './OpenaiAssistant/ContextAwareGenerationPanel';
 
 
 // Tipi di tool AI disponibili
-type AITool = 'textToCad' | 'designAssistant' | 'toolpathOptimizer' | 'settings' | 'analytics' | 'mpc' | 'openai' | 'badge' | 'provider';
+type AITool = 'textToCad' | 'designAssistant' | 'toolpathOptimizer' | 'settings' | 'analytics' | 'mpc' | 'openai' | 'badge' | 'provider' | 'dashboard' | 'componentLibrary' | 'mlDashboard' | 'contextAwareGeneration';
 
 interface AIHubProps {
   initialTool?: AITool;
@@ -51,6 +59,7 @@ const AIHub: React.FC<AIHubProps> = ({
   const [performance, setPerformance] = useState(aiAnalytics.getStats());
   const [activeTool, setActiveTool] = useState<AITool>(initialTool);
   const [isOpen, setIsOpen] = useState(true);
+  const { addElements } = useElementsStore();
   
   // Aggiorna le statistiche di performance periodicamente
   useEffect(() => {
@@ -60,6 +69,11 @@ const AIHub: React.FC<AIHubProps> = ({
     
     return () => clearInterval(interval);
   }, []);
+
+  // Handler per aggiungere elementi dal component library al canvas
+  const handleAddComponentToCanvas = (elements: any[]) => {
+    addElements(elements);
+  };
 
   // Configurazione degli strumenti AI disponibili
   const tools = [
@@ -80,6 +94,24 @@ const AIHub: React.FC<AIHubProps> = ({
       name: 'Toolpath Optimizer', 
       icon: <Tool size={15} />,
       description: 'Optimize machining parameters'
+    },
+    { 
+      id: 'dashboard' as AITool, 
+      name: 'AI Dashboard', 
+      icon: <Database size={15} />,
+      description: 'Monitor and analyze AI context and performance'
+    },
+    { 
+      id: 'componentLibrary' as AITool, 
+      name: 'Component Library', 
+      icon: <Package size={15} />,
+      description: 'Browse and manage AI-generated components'
+    },
+    { 
+      id: 'mlDashboard' as AITool, 
+      name: 'ML Training', 
+      icon: <Brain size={15} />,
+      description: 'Monitor and manage machine learning training'
     },
     { 
       id: 'analytics' as AITool, 
@@ -110,6 +142,12 @@ const AIHub: React.FC<AIHubProps> = ({
       name: 'AI Provider', 
       icon: <Settings size={15} />,
       description: 'Configure AI provider behavior'
+    },
+    { 
+      id: 'contextAwareGeneration' as AITool, 
+      name: 'Context Aware Generation', 
+      icon: <Settings size={15} />,
+      description: 'Configure Context Aware Generation behavior'
     }
   ];
 
@@ -162,14 +200,22 @@ const AIHub: React.FC<AIHubProps> = ({
         return <AIDesignAssistant />;
       case 'toolpathOptimizer':
         return <AIToolpathOptimizer />;
-        case 'mpc':
-          return <MCPInsightsPanel />;
+      case 'dashboard':
+        return <AIDashboard />;
+      case 'componentLibrary':
+        return <ComponentLibrary onAddToCanvas={handleAddComponentToCanvas} />;
+      case 'mlDashboard':
+        return <MLDashboard />;
+      case 'mpc':
+        return <MCPInsightsPanel />;
       case 'settings':
         return <AISettingsPanel />;
       case 'openai':
         return <OpenAISetupPanel />;
       case 'provider':
         return <AIProviderSelector />;
+      case 'contextAwareGeneration':
+        return <ContextAwareGenerationPanel />;
       case 'analytics':
         return (
           <div className="p-4 space-y-4">
@@ -306,7 +352,7 @@ const AIHub: React.FC<AIHubProps> = ({
       </AnimatePresence>
       
       {/* Area contenuto */}
-      <div className="flex-grow p-4  rounded-xl  overflow-auto">
+      <div className="flex-grow p-4 rounded-xl overflow-auto">
         {renderTool()}
       </div>
     </div>

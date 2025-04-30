@@ -378,7 +378,7 @@ export default function MachineConfigsPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title="Machine Configurations" />
+  ogImage="/og-image.png" title="Machine Configurations" />
       
       <Layout>
         <div className="p-4 md:p-6">

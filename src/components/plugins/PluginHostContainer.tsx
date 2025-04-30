@@ -9,68 +9,117 @@ import { IPluginHost } from '../../plugins/core/host/pluginHost'; // Import base
 interface PluginHostContainerProps {
   pluginId: string;
   entryPoint: 'sidebar' | 'panel' | 'modal' | string; // Keep for potential future use by host
-  // onMessage?: (message: any) => void; // Communication handled via bridge obtained from host
+   onMessage?: (message: any) => void; // Communication handled via bridge obtained from host
   className?: string;
 }
 
 const PluginHostContainer: React.FC<PluginHostContainerProps> = ({
   pluginId,
   entryPoint,
-  // onMessage,
+   onMessage,
   className = ''
 }) => {
   // const { plugins, registry } = usePluginRegistry(); // Remove
-  const { getHost } = usePluginClient(); // Use the client context hook
+  const { getHost, activatePlugin } = usePluginClient(); // Use the client context hook and get activatePlugin
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<'loading' | 'error' | 'ready'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const hostRef = useRef<IPluginHost | null>(null); // Keep track of the host instance
+  const activationAttemptedRef = useRef<boolean>(false); // Track if activation has been tried
 
   useEffect(() => {
+    // Reset state when pluginId changes
     setStatus('loading');
     setErrorMessage(null);
-    hostRef.current = null; // Reset host ref on pluginId change
+    hostRef.current = null;
+    activationAttemptedRef.current = false; // Reset activation attempt flag
 
     if (!pluginId) {
-        setStatus('error');
-        setErrorMessage('No plugin ID provided.');
-        return;
+      setStatus('error');
+      setErrorMessage('No plugin ID provided.');
+      return;
     }
 
-    console.log(`[HostContainer] Looking for host: ${pluginId}`);
-    const host = getHost(pluginId);
+    console.log(`[HostContainer] useEffect triggered for: ${pluginId}`);
+    const currentHost = getHost(pluginId);
 
-    if (!host) {
-        console.warn(`[HostContainer] Host for ${pluginId} not found or not ready in context. Waiting...`);
-        setStatus('loading'); // Keep loading, provider might still be initializing the host
-        return; // Exit effect, will re-run when context updates
-    }
+    if (currentHost) {
+        // Host already exists and is ready in context
+        console.log(`[HostContainer] Host for ${pluginId} found in context.`);
+        hostRef.current = currentHost;
+        activationAttemptedRef.current = true; // Mark as active/attempted
 
-    hostRef.current = host; // Store the found host
-    console.log(`[HostContainer] Found host for ${pluginId}. Ensuring UI is visible...`);
-    
-    try {
-        // Check if the host has a show method (expected for IFramePluginHost)
-        if (typeof (host as any).show === 'function') {
-            (host as any).show(); // Tell the host to make its UI visible
-            setStatus('ready'); 
-            console.log(`[HostContainer] Host UI for ${pluginId} set to visible.`);
+        // Set target element and show UI (same logic as before)
+        if (typeof (currentHost as any).setTargetElement === 'function') {
+            if (containerRef.current) {
+                (currentHost as any).setTargetElement(containerRef.current);
+                console.log(`[HostContainer] Target element set for host ${pluginId}.`);
+            } else {
+                 console.error(`[HostContainer] Container ref missing for ${pluginId}.`);
+                 setStatus('error');
+                 setErrorMessage('Internal error: Plugin container reference missing.');
+                 return;
+            }
         } else {
-            // Handle hosts without UI or without a show method? 
-            // For now, assume if host exists, it's ready (might need adjustment)
-            console.warn(`[HostContainer] Host for ${pluginId} exists but has no 'show' method. Assuming ready.`);
-            setStatus('ready');
+             console.warn(`[HostContainer] Host for ${pluginId} lacks setTargetElement method.`);
         }
-    } catch (err) {
-        console.error(`[HostContainer] Error calling show() for host ${pluginId}:`, err);
-        setErrorMessage(err instanceof Error ? err.message : "Failed to show plugin UI.");
-        setStatus('error');
+
+        try {
+            if (typeof (currentHost as any).show === 'function') {
+                (currentHost as any).show();
+                console.log(`[HostContainer] Host UI shown for ${pluginId}.`);
+            } else {
+                console.warn(`[HostContainer] Host for ${pluginId} has no 'show' method.`);
+            }
+            setStatus('ready');
+        } catch (err) {
+            console.error(`[HostContainer] Error calling show() for existing host ${pluginId}:`, err);
+            setErrorMessage(err instanceof Error ? err.message : "Failed to show plugin UI.");
+            setStatus('error');
+        }
+
+    } else if (!activationAttemptedRef.current) {
+        // Host not found, and we haven't tried activating it yet
+        console.warn(`[HostContainer] Host for ${pluginId} not found. Attempting activation...`);
+        setStatus('loading');
+        activationAttemptedRef.current = true; // Mark that we are trying
+        
+        // Ensure container ref is available before activating
+        if (!containerRef.current) {
+             console.error(`[HostContainer] Cannot activate ${pluginId}: Container ref is not ready yet.`);
+             setStatus('error');
+             setErrorMessage('Internal error: Plugin container failed to initialize.');
+             return; // Exit effect
+        }
+
+        // Pass the container element to activatePlugin
+        activatePlugin(pluginId, containerRef.current)
+          .then(activatedHost => {
+            if (activatedHost) {
+              // Activation successful - the context update will trigger a re-run of this effect
+              // where the host will be found in the `if (currentHost)` block.
+              console.log(`[HostContainer] Activation successful for ${pluginId}, context updated.`);
+              // No need to set state here, the effect re-run will handle it.
+            } else {
+              // Activation failed (activatePlugin returned null)
+              console.error(`[HostContainer] Activation failed for ${pluginId}.`);
+              setStatus('error');
+              setErrorMessage(`Failed to activate plugin ${pluginId}. Check server logs.`);
+            }
+          })
+          .catch(err => {
+             // Catch errors from the activatePlugin promise itself
+             console.error(`[HostContainer] Error during activatePlugin call for ${pluginId}:`, err);
+             setStatus('error');
+             setErrorMessage(err instanceof Error ? err.message : `Error activating plugin ${pluginId}.`);
+          });
+    } else {
+        // Host not found, but we already tried activating. Still loading or error state handled elsewhere.
+        console.log(`[HostContainer] Host for ${pluginId} still not found after activation attempt. Status: ${status}`);
     }
 
-    // --- Cleanup Function --- 
+    // Cleanup function remains the same
     return () => {
-       // When the container unmounts or pluginId changes, tell the host to hide.
-       // The PluginClientProvider handles the actual unloading/deactivation.
        const currentHost = hostRef.current;
        if (currentHost && typeof (currentHost as any).hide === 'function') {
            console.log(`[HostContainer] Hiding host UI for ${pluginId} on cleanup.`);
@@ -82,8 +131,8 @@ const PluginHostContainer: React.FC<PluginHostContainerProps> = ({
        }
        hostRef.current = null;
     };
-
-  }, [pluginId, entryPoint, getHost]); // Rerun when pluginId or getHost changes
+  // Add activatePlugin to dependency array
+  }, [pluginId, entryPoint, getHost, activatePlugin]); 
 
   return (
     <div 

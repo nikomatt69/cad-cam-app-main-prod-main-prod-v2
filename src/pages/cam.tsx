@@ -54,6 +54,8 @@ import OptimizedToolpathVisualizer from '../components/cam/OptimizedToolpathVisu
 import FanucCncControl from '../components/cam/FanucCncControl';
 import FanucMachineControl from '../components/cam/FanucMachineController';
 import CNCControlPage from '../components/cam/FanucCncControl';
+import ToolpathGenerator3DPrintIntegration from '../components/cam/ToolpathGenerator3DPrintIntegration';
+import render3DPrinterSection from '../components/cam/render3DPrinterSection';
 
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
@@ -320,7 +322,7 @@ export default function CAMPage() {
     <div className="h-screen w-screen flex bg-gradient-to-b from-[#2A2A2A] to-[#303030] flex-col rounded-xl overflow-hidden">
       <>
       <MetaTags
-  ogImage="/og-default.png" 
+  ogImage="/og-image.png" 
         title="CAM FUN" 
       />
       </>
@@ -609,13 +611,9 @@ export default function CAMPage() {
               )}
               
               {activeRightPanel === 'control' && (
-                <><MachineControl gcode={activeTab === 'post-processor' && processedGcode ? processedGcode : gcode} />
-                <div className='disabled:block'>
-                  <h1 className='text-lg font-bold'>CNC Control</h1>
-                  <p className='text-sm text-red-500'>This is a placeholder for the CNC control page not a real one server is a fake implementation for testing purposes.</p>
-                  <p className='text-red-500 text-sm'>No FOCAS is implemented, no real connection to the machine.</p>
-                </div>
-                </>
+                <>
+               <></>
+               </>
               )}
             </div>
           </div>

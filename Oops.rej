@@ -1,0 +1,11 @@
+@@ -16,8 +16,10 @@
+ import toast from 'react-hot-toast';
+ // Add the import at the top of the file
+ import { generateComponentToolpath, generateElementToolpath } from 'src/lib/componentToolpathUtils';
+ import { FixedCyclesUIRenderer, isFixedCycle } from 'src/components/cam/FixedCyclesUIRenderer';
+ import ToolpathGeneratorIntegration from 'src/components/cam/ToolpathGeneratorIntegration';
++import render3DPrinterSection from 'src/components/cam/render3DPrinterSection';
++import { use3DPrinterSettings } from 'src/components/cam/3DPrinterIntegration';
+ import { FixedCycleType } from './toolpathUtils/fixedCycles/fixedCyclesParser';
+ import router from 'next/router';
+ import { c } from 'framer-motion/dist/types.d-6pKw1mTI';

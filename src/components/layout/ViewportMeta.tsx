@@ -9,7 +9,7 @@ interface ViewportMetaProps {
 
 const ViewportMeta: React.FC<ViewportMetaProps> = ({
   initialScale = '0.8',
-  maximumScale = '1.0',
+  maximumScale = '0.8',
   userScalable = true
 }) => {
   const viewportContent = `width=device-width, initial-scale=${initialScale}, maximum-scale=${maximumScale}${userScalable ? '' : ', user-scalable=no'}`;

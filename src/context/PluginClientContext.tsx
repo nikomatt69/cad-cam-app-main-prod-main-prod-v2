@@ -18,7 +18,7 @@ interface PluginClientContextValue {
   loading: boolean;
   error: string | null;
   getHost: (pluginId: string) => IPluginHost | undefined;
-  activatePlugin: (pluginId: string) => Promise<IPluginHost | null>; // Return host or null
+  activatePlugin: (pluginId: string, targetElement: HTMLElement) => Promise<IPluginHost | null>;
   deactivatePlugin: (pluginId: string) => Promise<void>;
   executeCommand: (pluginId: string, commandId: string, args?: any) => Promise<any>;
   refreshPlugins: () => Promise<void>; 
@@ -40,7 +40,7 @@ const defaultSandboxOptions: SandboxOptions = {
         imgSrc: ["'self'", "https:", "data:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'", "https://*"],
-        frameSrc: ["'none'"], // Example: Disallow framing by default
+        frameSrc: ["'self'", "https://*"], // Example: Disallow framing by default
     },
     allowEval: false,
     allowParentAccess: false, 
@@ -92,7 +92,11 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
     return activeHostsRef.current.get(pluginId);
   }, []);
 
-  const activatePlugin = useCallback(async (pluginId: string): Promise<IPluginHost | null> => {
+  const activatePlugin = useCallback(async (pluginId: string, targetElement: HTMLElement): Promise<IPluginHost | null> => {
+    if (!targetElement) {
+        console.error(`[Client] Cannot activate ${pluginId}: Target element is missing.`);
+        return null;
+    }
     if (activeHostsRef.current.has(pluginId)) {
       console.warn(`[Client] Host for ${pluginId} already exists.`);
       return activeHostsRef.current.get(pluginId)!;
@@ -103,41 +107,42 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
         console.error(`[Client] Cannot activate: Plugin ${pluginId} not found in registry list.`);
         return null;
     }
-    // Ensure the plugin is marked as enabled in the fetched data
     if (!plugin.enabled) { 
         console.warn(`[Client] Cannot activate: Plugin ${pluginId} is not enabled.`);
-        // Optionally call the enable API endpoint first?
-        // Or rely on the UI to call enable first, then activate.
         return null;
     }
 
     console.log(`[Client] Activating plugin: ${pluginId}`);
-    let host: IPluginHost | null = null; // Initialize host variable
+    let host: IPluginHost | null = null;
     try {
       const manifest = plugin.manifest;
-
-      // --- Use the factory function --- 
       console.log(`[Client] Creating host for ${pluginId} using factory...`);
       host = createPluginHost(manifest, defaultSandboxOptions);
       if (!host) {
            throw new Error('Plugin host creation failed (factory returned null).');
       }
-      // --------------------------------
 
-      activeHostsRef.current.set(pluginId, host);
-      setHostMapVersion(v => v + 1); // Trigger re-render
+      // --- Set target element BEFORE loading --- 
+      if (typeof (host as any).setTargetElement === 'function') {
+          (host as any).setTargetElement(targetElement);
+          console.log(`[Client] Target element set for host ${pluginId}.`);
+      } else {
+          console.warn(`[Client] Host for ${pluginId} does not support setTargetElement. UI might not render correctly.`);
+          // Decide if this is a fatal error depending on host type
+      }
+      // ------------------------------------------
+
       console.log(`[Client] Host instance created for ${pluginId}. Loading...`);
-      
       await host.load();
       console.log(`[Client] Host loaded for ${pluginId}. Activating...`);
-      
       await host.activate();
       console.log(`[Client] Host activated successfully for ${pluginId}`);
       
-      // Update host state in map if needed (though activation should handle internal state)
-      // No need to call setActiveHosts - the ref update + version bump handles it.
+      activeHostsRef.current.set(pluginId, host);
+      setHostMapVersion(v => v + 1);
+      console.log(`[Client] Host added to active map for ${pluginId}`);
 
-      return host; // Return the activated host
+      return host;
 
     } catch (err) {
       console.error(`[Client] Failed to activate plugin ${pluginId}:`, err);
@@ -145,18 +150,16 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
       if (activeHostsRef.current.has(pluginId)) {
         const failedHost = activeHostsRef.current.get(pluginId);
         activeHostsRef.current.delete(pluginId);
-        setHostMapVersion(v => v + 1); // Trigger re-render
-        // Attempt to unload the failed host
+        setHostMapVersion(v => v + 1); 
         if (failedHost) {
-            failedHost.unload().catch(unloadErr => { // Unload async
+            failedHost.unload().catch(unloadErr => { 
                  console.error(`[Client] Error during cleanup unload for failed activation of ${pluginId}:`, unloadErr);
             });
         }
       }
-      // Do not re-throw, return null to indicate failure
       return null; 
     }
-  }, [plugins]); // Depends on the current list of plugins
+  }, [plugins]);
 
   const deactivatePlugin = useCallback(async (pluginId: string): Promise<void> => {
     const host = activeHostsRef.current.get(pluginId);
@@ -191,7 +194,9 @@ export const PluginClientProvider: React.FC<PluginClientProviderProps> = ({ chil
       throw new Error(`Cannot execute command: Plugin ${pluginId} host not found.`);
     }
     // Add check for host state if needed (e.g., only if ACTIVATED)
-    // if (host.getState() !== PluginState.ACTIVATED) { ... }
+     if (host.getState() !== PluginState.ACTIVATED) {
+      throw new Error(`Cannot execute command: Plugin ${pluginId} is not activated.`);
+     }
     
     try {
       const bridge = host.getBridge();

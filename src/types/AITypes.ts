@@ -148,6 +148,61 @@ export interface TokenUsage {
   total: number;
 }
 
+// === CONTEXT SUMMARY ===
+export interface ContextSummary {
+  elements: {
+    count: number;
+    types: Record<string, number>;
+    summary: string;
+  };
+  documents: {
+    count: number;
+    summary: string;
+  };
+  history: {
+    count: number;
+    recentActions: string[];
+  };
+  environment: {
+    browser: string;
+    screen: string;
+    os: string;
+  };
+}
+
+// === DOCUMENT INSIGHT ===
+export interface DocumentInsight {
+  key: string;
+  value: string;
+  confidence: number;
+}
+
+// === MACHINE LEARNING ANALYSIS ===
+export interface DocumentClassification {
+  category: string;
+  confidence: number;
+  keywords: string[];
+}
+
+export interface CADModelAnalysis {
+  complexity: number;
+  suggestions: string[];
+  features: string[];
+}
+
+// === GENERATED COMPONENT ===
+export interface GeneratedComponent {
+  id: string;
+  name: string;
+  description: string;
+  timestamp: number;
+  elements: Element[];
+  preview?: string; // Base64 immagine preview
+  source: 'ai' | 'user' | 'imported';
+  tags: string[];
+  metadata: Record<string, any>;
+}
+
 // === RICHIESTE SPECIFICHE ===
 export interface TextToCADRequest {
   description: string;
@@ -168,6 +223,7 @@ export interface TextToCADRequest {
   complexity?: 'simple' | 'moderate' | 'complex' | 'creative';
   useMCP?: boolean;
   mcpParams?: MCPRequestParams;
+  structuredContext?: Record<string, any>; // Structured context from EnhancedContext
 }
 
 export interface DesignAnalysisRequest {
@@ -178,6 +234,7 @@ export interface DesignAnalysisRequest {
   specificConcerns?: string[];
   useMCP?: boolean;
   mcpParams?: MCPRequestParams;
+  structuredContext?: Record<string, any>; // Structured context from EnhancedContext
 }
 
 export interface GCodeOptimizationRequest {
@@ -194,6 +251,7 @@ export interface GCodeOptimizationRequest {
   };
   useMCP?: boolean;
   mcpParams?: MCPRequestParams;
+  structuredContext?: Record<string, any>; // Structured context from EnhancedContext
 }
 
 // === RISULTATI SPECIFICI ===
@@ -394,4 +452,91 @@ export interface AIAssistantOptions {
   enabledActions?: string[];
   model?: string;
   temperature?: number;
+}
+
+export interface DesignContext {
+  complexity: number; // 0-1 scale
+  features: string[];
+  elementTypes: Record<string, number>;
+  boundingBox: {
+    min: { x: number; y: number; z: number };
+    max: { x: number; y: number; z: number };
+  };
+  styleMetrics: {
+    colorPalette: string[];
+    dominantColor: string;
+    cornerStyle: 'sharp' | 'rounded' | 'mixed';
+    surfaceFinish: 'smooth' | 'textured' | 'mixed';
+    proportions: 'uniform' | 'varied';
+    symmetry: 'symmetric' | 'asymmetric' | 'partial';
+  };
+  spatialRelationships: {
+    primaryAxis: 'x' | 'y' | 'z' | 'none';
+    connections: { type: string; count: number }[];
+    hierarchy: 'flat' | 'nested' | 'layered';
+    density: number; // 0-1 scale
+  };
+  designSystem: {
+    type: 'mechanical' | 'organic' | 'architectural' | 'abstract' | 'unknown';
+    gridSize: number | null;
+    modularity: number; // 0-1 scale
+  };
+  scale: {
+    category: 'microscopic' | 'small' | 'medium' | 'large' | 'architectural' | 'unknown';
+    maxDimension: number;
+    typicalUnit: 'mm' | 'cm' | 'm' | 'unknown';
+  };
+  metadata: {
+    elementCount: number;
+    dominantColor: string;
+    timestamp: number;
+    [key: string]: any;
+  };
+}
+
+export interface GenerationConstraints {
+  maxElements?: number;
+  enforceStyleConsistency?: boolean;
+  scaleToMatch?: boolean;
+  preferredTypes?: string[];
+  colorPalette?: string[];
+  maxDimensions?: {
+    width: number;
+    height: number;
+    depth: number;
+  };
+  symmetryType?: 'symmetric' | 'asymmetric';
+  namePrefix?: string;
+  [key: string]: any;
+}
+
+export interface GenerationOptions {
+  useCache?: boolean;
+  cacheTTL?: number;
+  fallbackOnError?: boolean;
+  attemptFix?: boolean;
+  positioning?: 'adjacent' | 'smart' | 'centered' | 'origin' | 'custom';
+  includeExamples?: boolean;
+  temperature?: number;
+  maxTokens?: number;
+  modelOverride?: string;
+  [key: string]: any;
+}
+
+export interface GenerationResult {
+  requestId: string;
+  generatedElements: Element[];
+  originalDescription: string;
+  designContext: DesignContext;
+  appliedConstraints: GenerationConstraints;
+  metadata: {
+    processingTimeMs: number;
+    elementCount: number;
+    confidenceScore: number;
+    modelUsed: string;
+    [key: string]: any;
+  };
+  fromCache?: boolean;
+  fallbackUsed?: boolean;
+  emergencyFallback?: boolean;
 }

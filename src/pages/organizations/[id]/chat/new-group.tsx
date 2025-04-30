@@ -66,7 +66,7 @@ const NewGroupChatPage = () => {
   return (
     <Layout>
       <MetaTags
-  ogImage="/og-default.png" title="Nuova chat di gruppo" />
+  ogImage="/og-image.png" title="Nuova chat di gruppo" />
       
       <div className="p-4 h-[calc(100vh-64px)]">
         <div className="flex h-full gap-4">

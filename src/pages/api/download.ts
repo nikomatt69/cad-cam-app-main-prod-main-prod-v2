@@ -23,7 +23,7 @@ export default async function handler(
 
     // Set headers
     res.setHeader('Content-Type', 'application/zip');
-    res.setHeader('Content-Disposition', 'attachment; filename=cadcamfun-app.zip');
+    res.setHeader('Content-Disposition', 'attachment; filename=CADCAMFUN.zip');
     res.setHeader('Content-Length', stats.size);
 
     // Stream the file

@@ -39,7 +39,7 @@ const PWAInstallPrompt: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'cadcamfun-app.zip';
+      a.download = 'CADCAMFUN.zip';
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

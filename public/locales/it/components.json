@@ -8,7 +8,12 @@
         "structural": "Strutturale",
         "fixture": "Fissaggio",
         "enclosure": "Involucro",
-        "fastener": "Elemento di Fissaggio"
+        "fastener": "Elemento di Fissaggio",
+        "hydraulic": "Idraulico",
+        "pneumatic": "Pneumatico",
+        "automotive": "Automotive",
+        "aerospace": "Aerospaziale",
+        "medical": "Medicale"
       },
       "manufacturing": {
         "title": "Metodo di Produzione",
@@ -17,7 +22,12 @@
         "injection-molding": "Stampaggio a Iniezione",
         "laser-cutting": "Taglio Laser",
         "sheet-metal": "Lamiera",
-        "extrusion": "Estrusione"
+        "extrusion": "Estrusione",
+        "welding": "Saldatura",
+        "casting": "Fusione",
+        "forging": "Forgiatura",
+        "additive": "Produzione Additiva",
+        "subtractive": "Produzione Sottrattiva"
       },
       "materials": {
         "title": "Categoria Materiale",
@@ -25,14 +35,43 @@
         "plastic": "Plastica",
         "composite": "Composito",
         "wood": "Legno",
-        "ceramic": "Ceramica"
+        "ceramic": "Ceramica",
+        "alloy": "Lega",
+        "polymer": "Polimero",
+        "rubber": "Gomma",
+        "glass": "Vetro",
+        "carbon-fiber": "Fibra di Carbonio",
+        "titanium": "Titanio",
+        "aluminum": "Alluminio",
+        "steel": "Acciaio"
+      },
+      "parameters": {
+        "title": "Parametri di Generazione",
+        "complexity": "Complessità",
+        "precision": "Precisione",
+        "strength": "Resistenza",
+        "weight": "Peso",
+        "cost": "Costo",
+        "sustainability": "Sostenibilità"
       }
     },
     "feedback": {
       "title": "Feedback IA",
       "confidence": "Livello di Confidenza",
       "suggestions": "Suggerimenti",
-      "warnings": "Avvertenze"
+      "warnings": "Avvertenze",
+      "optimization": "Ottimizzazioni",
+      "validation": "Validazione",
+      "performance": "Prestazioni",
+      "compatibility": "Compatibilità"
+    },
+    "analysis": {
+      "title": "Analisi Componente",
+      "structural": "Analisi Strutturale",
+      "thermal": "Analisi Termica",
+      "flow": "Analisi di Flusso",
+      "fatigue": "Analisi di Fatica",
+      "vibration": "Analisi di Vibrazione"
     }
   },
   "cam": {
@@ -47,13 +86,51 @@
         "threading": "Filettatura",
         "grooving": "Scanalatura",
         "parting": "Troncatura",
-        "knurling": "Zigrinatura"
+        "knurling": "Zigrinatura",
+        "drilling": "Foratura",
+        "reaming": "Alesatura di Precisione",
+        "tapping": "Maschiatura",
+        "countersinking": "Svasatura",
+        "engraving": "Incisione",
+        "polishing": "Lucidatura",
+        "slotting": "Scanalatura"
       },
       "settings": {
         "coolant": "Refrigerante",
         "temperature": "Temperatura",
-        "bedTemp": "Temperatura Piano"
+        "bedTemp": "Temperatura Piano",
+        "feedRate": "Velocità di Avanzamento",
+        "spindleSpeed": "Velocità Mandrino",
+        "depthOfCut": "Profondità di Taglio",
+        "stepover": "Passo Laterale",
+        "stepdown": "Passo Verticale",
+        "finishAllowance": "Sovrametallo di Finitura",
+        "tolerance": "Tolleranza",
+        "safeHeight": "Altezza di Sicurezza",
+        "retractHeight": "Altezza di Ritrazione"
+      },
+      "strategies": {
+        "title": "Strategie di Lavorazione",
+        "contour": "Contorno",
+        "pocket": "Tasca",
+        "adaptive": "Adattiva",
+        "parallel": "Parallela",
+        "spiral": "Spirale",
+        "radial": "Radiale",
+        "zigzag": "Zig-Zag",
+        "morphed": "Morfologica",
+        "3d": "3D"
       }
+    },
+    "simulation": {
+      "title": "Simulazione",
+      "start": "Avvia Simulazione",
+      "pause": "Pausa",
+      "stop": "Ferma",
+      "speed": "Velocità Simulazione",
+      "collision": "Rilevamento Collisioni",
+      "material": "Visualizzazione Materiale",
+      "cutter": "Visualizzazione Utensile"
     }
   },
   "library": {
@@ -61,13 +138,28 @@
     "filters": {
       "search": "Cerca Componenti",
       "type": "Tipo Componente",
-      "category": "Categoria"
+      "category": "Categoria",
+      "material": "Materiale",
+      "manufacturer": "Produttore",
+      "standard": "Standard",
+      "size": "Dimensione"
     },
     "actions": {
       "import": "Importa Componenti",
       "export": "Esporta Componenti",
       "add": "Aggiungi Componente",
-      "remove": "Rimuovi Componente"
+      "remove": "Rimuovi Componente",
+      "categorize": "Categorizza",
+      "tag": "Etichetta",
+      "favorite": "Preferiti",
+      "share": "Condividi"
+    },
+    "groups": {
+      "custom": "Componenti Personalizzati",
+      "standard": "Componenti Standard",
+      "recent": "Recenti",
+      "favorites": "Preferiti",
+      "shared": "Condivisi"
     }
   },
   "transform": {
@@ -77,12 +169,47 @@
       "rotate": "Ruota",
       "scale": "Scala",
       "copy": "Copia",
-      "paste": "Incolla"
+      "paste": "Incolla",
+      "mirror": "Specchia",
+      "array": "Matrice",
+      "align": "Allinea",
+      "distribute": "Distribuisci",
+      "stretch": "Allunga",
+      "deform": "Deforma",
+      "warp": "Curva"
     },
     "axis": {
       "x": "Asse X",
       "y": "Asse Y",
-      "z": "Asse Z"
+      "z": "Asse Z",
+      "custom": "Asse Personalizzato",
+      "plane": "Piano"
+    },
+    "modes": {
+      "absolute": "Assoluto",
+      "relative": "Relativo",
+      "local": "Locale",
+      "global": "Globale"
+    }
+  },
+  "measurements": {
+    "title": "Strumenti di Misurazione",
+    "distance": "Distanza",
+    "angle": "Angolo",
+    "radius": "Raggio",
+    "diameter": "Diametro",
+    "area": "Area",
+    "volume": "Volume",
+    "mass": "Massa",
+    "units": {
+      "title": "Unità di Misura",
+      "mm": "Millimetri",
+      "cm": "Centimetri",
+      "m": "Metri",
+      "inch": "Pollici",
+      "feet": "Piedi",
+      "deg": "Gradi",
+      "rad": "Radianti"
     }
   }
 }

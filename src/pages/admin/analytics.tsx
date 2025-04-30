@@ -152,7 +152,7 @@ export default function AdminAnalyticsDashboardPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title="Admin Analytics Dashboard" description="Admin Analytics Dashboard for CAD/CAM FUN" />
+  ogImage="/og-image.png" title="Admin Analytics Dashboard" description="Admin Analytics Dashboard for CAD/CAM FUN" />
       
       <Layout>
         <div className="px-4 py-6">

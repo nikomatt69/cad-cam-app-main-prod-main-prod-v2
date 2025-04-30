@@ -265,7 +265,7 @@ export default function MaterialDetailPage() {
   return (
     <MotionConfig reducedMotion="user">
       <MetaTags
-  ogImage="/og-default.png" title={material ? `${material.name} | Material Editor` : 'Material Editor'} />
+  ogImage="/og-image.png" title={material ? `${material.name} | Material Editor` : 'Material Editor'} />
       
       <Layout>
         <div className="flex flex-col h-full">

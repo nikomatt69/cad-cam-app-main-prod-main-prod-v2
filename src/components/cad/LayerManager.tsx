@@ -185,7 +185,7 @@ const LayerManager: React.FC = () => {
                     type="text"
                     value={editLayerName}
                     onChange={(e) => setEditLayerName(e.target.value)}
-                    className="flex-1 block border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-xs"
+                    className="flex-1 block border-gray-300 rounded-md shadow-sm dark:text-blue-400 focus:ring-blue-500 focus:border-blue-500 sm:text-xs"
                     autoFocus
                   />
                 </div>
@@ -222,7 +222,7 @@ const LayerManager: React.FC = () => {
                     style={{ backgroundColor: layer.color }}
                     whileHover={{ scale: 1.2 }}
                   />
-                  <span className="font-medium text-gray-800 text-sm">{layer.name}</span>
+                  <span className="font-medium text-gray-800 dark:text-blue-400 text-sm">{layer.name}</span>
                   {layer.locked && (
                     <span className="text-xs text-gray-500">(locked)</span>
                   )}

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from '@/src/lib/api/auth';
 import { AIRequest, MCPRequestParams, MCPResponse } from '@/src/types/AITypes';
-import { unifiedAIService } from '@/src/lib/ai/ai-new/unifiedAIService';
+import { unifiedAIService } from '@/src/lib/ai/unifiedAIService';
 import { aiAnalytics } from '@/src/lib/ai/ai-new/aiAnalytics';
 
 export default async function handler(

@@ -16,6 +16,7 @@ import ToastContainer from '../ui/ToastContainer';
 import NotificationPermissionPrompt from '../notifications/NotificationPermissionPrompt';
 import dynamic from 'next/dynamic';
 import { AIAssistantOpenai } from '../ai/ai-new/OpenaiAssistant/AIAssistantOpenai';
+import PluginSidebar from 'src/components/plugins/PluginSidebar';
 
 // Dynamically import PluginSidebar with SSR disabled
 const DynamicPluginSidebar = dynamic(
@@ -236,7 +237,7 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
             </div>
             <> 
               
-              <DynamicPluginSidebar 
+              <PluginSidebar 
              isOpen={sidebarOpen}
              onClose={() => setSidebarOpen(false)}
               /> 

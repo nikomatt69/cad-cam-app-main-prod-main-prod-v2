@@ -9,6 +9,7 @@ tsconfig.9ltn2umbwod.tsbuildinfo
 .DS_Store
 src/pages/2.tsx
 cadcamfun-app.zip
+CADCAMFUN.zip
 public/downloads/cadcamfun-app.zip
 cad-optimizer-wasm.zip
 public/downloads/cad-optimizer-wasm.zip
@@ -26,3 +27,5 @@ server-control-cnc
 
 
 
+
+certificates

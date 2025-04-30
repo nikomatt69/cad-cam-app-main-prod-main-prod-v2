@@ -1,32 +1,40 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { PluginRegistryEntry } from '@/src/plugins/core/registry';
-import { getRegistryInstance } from '@/src/server/pluginRegistryInstance'; // Needed to get storage
-import { DatabasePluginStorage } from '@/src/server/storage/DatabasePluginStorage'; // Assuming direct access or via registry
+// import { getRegistryInstance } from '@/src/server/pluginRegistryInstance'; // REMOVED
+import { PluginRegistry } from '@/src/plugins/core/registry'; // Import type
+import { withRegistry, ApiHandlerWithRegistry } from '@/src/server/middleware/withRegistry'; // Import HOF
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<PluginRegistryEntry[] | { error: string }>
-) {
+// Define the handler using the specific type
+const pluginsIndexHandler: ApiHandlerWithRegistry = async (
+  req,
+  res,
+  registry // Registry is now injected
+) => {
   if (req.method !== 'GET') {
+    // Let withRegistry handle 500, just set specific errors
+    res.setHeader('Allow', ['GET']);
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  try {
-    // Get storage provider directly or via registry instance
-    // Option 1: Direct (if you export DatabasePluginStorage instance or have a singleton)
-    // const storage = getDatabaseStorageInstance(); 
-    // Option 2: Via Registry (safer if registry manages storage lifecycle)
-    const registry = getRegistryInstance();
-    const storage = registry.getStorage(); // Assumes getStorage() exists on registry
-    
-    if (!storage) { throw new Error('Storage provider not available.'); }
-
-    // Fetch directly from storage (which queries the database)
-    const plugins = await storage.getPlugins(); 
-
-    res.status(200).json(plugins);
-  } catch (error) {
-    console.error('Failed to get plugins:', error);
-    res.status(500).json({ error: 'Failed to retrieve plugin list' });
+  // The wrapper ensures registry exists, but storage might theoretically be null
+  const storage = registry.getStorage(); 
+  if (!storage) { 
+      console.error('[API /plugins] Storage provider not available via registry.');
+      // Let withRegistry handle the 500 response
+      throw new Error('Storage provider not available.'); 
   }
-} 
+
+  // Fetch directly from storage (which queries the database)
+  // Specific error handling for this operation can remain if needed
+  try {
+      const plugins = await storage.getPlugins(); 
+      res.status(200).json(plugins);
+  } catch (storageError) {
+      console.error('[API /plugins] Failed to get plugins from storage:', storageError);
+      // Let withRegistry handle the 500 response
+      throw new Error('Failed to retrieve plugin list from storage'); 
+  }
+};
+
+// Export the wrapped handler
+export default withRegistry(pluginsIndexHandler); 

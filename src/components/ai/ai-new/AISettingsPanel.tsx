@@ -481,6 +481,9 @@ const AISettingsPanel: React.FC = () => {
                 ></label>
               </div>
             </div>
+
+            
+            {/* --- End Reasoning Toggle --- */}
           </div>
         </div>
         

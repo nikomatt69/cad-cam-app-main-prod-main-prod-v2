@@ -5,7 +5,7 @@ import { Vector3, Rotation } from './cad';
 /**
  * Types of nodes in the assembly tree
  */
-export type NodeType = 'component' | 'subassembly' | 'group';
+export type NodeType = 'component' | 'subassembly' | 'group' |'elements';
 
 /**
  * Base node in the assembly tree

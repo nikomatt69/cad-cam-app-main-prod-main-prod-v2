@@ -33,87 +33,87 @@ const MachineCycles: React.FC<MachineCyclesProps> = ({ controllerType, onCycleCo
   const [cycleParams, setCycleParams] = useState<Record<string, any>>({});
   const [previewCode, setPreviewCode] = useState<string>('');
 
-  // Collezione di cicli predefiniti
+  // Collection of predefined cycles
   const cycleTemplates: CycleTemplate[] = [
-    // Ciclo di foratura semplice
+    // Simple drilling cycle
     {
       id: 'simple-drilling',
-      name: 'Foratura Semplice',
-      description: 'Ciclo di foratura base con profondità e avanzamento',
+      name: 'Simple Drilling',
+      description: 'Base drilling cycle with depth and feedrate',
       icon: <DrillIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'drillDiameter',
-          label: 'Diametro Punta',
+          label: 'Drill Diameter',
           type: 'number',
           defaultValue: 8,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della punta da utilizzare'
+          description: 'Diameter of the drill bit to use' 
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 20,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale di foratura'
+          description: 'Total drilling depth'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 100,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la foratura'
+          description: 'Feed rate for drilling'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 1000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'retractHeight',
-          label: 'Altezza di Ritorno',
+          label: 'Retract Height',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Altezza di ritorno della punta dopo la foratura'
+          description: 'Return height of the drill after drilling'
         },
         {
           name: 'dwellTime',
-          label: 'Tempo di Sosta',
+          label: 'Dwell Time',
           type: 'number',
           defaultValue: 0,
           min: 0,
           max: 100,
           step: 0.1,
           unit: 'sec',
-          description: 'Tempo di sosta sul fondo (0 per nessuna sosta)'
+          description: 'Dwell time at the bottom (0 for no dwell)'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FORATURA SEMPLICE)
-(DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(SIMPLE DRILLING CYCLE)
+(DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z${params.retractHeight} H1
@@ -127,19 +127,19 @@ G80
 G00 Z${params.retractHeight}
 M5`;
         } else {
-          return `; CICLO DI FORATURA SEMPLICE
-; DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; SIMPLE DRILLING CYCLE
+; DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+${params.retractHeight} R0 FMAX
-CYCL DEF 200 FORATURA
-  Q200=${params.retractHeight}  ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q202=${params.depth}          ; PROF. INCREMENTO
-  Q210=0                        ; TEMPO ATTESA SOPRA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q211=${params.dwellTime}      ; TEMPO ATTESA SOTTO
+CYCL DEF 200 DRILLING
+  Q200=${params.retractHeight}  ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; DEPTH
+  Q206=${params.feedrate}       ; FEEDRATE FOR PLUNGING
+  Q202=${params.depth}          ; PLUNGING DEPTH
+  Q210=0                        ; DWELL TIME AT TOP
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q211=${params.dwellTime}      ; DWELL TIME AT BOTTOM
 L X+0 Y+0 R0 FMAX M99
 L X+10 Y+10 R0 FMAX M99
 L X+20 Y+10 R0 FMAX M99
@@ -150,129 +150,129 @@ M5`;
       }
     },
     
-    // Ciclo di tasca rettangolare
+    // Rectangular pocket cycle
     {
       id: 'rectangular-pocket',
-      name: 'Tasca Rettangolare',
-      description: 'Ciclo per la fresatura di una tasca rettangolare',
+      name: 'Rectangular Pocket',
+      description: 'Cycle for milling a rectangular pocket',
       icon: <PocketIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa da utilizzare'
+          description: 'Diameter of the milling cutter to use'
         },
         {
           name: 'pocketWidth',
-          label: 'Larghezza Tasca',
+          label: 'Pocket Width',
           type: 'number',
           defaultValue: 50,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Larghezza della tasca lungo l\'asse X'
+          description: 'Width of the pocket along the X-axis'
         },
         {
           name: 'pocketLength',
-          label: 'Lunghezza Tasca',
+          label: 'Pocket Length',
           type: 'number',
           defaultValue: 80,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Lunghezza della tasca lungo l\'asse Y'
+          description: 'Length of the pocket along the Y-axis'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 15,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale della tasca'
+          description: 'Total depth of the pocket'
         },
         {
           name: 'stepdown',
-          label: 'Incremento Z',
+          label: 'Z Increment',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di passata per ogni incremento'
+          description: 'Depth of cut for each increment'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 800,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Entrata',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 300,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'entrata in Z'
+          description: 'Feed rate for plunging in Z'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'cornerRadius',
-          label: 'Raggio Angoli',
+          label: 'Corner Radius',
           type: 'number',
           defaultValue: 5,
           min: 0,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Raggio degli angoli della tasca (0 per angoli vivi)'
+          description: 'Radius of the pocket corners (0 for sharp corners)'
         },
         {
           name: 'finishAllowance',
-          label: 'Sovrametallo Finitura',
+          label: 'Finish Allowance',
           type: 'number',
           defaultValue: 0.2,
           min: 0,
           max: 10,
           step: 0.05,
           unit: 'mm',
-          description: 'Sovrametallo lasciato per la finitura'
+          description: 'Stock left for finishing'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI TASCA RETTANGOLARE)
-(DIMENSIONI: ${params.pocketWidth}x${params.pocketLength}mm, PROFONDITA: ${params.depth}mm)
+          return `(RECTANGULAR POCKET CYCLE)
+(DIMENSIONS: ${params.pocketWidth}x${params.pocketLength}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -282,7 +282,7 @@ G00 X${-params.pocketWidth/2 + params.toolDiameter/2 + params.finishAllowance} Y
 ${Array.from({ length: Math.ceil(params.depth / params.stepdown) }).map((_, i) => {
   const currentDepth = Math.min((i + 1) * params.stepdown, params.depth);
   return `
-(PASSATA ${i + 1} - PROFONDITA: ${currentDepth}mm)
+(PASS ${i + 1} - DEPTH: ${currentDepth}mm)
 G01 Z-${currentDepth} F${params.plungeFeedrate}
 G01 X${params.pocketWidth/2 - params.toolDiameter/2 - params.finishAllowance} F${params.feedrate}
 G01 Y${params.pocketLength/2 - params.toolDiameter/2 - params.finishAllowance}
@@ -293,28 +293,28 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI TASCA RETTANGOLARE
-; DIMENSIONI: ${params.pocketWidth}x${params.pocketLength}mm, PROFONDITA: ${params.depth}mm
+          return `; RECTANGULAR POCKET CYCLE
+; DIMENSIONS: ${params.pocketWidth}x${params.pocketLength}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 251 TASCA RETTANGOLARE
-  Q215=0                        ; TIPO LAVORAZIONE
-  Q218=${params.pocketWidth}    ; LUNGHEZZA LATO 1
-  Q219=${params.pocketLength}   ; LUNGHEZZA LATO 2
-  Q220=${params.cornerRadius}   ; RAGGIO SPIGOLO
-  Q368=${params.finishAllowance}; QUOTA LATERALE CONS.
-  Q224=0                        ; ROTAZIONE
-  Q201=-${params.depth}         ; PROFONDITA
-  Q367=0                        ; POSIZIONE TASCA
-  Q202=${params.stepdown}       ; PROF. INCREMENTO
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-  Q206=${params.plungeFeedrate} ; AVANZ. INCREMENTO
-  Q385=${params.feedrate}       ; AVANZAMENTO FINITURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q351=+1                       ; MODO FRESATURA
-  Q370=1                        ; SOVRAPP. TRAIETT.
+CYCL DEF 251 RECTANGULAR POCKET
+  Q215=0                        ; MACHINING TYPE
+  Q218=${params.pocketWidth}    ; LENGTH SIDE 1
+  Q219=${params.pocketLength}   ; LENGTH SIDE 2
+  Q220=${params.cornerRadius}   ; CORNER RADIUS
+  Q368=${params.finishAllowance}; SIDE ALLOWANCE
+  Q224=0                        ; ROTATION
+  Q201=-${params.depth}         ; DEPTH
+  Q367=0                        ; POCKET POSITION
+  Q202=${params.stepdown}       ; PLUNGING DEPTH
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+  Q206=${params.plungeFeedrate} ; PLUNGING FEEDRATE
+  Q385=${params.feedrate}       ; FINISHING FEEDRATE
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q351=+1                       ; MILLING MODE
+  Q370=1                        ; PATH OVERLAP
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
@@ -323,108 +323,108 @@ M5`;
       }
     },
     
-    // Ciclo di contornatura
+    // Contour milling cycle
     {
       id: 'contour-milling',
-      name: 'Contornatura',
-      description: 'Ciclo per la fresatura di un profilo esterno o interno',
+      name: 'Contour Milling',
+      description: 'Cycle for milling an external or internal profile',
       icon: <ContourIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa da utilizzare'
+          description: 'Diameter of the milling cutter to use'
         },
         {
           name: 'contourType',
-          label: 'Tipo Contorno',
+          label: 'Contour Type',
           type: 'select',
           defaultValue: 'external',
           options: [
-            { value: 'external', label: 'Esterno (a destra)' },
-            { value: 'internal', label: 'Interno (a sinistra)' }
+            { value: 'external', label: 'External (right)' },
+            { value: 'internal', label: 'Internal (left)' }
           ],
-          description: 'Tipo di contorno: esterno o interno'
+          description: 'Contour type: external or internal'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale del contorno'
+          description: 'Total depth of the contour'
         },
         {
           name: 'stepdown',
-          label: 'Incremento Z',
+          label: 'Z Increment',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di passata per ogni incremento'
+          description: 'Depth of cut for each increment'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 800,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Entrata',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 300,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'entrata in Z'
+          description: 'Feed rate for plunging in Z'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'approachDistance',
-          label: 'Distanza Approccio',
+          label: 'Approach Distance',
           type: 'number',
           defaultValue: 5,
           min: 0,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Distanza di approccio al contorno'
+          description: 'Distance to approach the contour'
         },
         {
           name: 'useToolCompensation',
-          label: 'Usa Compensazione Utensile',
+          label: 'Use Tool Compensation',
           type: 'checkbox',
           defaultValue: true,
-          description: 'Attiva la compensazione del raggio utensile'
+          description: 'Activate tool radius compensation'
         }
       ],
       generateCode: (params, controllerType) => {
@@ -433,8 +433,8 @@ M5`;
           : (controllerType === 'fanuc' ? 'G41' : 'RL');
         
         if (controllerType === 'fanuc') {
-          return `(CICLO DI CONTORNATURA ${params.contourType === 'external' ? 'ESTERNA' : 'INTERNA'})
-(PROFONDITA: ${params.depth}mm, PASSATE: ${Math.ceil(params.depth / params.stepdown)})
+          return `(CONTOUR MILLING CYCLE ${params.contourType === 'external' ? 'EXTERNAL' : 'INTERNAL'})
+(DEPTH: ${params.depth}mm, PASSES: ${Math.ceil(params.depth / params.stepdown)})
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -443,7 +443,7 @@ M8
 ${Array.from({ length: Math.ceil(params.depth / params.stepdown) }).map((_, i) => {
   const currentDepth = Math.min((i + 1) * params.stepdown, params.depth);
   return `
-(PASSATA ${i + 1} - PROFONDITA: ${currentDepth}mm)
+(PASS ${i + 1} - DEPTH: ${currentDepth}mm)
 G00 X${-params.approachDistance} Y0
 G00 Z5
 G01 Z-${currentDepth} F${params.plungeFeedrate}
@@ -460,14 +460,14 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI CONTORNATURA ${params.contourType === 'external' ? 'ESTERNA' : 'INTERNA'}
-; PROFONDITA: ${params.depth}mm, PASSATE: ${Math.ceil(params.depth / params.stepdown)}
+          return `; CONTOUR MILLING CYCLE ${params.contourType === 'external' ? 'EXTERNAL' : 'INTERNAL'}
+; DEPTH: ${params.depth}mm, PASSES: ${Math.ceil(params.depth / params.stepdown)}
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
 ${Array.from({ length: Math.ceil(params.depth / params.stepdown) }).map((_, i) => {
   const currentDepth = Math.min((i + 1) * params.stepdown, params.depth);
   return `
-; PASSATA ${i + 1} - PROFONDITA: ${currentDepth}mm
+; PASS ${i + 1} - DEPTH: ${currentDepth}mm
 L X-${params.approachDistance} Y+0 R0 FMAX
 L Z+5 R0 FMAX
 L Z-${currentDepth} F${params.plungeFeedrate}
@@ -486,73 +486,73 @@ M5`;
       }
     },
     
-    // Ciclo di filettatura
+    // Tapping cycle
     {
       id: 'tapping-cycle',
-      name: 'Maschiatura',
-      description: 'Ciclo di maschiatura per filettature metriche',
+      name: 'Tapping',
+      description: 'Tapping cycle for metric threads',
       icon: <TapIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'threadSize',
-          label: 'Dimensione Filetto',
+          label: 'Thread Size',
           type: 'select',
           defaultValue: 'M8',
           options: [
-            { value: 'M3', label: 'M3 (passo 0.5mm)' },
-            { value: 'M4', label: 'M4 (passo 0.7mm)' },
-            { value: 'M5', label: 'M5 (passo 0.8mm)' },
-            { value: 'M6', label: 'M6 (passo 1.0mm)' },
-            { value: 'M8', label: 'M8 (passo 1.25mm)' },
-            { value: 'M10', label: 'M10 (passo 1.5mm)' },
-            { value: 'M12', label: 'M12 (passo 1.75mm)' }
+            { value: 'M3', label: 'M3 (pitch 0.5mm)' },
+            { value: 'M4', label: 'M4 (pitch 0.7mm)' },
+            { value: 'M5', label: 'M5 (pitch 0.8mm)' },
+            { value: 'M6', label: 'M6 (pitch 1.0mm)' },
+            { value: 'M8', label: 'M8 (pitch 1.25mm)' },
+            { value: 'M10', label: 'M10 (pitch 1.5mm)' },
+            { value: 'M12', label: 'M12 (pitch 1.75mm)' }
           ],
-          description: 'Dimensione della filettatura metrica'
+          description: 'Size of the metric thread'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 20,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale della filettatura'
+          description: 'Total depth of the thread'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 500,
           min: 1,
           max: 10000,
           step: 10,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'rigidTapping',
-          label: 'Maschiatura Rigida',
+          label: 'Rigid Tapping',
           type: 'checkbox',
           defaultValue: true,
-          description: 'Utilizza la modalità di maschiatura rigida (sincronizzata)'
+          description: 'Use rigid tapping mode (synchronized)'
         },
         {
           name: 'chamferDepth',
-          label: 'Profondità Smusso',
+          label: 'Chamfer Depth',
           type: 'number',
           defaultValue: 1,
           min: 0,
           max: 10,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità dello smusso all\'imbocco del filetto'
+          description: 'Depth of the chamfer at the thread entrance'
         }
       ],
       generateCode: (params, controllerType) => {
-        // Determina il passo in base alla dimensione del filetto
+        // Determine the pitch based on the thread size
         const threadPitchMap: Record<string, number> = {
           'M3': 0.5,
           'M4': 0.7,
@@ -563,15 +563,15 @@ M5`;
           'M12': 1.75
         };
         const pitch = threadPitchMap[params.threadSize];
-        const feedrate = params.spindleSpeed * pitch; // Feedrate per maschiatura
+        const feedrate = params.spindleSpeed * pitch; // Feedrate for tapping
         
         if (controllerType === 'fanuc') {
-          return `(CICLO DI MASCHIATURA ${params.threadSize})
-(PROFONDITA: ${params.depth}mm, PASSO: ${pitch}mm)
+          return `(TAPPING CYCLE ${params.threadSize})
+(DEPTH: ${params.depth}mm, PITCH: ${pitch}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
-${params.rigidTapping ? 'M29 S' + params.spindleSpeed + ' (MASCHIATURA RIGIDA)' : 'S' + params.spindleSpeed + ' M3'}
+${params.rigidTapping ? 'M29 S' + params.spindleSpeed + ' (RIGID TAPPING)' : 'S' + params.spindleSpeed + ' M3'}
 G00 X0 Y0
 G00 Z5
 G84 R5 Z-${params.depth} F${feedrate} ${params.rigidTapping ? '' : 'P100'}
@@ -582,16 +582,16 @@ G80
 G00 Z50
 M5`;
         } else {
-          return `; CICLO DI MASCHIATURA ${params.threadSize}
-; PROFONDITA: ${params.depth}mm, PASSO: ${pitch}mm
+          return `; TAPPING CYCLE ${params.threadSize}
+; DEPTH: ${params.depth}mm, PITCH: ${pitch}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 207 MASCHIATURA RIGID
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA FILETTO
-  Q239=${pitch}                 ; PASSO FILETTATURA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
+CYCL DEF 207 RIGID TAPPING
+  Q200=2                        ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; THREAD DEPTH
+  Q239=${pitch}                 ; THREAD PITCH
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -603,105 +603,105 @@ M5`;
       }
     },
     
-    // NUOVI CICLI AGGIUNTI
+    // NEW CYCLES ADDED
     
-    // Ciclo di foratura profonda
+    // Deep drilling cycle
     {
       id: 'deep-drilling',
-      name: 'Foratura Profonda',
-      description: 'Ciclo di foratura profonda con evacuazione trucioli',
+      name: 'Deep Drilling',
+      description: 'Deep drilling cycle with chip evacuation',
       icon: <DeepDrillIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'drillDiameter',
-          label: 'Diametro Punta',
+          label: 'Drill Diameter',
           type: 'number',
           defaultValue: 8,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della punta da utilizzare'
+          description: 'Diameter of the drill bit to use'
         },
         {
           name: 'depth',
-          label: 'Profondità Totale',
+          label: 'Total Depth',
           type: 'number',
           defaultValue: 80,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale del foro'
+          description: 'Total depth of the hole'
         },
         {
           name: 'peckDepth',
-          label: 'Profondità Incremento',
+          label: 'Peck Depth',
           type: 'number',
           defaultValue: 15,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di ogni incremento'
+          description: 'Depth of each peck'
         },
         {
           name: 'retractDistance',
-          label: 'Distanza Ritorno',
+          label: 'Retract Distance',
           type: 'number',
           defaultValue: 3,
           min: 0.1,
           max: 50,
           step: 0.1,
           unit: 'mm',
-          description: 'Distanza di ritorno per evacuazione trucioli'
+          description: 'Retract distance for chip evacuation'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 120,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la foratura'
+          description: 'Feed rate for drilling'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 1200,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'dwellAtBottom',
-          label: 'Sosta sul Fondo',
+          label: 'Dwell at Bottom',
           type: 'number',
           defaultValue: 0.5,
           min: 0,
           max: 10,
           step: 0.1,
           unit: 'sec',
-          description: 'Tempo di sosta sul fondo di ogni incremento'
+          description: 'Dwell time at the bottom of each peck'
         },
         {
           name: 'useChipBreaking',
-          label: 'Usa Rottura Truciolo',
+          label: 'Use Chip Breaking',
           type: 'checkbox',
           defaultValue: true,
-          description: 'Attiva la rottura trucioli durante la foratura'
+          description: 'Activate chip breaking during drilling'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FORATURA PROFONDA)
-(DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(DEEP DRILLING CYCLE)
+(DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -719,28 +719,28 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI FORATURA PROFONDA
-; DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; DEEP DRILLING CYCLE
+; DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF ${params.useChipBreaking ? '203 FORATURA UNIVERS' : '200 FORATURA'}
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q202=${params.peckDepth}      ; PROF. INCREMENTO
-  ${params.useChipBreaking ? `Q210=0                        ; TEMPO ATTESA SOPRA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q212=${params.retractDistance}; VALORE DA TOGLIERE
-  Q213=3                        ; N. ROTTURE TRUCIOLO
-  Q205=1                        ; MIN. PROF. INCREMENTO
-  Q211=${params.dwellAtBottom}  ; TEMPO ATTESA SOTTO
-  Q208=500                      ; AVANZAM. RITORNO
-  Q256=${params.retractDistance}; RITIRO ROTT.TRUCIOLO` : 
-  `Q210=0                        ; TEMPO ATTESA SOPRA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q211=${params.dwellAtBottom}  ; TEMPO ATTESA SOTTO`}
+CYCL DEF ${params.useChipBreaking ? '203 UNIVERSAL DRILLING' : '200 DRILLING'}
+  Q200=2                        ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; DEPTH
+  Q206=${params.feedrate}       ; FEEDRATE FOR PLUNGING
+  Q202=${params.peckDepth}      ; PLUNGING DEPTH
+  ${params.useChipBreaking ? `Q210=0                        ; DWELL TIME AT TOP
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q212=${params.retractDistance}; RETRACTION AMOUNT
+  Q213=3                        ; NO. OF CHIP BREAKS
+  Q205=1                        ; MIN. PLUNGING DEPTH
+  Q211=${params.dwellAtBottom}  ; DWELL TIME AT BOTTOM
+  Q208=500                      ; FEEDRATE FOR RETRACT
+  Q256=${params.retractDistance}; RETRACT CHIP BREAK` : 
+  `Q210=0                        ; DWELL TIME AT TOP
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q211=${params.dwellAtBottom}  ; DWELL TIME AT BOTTOM`}
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -752,133 +752,133 @@ M5`;
       }
     },
     
-    // Ciclo di fresatura di cave
+    // Slot milling cycle
     {
       id: 'slot-milling',
-      name: 'Fresatura Cave',
-      description: 'Ciclo per la fresatura di cave lineari',
+      name: 'Slot Milling',
+      description: 'Cycle for milling linear slots',
       icon: <SlotIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 8,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa da utilizzare'
+          description: 'Diameter of the milling cutter to use'
         },
         {
           name: 'slotLength',
-          label: 'Lunghezza Cava',
+          label: 'Slot Length',
           type: 'number',
           defaultValue: 50,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Lunghezza della cava'
+          description: 'Length of the slot'
         },
         {
           name: 'slotWidth',
-          label: 'Larghezza Cava',
+          label: 'Slot Width',
           type: 'number',
           defaultValue: 12,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Larghezza della cava'
+          description: 'Width of the slot'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale della cava'
+          description: 'Total depth of the slot'
         },
         {
           name: 'stepdown',
-          label: 'Incremento Z',
+          label: 'Z Increment',
           type: 'number',
           defaultValue: 3,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di passata per ogni incremento'
+          description: 'Depth of cut for each increment'
         },
         {
           name: 'stepover',
-          label: 'Incremento Laterale',
+          label: 'Stepover',
           type: 'number',
           defaultValue: 4,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Incremento laterale tra passate'
+          description: 'Lateral stepover between passes'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 600,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Entrata',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 300,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'entrata in Z'
+          description: 'Feed rate for plunging in Z'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3500,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'angle',
-          label: 'Angolo',
+          label: 'Angle',
           type: 'number',
           defaultValue: 0,
           min: -360,
           max: 360,
           step: 1,
-          unit: 'gradi',
-          description: 'Angolo della cava rispetto all\'asse X'
+          unit: 'degrees',
+          description: 'Angle of the slot relative to the X-axis'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          // Verifica se la larghezza della cava è maggiore del diametro dell'utensile
+          // Check if slot width is greater than tool diameter
           const needsMultiplePasses = params.slotWidth > params.toolDiameter;
           const numberOfPasses = needsMultiplePasses ? Math.ceil((params.slotWidth - params.toolDiameter) / params.stepover) + 1 : 1;
           
-          let code = `(CICLO DI FRESATURA CAVE)
-(DIMENSIONI: ${params.slotLength}x${params.slotWidth}mm, PROFONDITA: ${params.depth}mm)
+          let code = `(SLOT MILLING CYCLE)
+(DIMENSIONS: ${params.slotLength}x${params.slotWidth}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -887,19 +887,19 @@ M8\n`;
           
           for (let depthPass = 0; depthPass < Math.ceil(params.depth / params.stepdown); depthPass++) {
             const currentDepth = Math.min((depthPass + 1) * params.stepdown, params.depth);
-            code += `(PASSATA Z ${depthPass + 1} - PROFONDITA: ${currentDepth}mm)\n`;
+            code += `(Z PASS ${depthPass + 1} - DEPTH: ${currentDepth}mm)\n`;
             
             if (needsMultiplePasses) {
-              // Calcola il primo offset laterale (centro fresa al bordo della cava)
+              // Calculate the first lateral offset (tool center to slot edge)
               const startOffset = (params.slotWidth - params.toolDiameter) / 2;
               
               for (let widthPass = 0; widthPass < numberOfPasses; widthPass++) {
-                // Calcola l'offset laterale per questa passata
+                // Calculate the lateral offset for this pass
                 const offset = startOffset - (widthPass * params.stepover);
                 const yOffset = offset * Math.sin(params.angle * Math.PI / 180);
                 const xOffset = offset * Math.cos(params.angle * Math.PI / 180);
                 
-                // Calcola i punti di inizio e fine della cava con l'angolo
+                // Calculate the start and end points of the slot with the angle
                 const startX = -params.slotLength/2 * Math.cos(params.angle * Math.PI / 180) + xOffset;
                 const startY = -params.slotLength/2 * Math.sin(params.angle * Math.PI / 180) + yOffset;
                 const endX = params.slotLength/2 * Math.cos(params.angle * Math.PI / 180) + xOffset;
@@ -914,7 +914,7 @@ M8\n`;
                 code += `G00 Z5\n`;
               }
             } else {
-              // Calcola i punti di inizio e fine della cava con l'angolo
+              // Calculate the start and end points of the slot with the angle
               const startX = -params.slotLength/2 * Math.cos(params.angle * Math.PI / 180);
               const startY = -params.slotLength/2 * Math.sin(params.angle * Math.PI / 180);
               const endX = params.slotLength/2 * Math.cos(params.angle * Math.PI / 180);
@@ -933,28 +933,28 @@ M8\n`;
           code += `G00 Z50\nM9\nM5`;
           return code;
         } else {
-          return `; CICLO DI FRESATURA CAVE
-; DIMENSIONI: ${params.slotLength}x${params.slotWidth}mm, PROFONDITA: ${params.depth}mm
+          return `; SLOT MILLING CYCLE
+; DIMENSIONS: ${params.slotLength}x${params.slotWidth}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 253 FRESATURA SCANALATURE
-  Q215=0                        ; TIPO LAVORAZIONE
-  Q218=${params.slotLength}     ; LUNGHEZZA SCANALATURA
-  Q219=${params.slotWidth}      ; LARGH. SCANALATURA
-  Q368=0                        ; QUOTA LATERALE CONS.
-  Q374=${params.angle}          ; ANGOLO DI ROTAZIONE
-  Q367=0                        ; POSIZIONE SCANALATURA
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-  Q351=+1                       ; MODO FRESATURA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q202=${params.stepdown}       ; PROF. INCREMENTO
-  Q369=0                        ; PROFONDITA' CONSEN.
-  Q206=${params.plungeFeedrate} ; AVANZ. INCREMENTO
-  Q338=${params.stepover}       ; INCREMENTO FINITURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q366=0                        ; STRATEGIA PENETRAZIONE
+CYCL DEF 253 SLOT MILLING
+  Q215=0                        ; MACHINING TYPE
+  Q218=${params.slotLength}     ; SLOT LENGTH
+  Q219=${params.slotWidth}      ; SLOT WIDTH
+  Q368=0                        ; SIDE ALLOWANCE
+  Q374=${params.angle}          ; ANGLE OF ROTATION
+  Q367=0                        ; SLOT POSITION
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+  Q351=+1                       ; MILLING MODE
+  Q201=-${params.depth}         ; DEPTH
+  Q202=${params.stepdown}       ; PLUNGING DEPTH
+  Q369=0                        ; DEPTH ALLOWANCE
+  Q206=${params.plungeFeedrate} ; PLUNGING FEEDRATE
+  Q338=${params.stepover}       ; FINISHING INCREMENT
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q366=0                        ; PLUNGING STRATEGY
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
@@ -963,107 +963,107 @@ M5`;
       }
     },
     
-    // Ciclo di alesatura
+    // Boring cycle
     {
       id: 'boring-cycle',
-      name: 'Alesatura',
-      description: 'Ciclo di alesatura di precisione',
+      name: 'Boring',
+      description: 'Precision boring cycle',
       icon: <BoringIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'initialDiameter',
-          label: 'Diametro Iniziale',
+          label: 'Initial Diameter',
           type: 'number',
           defaultValue: 20,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro del preforo'
+          description: 'Diameter of the pre-drilled hole'
         },
         {
           name: 'finalDiameter',
-          label: 'Diametro Finale',
+          label: 'Final Diameter',
           type: 'number',
           defaultValue: 22,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro finale dopo l\'alesatura'
+          description: 'Final diameter after boring'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 30,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale dell\'alesatura'
+          description: 'Total depth of the boring operation'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 80,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'alesatura'
+          description: 'Feed rate for boring'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 800,
           min: 1,
           max: 24000,
           step: 10,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'dwellTime',
-          label: 'Tempo di Sosta',
+          label: 'Dwell Time',
           type: 'number',
           defaultValue: 0.5,
           min: 0,
           max: 10,
           step: 0.1,
           unit: 'sec',
-          description: 'Tempo di sosta sul fondo per la finitura'
+          description: 'Dwell time at the bottom for finishing'
         },
         {
           name: 'retractFeedrate',
-          label: 'Avanzamento Ritorno',
+          label: 'Retract Feedrate',
           type: 'number',
           defaultValue: 150,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per il ritorno'
+          description: 'Feed rate for retraction'
         },
         {
           name: 'orientation',
-          label: 'Orientamento Mandrino',
+          label: 'Spindle Orientation',
           type: 'number',
           defaultValue: 0,
           min: 0,
           max: 360,
           step: 1,
-          unit: 'gradi',
-          description: 'Angolo di orientamento del mandrino all\'uscita'
+          unit: 'degrees',
+          description: 'Spindle orientation angle upon exit'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI ALESATURA)
-(DIAMETRO: ${params.initialDiameter}mm -> ${params.finalDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(BORING CYCLE)
+(DIAMETER: ${params.initialDiameter}mm -> ${params.finalDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -1080,20 +1080,20 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI ALESATURA
-; DIAMETRO: ${params.initialDiameter}mm -> ${params.finalDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; BORING CYCLE
+; DIAMETER: ${params.initialDiameter}mm -> ${params.finalDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 202 BARENATURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q211=${params.dwellTime}      ; TEMPO ATTESA SOTTO
-  Q208=${params.retractFeedrate}; AVANZAM. RITORNO
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q214=1                        ; DIREZIONE DISIMPEGNO
-  Q336=${params.orientation}    ; ANGOLO MANDRINO
+CYCL DEF 202 BORING
+  Q200=2                        ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; DEPTH
+  Q206=${params.feedrate}       ; FEEDRATE FOR PLUNGING
+  Q211=${params.dwellTime}      ; DWELL TIME AT BOTTOM
+  Q208=${params.retractFeedrate}; FEEDRATE FOR RETRACT
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q214=1                        ; RETRACTION DIRECTION
+  Q336=${params.orientation}    ; SPINDLE ANGLE
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -1105,101 +1105,101 @@ M5`;
       }
     },
     
-    // Ciclo di barenatura
+    // Back boring cycle
     {
       id: 'back-boring',
-      name: 'Barenatura Inversa',
-      description: 'Ciclo di barenatura inversa per lavorazioni dal basso',
+      name: 'Back Boring',
+      description: 'Inverse boring cycle for machining from the bottom',
       icon: <BackBoringIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'holeDiameter',
-          label: 'Diametro Foro',
+          label: 'Hole Diameter',
           type: 'number',
           defaultValue: 20,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro del foro passante'
+          description: 'Diameter of the through hole'
         },
         {
           name: 'counterboreDiameter',
-          label: 'Diametro Svasatura',
+          label: 'Counterbore Diameter',
           type: 'number',
           defaultValue: 28,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della svasatura inferiore'
+          description: 'Diameter of the bottom counterbore'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità della svasatura (dalla superficie inferiore)'
+          description: 'Depth of the counterbore (from the bottom surface)'
         },
         {
           name: 'thickness',
-          label: 'Spessore Pezzo',
+          label: 'Part Thickness',
           type: 'number',
           defaultValue: 30,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Spessore totale del pezzo'
+          description: 'Total thickness of the part'
         },
         {
           name: 'safetyDistance',
-          label: 'Distanza Sicurezza',
+          label: 'Safety Distance',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Distanza di sicurezza all\'interno del foro'
+          description: 'Safety distance inside the hole'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 100,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la barenatura'
+          description: 'Feed rate for boring'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 600,
           min: 1,
           max: 24000,
           step: 10,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'dwellTime',
-          label: 'Tempo di Sosta',
+          label: 'Dwell Time',
           type: 'number',
           defaultValue: 0.2,
           min: 0,
           max: 10,
           step: 0.1,
           unit: 'sec',
-          description: 'Tempo di sosta in profondità'
+          description: 'Dwell time at depth'
         }
       ],
       generateCode: (params, controllerType) => {
@@ -1207,8 +1207,8 @@ M5`;
         const totalDepth = params.thickness + params.depth;
         
         if (controllerType === 'fanuc') {
-          return `(CICLO DI BARENATURA INVERSA)
-(DIAMETRO SVASATURA: ${params.counterboreDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(BACK BORING CYCLE)
+(COUNTERBORE DIAMETER: ${params.counterboreDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -1216,9 +1216,9 @@ S${params.spindleSpeed} M3
 M8
 G00 X0 Y0
 G00 Z5
-(POSIZIONAMENTO UTENSILE DENTRO IL FORO)
+(POSITION TOOL INSIDE HOLE)
 G00 Z-${approachDepth}
-(ORIENTAMENTO MANDRINO)
+(SPINDLE ORIENTATION)
 M19
 G31 Z-${totalDepth} F50
 G01 Z-${totalDepth} F${params.feedrate}
@@ -1226,7 +1226,7 @@ G04 P${params.dwellTime * 1000}
 G01 Z-${approachDepth} F${params.feedrate}
 G00 Z5
 X10 Y10
-(RIPETE CICLO)
+(REPEAT CYCLE)
 G00 Z-${approachDepth}
 M19
 G31 Z-${totalDepth} F50
@@ -1238,21 +1238,21 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI BARENATURA INVERSA
-; DIAMETRO SVASATURA: ${params.counterboreDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; BACK BORING CYCLE
+; COUNTERBORE DIAMETER: ${params.counterboreDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 204 LAVORAZIONE INV.
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q249=${params.depth}          ; PROFONDITA SCARICO
-  Q250=${params.thickness}      ; SPESSORE MATERIALE
-  Q251=2                        ; ECCENTRICITA
-  Q252=0                        ; ALTEZZA TAGLIENTE
-  Q253=500                      ; AVANZ. AVVICINAMENTO
-  Q254=${params.feedrate}       ; AVANZ. LAVORAZIONE
-  Q255=${params.dwellTime}      ; TEMPO ATTESA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
+CYCL DEF 204 BACK BORING
+  Q200=2                        ; SAFETY DISTANCE
+  Q249=${params.depth}          ; BACK BORE DEPTH
+  Q250=${params.thickness}      ; MATERIAL THICKNESS
+  Q251=2                        ; ECCENTRICITY
+  Q252=0                        ; CUTTING EDGE HEIGHT
+  Q253=500                      ; FEEDRATE FOR APPROACH
+  Q254=${params.feedrate}       ; FEEDRATE FOR MACHINING
+  Q255=${params.dwellTime}      ; DWELL TIME
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -1264,116 +1264,116 @@ M5`;
       }
     },
     
-    // Ciclo di maschiatura a rompere
+    // Thread milling cycle
     {
       id: 'thread-milling',
-      name: 'Fresatura Filetti',
-      description: 'Ciclo di fresatura filetti interni o esterni',
+      name: 'Thread Milling',
+      description: 'Cycle for internal or external thread milling',
       icon: <ThreadMillingIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'threadDiameter',
-          label: 'Diametro Filetto',
+          label: 'Thread Diameter',
           type: 'number',
           defaultValue: 16,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro nominale del filetto'
+          description: 'Nominal diameter of the thread'
         },
         {
           name: 'threadPitch',
-          label: 'Passo Filetto',
+          label: 'Thread Pitch',
           type: 'number',
           defaultValue: 2,
           min: 0.1,
           max: 10,
           step: 0.05,
           unit: 'mm',
-          description: 'Passo del filetto'
+          description: 'Pitch of the thread'
         },
         {
           name: 'threadDepth',
-          label: 'Profondità Filetto',
+          label: 'Thread Depth (Radial)',
           type: 'number',
           defaultValue: 1.6,
           min: 0.1,
           max: 10,
           step: 0.05,
           unit: 'mm',
-          description: 'Profondità del filetto (radiale)'
+          description: 'Depth of the thread (radial)'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 20,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale del filetto'
+          description: 'Total depth of the thread'
         },
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 8,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa per filettare'
+          description: 'Diameter of the thread milling cutter'
         },
         {
           name: 'threadType',
-          label: 'Tipo Filetto',
+          label: 'Thread Type',
           type: 'select',
           defaultValue: 'internal',
           options: [
-            { value: 'internal', label: 'Interno' },
-            { value: 'external', label: 'Esterno' }
+            { value: 'internal', label: 'Internal' },
+            { value: 'external', label: 'External' }
           ],
-          description: 'Tipo di filetto: interno o esterno'
+          description: 'Thread type: internal or external'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 400,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'threadTurns',
-          label: 'Numero Giri',
+          label: 'Number of Turns',
           type: 'number',
           defaultValue: 1,
           min: 1,
           max: 10,
           step: 0.25,
-          unit: 'giri',
-          description: 'Numero di giri completi del filetto'
+          unit: 'turns',
+          description: 'Number of complete thread turns'
         }
       ],
       generateCode: (params, controllerType) => {
-        // Calcola il raggio di lavoro in base al tipo di filetto
+        // Calculate the working radius based on thread type
         const workRadius = params.threadType === 'internal' ? 
           (params.threadDiameter / 2) - params.threadDepth :
           (params.threadDiameter / 2) + params.threadDepth;
@@ -1381,8 +1381,8 @@ M5`;
         const helixRadius = workRadius - (params.threadType === 'internal' ? 1 : -1) * (params.toolDiameter / 2);
         
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FRESATURA FILETTI ${params.threadType === 'internal' ? 'INTERNI' : 'ESTERNI'})
-(DIAMETRO: ${params.threadDiameter}mm, PASSO: ${params.threadPitch}mm, PROFONDITA: ${params.depth}mm)
+          return `(THREAD MILLING CYCLE ${params.threadType === 'internal' ? 'INTERNAL' : 'EXTERNAL'})
+(DIAMETER: ${params.threadDiameter}mm, PITCH: ${params.threadPitch}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -1390,22 +1390,22 @@ S${params.spindleSpeed} M3
 M8
 G00 X0 Y0
 G00 Z5
-(POSIZIONAMENTO AL CENTRO)
+(POSITION AT CENTER)
 ${params.threadType === 'internal' ? 
   `G00 X${-(helixRadius)}` :
   `G00 X${helixRadius}`}
-(AVVICINAMENTO ALLA PROFONDITÀ DI LAVORO)
+(APPROACH TO WORKING DEPTH)
 G01 Z0 F${params.feedrate}
-(MOVIMENTO ELICOIDALE)
+(HELICAL MOVEMENT)
 G17
 ${params.threadType === 'internal' ?
   `G02 X${helixRadius} Y0 I${helixRadius} J0 Z-${params.depth} F${params.feedrate}` :
   `G03 X${-helixRadius} Y0 I${-helixRadius} J0 Z-${params.depth} F${params.feedrate}`}
-(CICLO COMPLETO DEL FILETTO)
+(COMPLETE THREAD CYCLE)
 ${params.threadType === 'internal' ?
   `G02 X${helixRadius} Y0 I${-(helixRadius)} J0 F${params.feedrate}` :
   `G03 X${-helixRadius} Y0 I${helixRadius} J0 F${params.feedrate}`}
-(RITORNO AL CENTRO)
+(RETURN TO CENTER)
 ${params.threadType === 'internal' ?
   `G01 X0` :
   `G01 X0`}
@@ -1413,33 +1413,33 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI FRESATURA FILETTI ${params.threadType === 'internal' ? 'INTERNI' : 'ESTERNI'}
-; DIAMETRO: ${params.threadDiameter}mm, PASSO: ${params.threadPitch}mm, PROFONDITA: ${params.depth}mm
+          return `; THREAD MILLING CYCLE ${params.threadType === 'internal' ? 'INTERNAL' : 'EXTERNAL'}
+; DIAMETER: ${params.threadDiameter}mm, PITCH: ${params.threadPitch}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 262 FRESATURA FILETTO
-  Q335=${params.threadDiameter} ; DIAMETRO NOMINALE
-  Q239=${params.threadPitch}    ; PASSO FILETTATURA
-  Q201=-${params.depth}         ; PROFONDITA FILETTO
-  Q355=${params.threadTurns}    ; FILETTI PER PASSATA
-  Q253=750                      ; AVANZ. AVVICINAMENTO
-  Q351=+1                       ; MODO FRESATURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-CYCL DEF 264 FRES. FIL. DAL PIENO
-  Q335=${params.threadDiameter} ; DIAMETRO NOMINALE
-  Q239=${params.threadPitch}    ; PASSO FILETTATURA
-  Q201=-${params.depth}         ; PROFONDITA FILETTO
-  Q222=${params.threadDiameter + (params.threadType === 'internal' ? -2 : 2) * params.threadDepth} ; DIAMETRO PREFORATURA
-  Q355=${params.threadTurns}    ; FILETTI PER PASSATA
-  Q253=750                      ; AVANZ. AVVICINAMENTO
-  Q351=+1                       ; MODO FRESATURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
+CYCL DEF 262 THREAD MILLING
+  Q335=${params.threadDiameter} ; NOMINAL DIAMETER
+  Q239=${params.threadPitch}    ; THREAD PITCH
+  Q201=-${params.depth}         ; THREAD DEPTH
+  Q355=${params.threadTurns}    ; THREADS PER PASS
+  Q253=750                      ; FEEDRATE FOR APPROACH
+  Q351=+1                       ; MILLING MODE
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+CYCL DEF 264 THREAD MILLING FROM SOLID
+  Q335=${params.threadDiameter} ; NOMINAL DIAMETER
+  Q239=${params.threadPitch}    ; THREAD PITCH
+  Q201=-${params.depth}         ; THREAD DEPTH
+  Q222=${params.threadDiameter + (params.threadType === 'internal' ? -2 : 2) * params.threadDepth} ; PRE-DRILLED DIAMETER
+  Q355=${params.threadTurns}    ; THREADS PER PASS
+  Q253=750                      ; FEEDRATE FOR APPROACH
+  Q351=+1                       ; MILLING MODE
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
@@ -1448,125 +1448,125 @@ M5`;
       }
     },
     
-    // Ciclo di fresatura circolare
+    // Circular pocket milling cycle
     {
       id: 'circular-pocket',
-      name: 'Tasca Circolare',
-      description: 'Ciclo per la fresatura di tasche circolari',
+      name: 'Circular Pocket',
+      description: 'Cycle for milling circular pockets',
       icon: <CircularPocketIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa da utilizzare'
+          description: 'Diameter of the milling cutter to use'
         },
         {
           name: 'pocketDiameter',
-          label: 'Diametro Tasca',
+          label: 'Pocket Diameter',
           type: 'number',
           defaultValue: 80,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro finale della tasca'
+          description: 'Final diameter of the pocket'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 15,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale della tasca'
+          description: 'Total depth of the pocket'
         },
         {
           name: 'stepdown',
-          label: 'Incremento Z',
+          label: 'Z Increment',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di passata per ogni incremento'
+          description: 'Depth of cut for each increment'
         },
         {
           name: 'stepover',
-          label: 'Incremento Radiale',
+          label: 'Radial Stepover',
           type: 'number',
           defaultValue: 4,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Incremento radiale tra passate'
+          description: 'Radial stepover between passes'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 800,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Entrata',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 300,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'entrata in Z'
+          description: 'Feed rate for plunging in Z'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'finishAllowance',
-          label: 'Sovrametallo Finitura',
+          label: 'Finish Allowance',
           type: 'number',
           defaultValue: 0.2,
           min: 0,
           max: 10,
           step: 0.05,
           unit: 'mm',
-          description: 'Sovrametallo lasciato per la finitura'
+          description: 'Stock left for finishing'
         },
         {
           name: 'helicalEntrance',
-          label: 'Entrata Elicoidale',
+          label: 'Helical Entrance',
           type: 'checkbox',
           defaultValue: true,
-          description: 'Usa entrata elicoidale invece che verticale'
+          description: 'Use helical entrance instead of vertical'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI TASCA CIRCOLARE)
-(DIAMETRO: ${params.pocketDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(CIRCULAR POCKET CYCLE)
+(DIAMETER: ${params.pocketDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -1575,61 +1575,62 @@ M8
 G00 X0 Y0
 G00 Z5
 ${params.helicalEntrance ? 
-  `(ENTRATA ELICOIDALE)
+  `(HELICAL ENTRANCE)
 G17
 G03 X0 Y0 I${params.toolDiameter/4} J0 Z-${params.stepdown} F${params.plungeFeedrate}` : 
-  `(ENTRATA VERTICALE)
+  `(VERTICAL ENTRANCE)
 G01 Z-${params.stepdown} F${params.plungeFeedrate}`}
 
 ${Array.from({ length: Math.ceil(params.depth / params.stepdown) }).map((_, i) => {
   const currentDepth = Math.min((i + 1) * params.stepdown, params.depth);
   const maxRadius = (params.pocketDiameter - params.toolDiameter) / 2 - params.finishAllowance;
   
-  let passCode = `(PASSATA ${i + 1} - PROFONDITA: ${currentDepth}mm)\n`;
+  let passCode = `(PASS ${i + 1} - DEPTH: ${currentDepth}mm)\n`;
   
-  // Se non è la prima passata, entra alla nuova profondità
+  // If not the first pass, plunge to the new depth
   if (i > 0) {
     passCode += `G01 Z-${currentDepth} F${params.plungeFeedrate}\n`;
   }
   
-  // Calcola quante passate radiali sono necessarie
+  // Calculate how many radial passes are needed
   const numRadialPasses = Math.ceil(maxRadius / params.stepover);
   
   for (let j = 0; j < numRadialPasses; j++) {
     const currentRadius = Math.min((j + 1) * params.stepover, maxRadius);
-    passCode += `G03 X0 Y0 I0 J0 R${currentRadius} F${params.feedrate}\n`;
+    passCode += `G03 X0 Y0 I0 J0 R${currentRadius} F${params.feedrate}\n`; // Note: R is non-standard on many Fanucs
   }
   
   return passCode;
 }).join('')}
 
-(FINITURA LATERALE)
+(SIDE FINISHING)
 G03 X0 Y0 I0 J0 R${(params.pocketDiameter - params.toolDiameter) / 2} F${params.feedrate}
+ // Note: R is non-standard
 G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI TASCA CIRCOLARE
-; DIAMETRO: ${params.pocketDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; CIRCULAR POCKET CYCLE
+; DIAMETER: ${params.pocketDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 252 TASCA CIRCOLARE
-  Q215=0                        ; TIPO LAVORAZIONE
-  Q223=${params.pocketDiameter} ; DIAMETRO TASCA
-  Q368=${params.finishAllowance}; QUOTA LATERALE CONS.
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-  Q351=+1                       ; MODO FRESATURA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q202=${params.stepdown}       ; PROF. INCREMENTO
-  Q369=0                        ; PROFONDITA' CONSEN.
-  Q206=${params.plungeFeedrate} ; AVANZ. INCREMENTO
-  Q338=${params.stepover}       ; INCREMENTO FINITURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q370=1                        ; SOVRAPP. TRAIETT.
-  Q366=${params.helicalEntrance ? '1' : '0'} ; STRATEGIA PENETRAZIONE
-  Q385=${params.feedrate}       ; AVANZAMENTO FINITURA
+CYCL DEF 252 CIRCULAR POCKET
+  Q215=0                        ; MACHINING TYPE
+  Q223=${params.pocketDiameter} ; POCKET DIAMETER
+  Q368=${params.finishAllowance}; SIDE ALLOWANCE
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+  Q351=+1                       ; MILLING MODE
+  Q201=-${params.depth}         ; DEPTH
+  Q202=${params.stepdown}       ; PLUNGING DEPTH
+  Q369=0                        ; DEPTH ALLOWANCE
+  Q206=${params.plungeFeedrate} ; PLUNGING FEEDRATE
+  Q338=${params.stepover}       ; FINISHING STEP
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q370=1                        ; PATH OVERLAP
+  Q366=${params.helicalEntrance ? '1' : '0'} ; PLUNGING STRATEGY
+  Q385=${params.feedrate}       ; FINISHING FEEDRATE
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
@@ -1638,129 +1639,129 @@ M5`;
       }
     },
     
-    // Ciclo di fresatura di isole
+    // Circular island milling cycle
     {
       id: 'circular-island',
-      name: 'Isola Circolare',
-      description: 'Ciclo per la fresatura di isole circolari',
+      name: 'Circular Island',
+      description: 'Cycle for milling circular islands',
       icon: <CircularIslandIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa da utilizzare'
+          description: 'Diameter of the milling cutter to use'
         },
         {
           name: 'islandDiameter',
-          label: 'Diametro Isola',
+          label: 'Island Diameter',
           type: 'number',
           defaultValue: 50,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro finale dell\'isola'
+          description: 'Final diameter of the island'
         },
         {
           name: 'stockDiameter',
-          label: 'Diametro Grezzo',
+          label: 'Stock Diameter',
           type: 'number',
           defaultValue: 60,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro del materiale grezzo'
+          description: 'Diameter of the raw material'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 15,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale della lavorazione'
+          description: 'Total depth of the machining operation'
         },
         {
           name: 'stepdown',
-          label: 'Incremento Z',
+          label: 'Z Increment',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di passata per ogni incremento'
+          description: 'Depth of cut for each increment'
         },
         {
           name: 'stepover',
-          label: 'Incremento Radiale',
+          label: 'Radial Stepover',
           type: 'number',
           defaultValue: 4,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Incremento radiale tra passate'
+          description: 'Radial stepover between passes'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 800,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Entrata',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 300,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'entrata in Z'
+          description: 'Feed rate for plunging in Z'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'finishAllowance',
-          label: 'Sovrametallo Finitura',
+          label: 'Finish Allowance',
           type: 'number',
           defaultValue: 0.2,
           min: 0,
           max: 10,
           step: 0.05,
           unit: 'mm',
-          description: 'Sovrametallo lasciato per la finitura'
+          description: 'Stock left for finishing'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI ISOLA CIRCOLARE)
-(DIAMETRO ISOLA: ${params.islandDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(CIRCULAR ISLAND CYCLE)
+(ISLAND DIAMETER: ${params.islandDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -1774,56 +1775,57 @@ ${Array.from({ length: Math.ceil(params.depth / params.stepdown) }).map((_, i) =
   const finishRadius = (params.islandDiameter + params.toolDiameter) / 2 + params.finishAllowance;
   const startRadius = (params.stockDiameter + params.toolDiameter) / 2;
   
-  let passCode = `(PASSATA ${i + 1} - PROFONDITA: ${currentDepth}mm)\n`;
+  let passCode = `(PASS ${i + 1} - DEPTH: ${currentDepth}mm)\n`;
   
-  // Entrata alla nuova profondità
+  // Plunge to the new depth
   passCode += `G01 Z-${currentDepth} F${params.plungeFeedrate}\n`;
   
-  // Prima passata - cerchio completo dal diametro esterno
-  passCode += `G03 X${startRadius} Y0 I${-startRadius} J0 F${params.feedrate}\n`;
+  // First pass - full circle from the outer diameter
+  passCode += `G03 X${startRadius} Y0 I${-startRadius} J0 F${params.feedrate}\n`; // Note: I/J relative to start point
   
-  // Calcola quante passate radiali sono necessarie
+  // Calculate how many radial passes are needed
   const radialDistance = (startRadius - finishRadius);
   const numRadialPasses = Math.ceil(radialDistance / params.stepover);
   
   for (let j = 1; j <= numRadialPasses; j++) {
-    // Calcola il raggio per questa passata
+    // Calculate the radius for this pass
     const currentRadius = startRadius - Math.min(j * params.stepover, radialDistance);
     
-    // Sposta all'interno
+    // Move inwards
     passCode += `G01 X${currentRadius} F${params.feedrate}\n`;
     
-    // Cerchio completo
-    passCode += `G03 X${currentRadius} Y0 I${-currentRadius} J0 F${params.feedrate}\n`;
+    // Full circle
+    passCode += `G03 X${currentRadius} Y0 I${-currentRadius} J0 F${params.feedrate}\n`; // Note: I/J relative to start point
   }
   
   return passCode;
 }).join('')}
 
-(FINITURA LATERALE)
+(SIDE FINISHING)
 G01 X${(params.islandDiameter + params.toolDiameter) / 2} F${params.feedrate}
 G03 X${(params.islandDiameter + params.toolDiameter) / 2} Y0 I${-(params.islandDiameter + params.toolDiameter) / 2} J0 F${params.feedrate}
+ // Note: I/J relative to start point
 G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI ISOLA CIRCOLARE
-; DIAMETRO ISOLA: ${params.islandDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; CIRCULAR ISLAND CYCLE
+; ISLAND DIAMETER: ${params.islandDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 257 ISOLA CIRCOLARE
-  Q223=${params.islandDiameter} ; DIAMETRO PEZZO FINITO
-  Q222=${params.stockDiameter}  ; DIAMETRO PEZZO GREZZO
-  Q368=${params.finishAllowance}; QUOTA LATERALE CONS.
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-  Q351=+1                       ; MODO FRESATURA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q202=${params.stepdown}       ; PROF. INCREMENTO
-  Q206=${params.plungeFeedrate} ; AVANZ. INCREMENTO
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q370=1                        ; SOVRAPP. TRAIETT.
+CYCL DEF 257 CIRCULAR ISLAND
+  Q223=${params.islandDiameter} ; FINISHED PART DIAMETER
+  Q222=${params.stockDiameter}  ; RAW PART DIAMETER
+  Q368=${params.finishAllowance}; SIDE ALLOWANCE
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+  Q351=+1                       ; MILLING MODE
+  Q201=-${params.depth}         ; DEPTH
+  Q202=${params.stepdown}       ; PLUNGING DEPTH
+  Q206=${params.plungeFeedrate} ; PLUNGING FEEDRATE
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q370=1                        ; PATH OVERLAP
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
@@ -1832,107 +1834,107 @@ M5`;
       }
     },
     
-    // Ciclo di foratura con rottura truciolo
+    // Chip breaking drilling cycle
     {
       id: 'chip-breaking-drill',
-      name: 'Foratura con Rottura Truciolo',
-      description: 'Ciclo di foratura con rottura truciolo programmata',
+      name: 'Chip Breaking Drilling',
+      description: 'Drilling cycle with programmed chip breaking',
       icon: <ChipBreakingIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'drillDiameter',
-          label: 'Diametro Punta',
+          label: 'Drill Diameter',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della punta da utilizzare'
+          description: 'Diameter of the drill bit to use'
         },
         {
           name: 'depth',
-          label: 'Profondità Totale',
+          label: 'Total Depth',
           type: 'number',
           defaultValue: 50,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale del foro'
+          description: 'Total depth of the hole'
         },
         {
           name: 'incrementDepth',
-          label: 'Profondità Incremento',
+          label: 'Increment Depth',
           type: 'number',
           defaultValue: 5,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di ogni incremento'
+          description: 'Depth of each increment'
         },
         {
           name: 'chipBreakDistance',
-          label: 'Distanza Rottura',
+          label: 'Chip Break Distance',
           type: 'number',
           defaultValue: 1,
           min: 0.1,
           max: 10,
           step: 0.1,
           unit: 'mm',
-          description: 'Distanza di ritorno per rottura truciolo'
+          description: 'Retract distance for chip breaking'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 150,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la foratura'
+          description: 'Feed rate for drilling'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 1500,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'returnType',
-          label: 'Tipo Ritorno',
+          label: 'Return Type',
           type: 'select',
           defaultValue: 'rapid',
           options: [
-            { value: 'rapid', label: 'Rapido' },
-            { value: 'feed', label: 'Avanzamento' }
+            { value: 'rapid', label: 'Rapid' },
+            { value: 'feed', label: 'Feedrate' }
           ],
-          description: 'Tipo di movimento di ritorno'
+          description: 'Type of retraction movement'
         },
         {
           name: 'chipBreakCount',
-          label: 'Conteggi per Passo',
+          label: 'Breaks per Step',
           type: 'number',
           defaultValue: 3,
           min: 1,
           max: 20,
           step: 1,
-          unit: 'rotture',
-          description: 'Numero di rotture truciolo per ogni incremento'
+          unit: 'breaks',
+          description: 'Number of chip breaks per increment'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FORATURA CON ROTTURA TRUCIOLO)
-(DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm)
+          return `(CHIP BREAKING DRILLING CYCLE)
+(DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -1949,24 +1951,24 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI FORATURA CON ROTTURA TRUCIOLO
-; DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm
+          return `; CHIP BREAKING DRILLING CYCLE
+; DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 203 FORATURA UNIVERS
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q202=${params.incrementDepth} ; PROF. INCREMENTO
-  Q210=0                        ; TEMPO ATTESA SOPRA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q212=0                        ; VALORE DA TOGLIERE
-  Q213=${params.chipBreakCount} ; N. ROTTURE TRUCIOLO
-  Q205=1                        ; MIN. PROF. INCREMENTO
-  Q211=0                        ; TEMPO ATTESA SOTTO
-  Q208=${params.returnType === 'rapid' ? 99999 : params.feedrate} ; AVANZAM. RITORNO
-  Q256=${params.chipBreakDistance} ; RITIRO ROTT.TRUCIOLO
+CYCL DEF 203 UNIVERSAL DRILLING
+  Q200=2                        ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; DEPTH
+  Q206=${params.feedrate}       ; FEEDRATE FOR PLUNGING
+  Q202=${params.incrementDepth} ; PLUNGING DEPTH
+  Q210=0                        ; DWELL TIME AT TOP
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q212=0                        ; RETRACTION AMOUNT
+  Q213=${params.chipBreakCount} ; NO. OF CHIP BREAKS
+  Q205=1                        ; MIN. PLUNGING DEPTH
+  Q211=0                        ; DWELL TIME AT BOTTOM
+  Q208=${params.returnType === 'rapid' ? 99999 : params.feedrate} ; FEEDRATE FOR RETRACT
+  Q256=${params.chipBreakDistance} ; RETRACT CHIP BREAK
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -1978,126 +1980,126 @@ M5`;
       }
     },
     
-    // Ciclo di fresatura di scanalature a T
+    // T-slot milling cycle
     {
       id: 't-slot-milling',
-      name: 'Scanalatura a T',
-      description: 'Ciclo per fresatura di scanalature a T',
+      name: 'T-Slot Milling',
+      description: 'Cycle for milling T-slots',
       icon: <TSlotIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Utensile',
+          label: 'Tool Diameter',
           type: 'number',
           defaultValue: 12,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa a T'
+          description: 'Diameter of the T-slot cutter'
         },
         {
           name: 'slotWidth',
-          label: 'Larghezza Scanalatura',
+          label: 'Slot Width',
           type: 'number',
           defaultValue: 16,
           min: 1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Larghezza della parte superiore della scanalatura'
+          description: 'Width of the upper part of the slot'
         },
         {
           name: 'tSlotWidth',
-          label: 'Larghezza T',
+          label: 'T-Slot Width',
           type: 'number',
           defaultValue: 22,
           min: 1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Larghezza della parte inferiore a T'
+          description: 'Width of the lower T-shaped part'
         },
         {
           name: 'slotDepth',
-          label: 'Profondità Scanalatura',
+          label: 'Slot Depth',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità della scanalatura principale'
+          description: 'Depth of the main slot'
         },
         {
           name: 'tSlotDepth',
-          label: 'Profondità T',
+          label: 'T-Slot Depth',
           type: 'number',
           defaultValue: 6,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità aggiuntiva della parte a T'
+          description: 'Additional depth of the T-shaped part'
         },
         {
           name: 'slotLength',
-          label: 'Lunghezza Scanalatura',
+          label: 'Slot Length',
           type: 'number',
           defaultValue: 100,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Lunghezza totale della scanalatura'
+          description: 'Total length of the slot'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 400,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Entrata',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 200,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per l\'entrata in Z'
+          description: 'Feed rate for plunging in Z'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 2500,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FRESATURA SCANALATURA A T)
-(DIMENSIONI: ${params.slotLength}x${params.slotWidth}/${params.tSlotWidth}mm, PROFONDITA: ${params.slotDepth}+${params.tSlotDepth}mm)
+          return `(T-SLOT MILLING CYCLE)
+(DIMENSIONS: ${params.slotLength}x${params.slotWidth}/${params.tSlotWidth}mm, DEPTH: ${params.slotDepth}+${params.tSlotDepth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
 S${params.spindleSpeed} M3
 M8
 
-(PRIMA FASE - SCANALATURA PRINCIPALE CON FRESA NORMALE)
-(SOSTITUIRE UTENSILE CON FRESA CILINDRICA DI DIAMETRO ADEGUATO)
+(FIRST STAGE - MAIN SLOT WITH STANDARD END MILL)
+(CHANGE TOOL TO CYLINDRICAL END MILL OF APPROPRIATE DIAMETER)
 T2 M6
 G43 Z50 H2
 S${params.spindleSpeed} M3
@@ -2108,8 +2110,8 @@ G01 Z-${params.slotDepth} F${params.plungeFeedrate}
 G01 X${params.slotLength/2} F${params.feedrate}
 G00 Z50
 
-(SECONDA FASE - ALLARGAMENTO A T CON FRESA A T)
-(SOSTITUIRE UTENSILE CON FRESA A T)
+(SECOND STAGE - T-SLOT WIDENING WITH T-SLOT CUTTER)
+(CHANGE TOOL TO T-SLOT CUTTER)
 T3 M6
 G43 Z50 H3
 S${params.spindleSpeed} M3
@@ -2122,36 +2124,36 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI FRESATURA SCANALATURA A T
-; DIMENSIONI: ${params.slotLength}x${params.slotWidth}/${params.tSlotWidth}mm, PROFONDITA: ${params.slotDepth}+${params.tSlotDepth}mm
-TOOL CALL 1 Z S${params.spindleSpeed} ; FRESA CILINDRICA
+          return `; T-SLOT MILLING CYCLE
+; DIMENSIONS: ${params.slotLength}x${params.slotWidth}/${params.tSlotWidth}mm, DEPTH: ${params.slotDepth}+${params.tSlotDepth}mm
+TOOL CALL 1 Z S${params.spindleSpeed} ; CYLINDRICAL END MILL
 
 L Z+50 R0 FMAX
-; PRIMA FASE - SCANALATURA PRINCIPALE
-CYCL DEF 253 FRESATURA SCANALATURE
-  Q215=0                        ; TIPO LAVORAZIONE
-  Q218=${params.slotLength}     ; LUNGHEZZA SCANALATURA
-  Q219=${params.slotWidth}      ; LARGH. SCANALATURA
-  Q368=0                        ; QUOTA LATERALE CONS.
-  Q374=0                        ; ANGOLO DI ROTAZIONE
-  Q367=0                        ; POSIZIONE SCANALATURA
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-  Q351=+1                       ; MODO FRESATURA
-  Q201=-${params.slotDepth}     ; PROFONDITA
-  Q202=${params.slotDepth}      ; PROF. INCREMENTO
-  Q369=0                        ; PROFONDITA' CONSEN.
-  Q206=${params.plungeFeedrate} ; AVANZ. INCREMENTO
-  Q338=0                        ; INCREMENTO FINITURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q366=0                        ; STRATEGIA PENETRAZIONE
+; FIRST STAGE - MAIN SLOT
+CYCL DEF 253 SLOT MILLING
+  Q215=0                        ; MACHINING TYPE
+  Q218=${params.slotLength}     ; SLOT LENGTH
+  Q219=${params.slotWidth}      ; SLOT WIDTH
+  Q368=0                        ; SIDE ALLOWANCE
+  Q374=0                        ; ANGLE OF ROTATION
+  Q367=0                        ; SLOT POSITION
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+  Q351=+1                       ; MILLING MODE
+  Q201=-${params.slotDepth}     ; DEPTH
+  Q202=${params.slotDepth}      ; PLUNGING DEPTH
+  Q369=0                        ; DEPTH ALLOWANCE
+  Q206=${params.plungeFeedrate} ; PLUNGING FEEDRATE
+  Q338=0                        ; FINISHING INCREMENT
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q366=0                        ; PLUNGING STRATEGY
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
 
-; SECONDA FASE - ALLARGAMENTO A T
-TOOL CALL 2 Z S${params.spindleSpeed} ; FRESA A T
+; SECOND STAGE - T-SLOT WIDENING
+TOOL CALL 2 Z S${params.spindleSpeed} ; T-SLOT CUTTER
 L Z+50 R0 FMAX
 L X-${params.slotLength/2} Y+0 R0 FMAX
 L Z-${params.slotDepth + 2} R0 FMAX
@@ -2163,101 +2165,101 @@ M5`;
       }
     },
     
-    // Ciclo di centrinatura
+    // Center drilling cycle
     {
       id: 'center-drilling',
-      name: 'Centrinatura',
-      description: 'Ciclo di centrinatura per preparazione fori',
+      name: 'Center Drilling',
+      description: 'Center drilling cycle for hole preparation',
       icon: <CenterDrillIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Punta',
+          label: 'Drill Diameter',
           type: 'number',
           defaultValue: 6,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della punta da centri'
+          description: 'Diameter of the center drill'
         },
         {
           name: 'coneAngle',
-          label: 'Angolo Conico',
+          label: 'Cone Angle',
           type: 'number',
           defaultValue: 90,
           min: 60,
           max: 120,
           step: 1,
-          unit: 'gradi',
-          description: 'Angolo della punta (90° o 60° tipicamente)'
+          unit: 'degrees',
+          description: 'Angle of the drill point (typically 90° or 60°)'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 3,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di centrinatura'
+          description: 'Centering depth'
         },
         {
           name: 'chamferDiameter',
-          label: 'Diametro Svasatura',
+          label: 'Chamfer Diameter',
           type: 'number',
           defaultValue: 10,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro superiore della svasatura'
+          description: 'Top diameter of the chamfer'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 150,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la centrinatura'
+          description: 'Feed rate for centering'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 2000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'dwellTime',
-          label: 'Tempo Sosta',
+          label: 'Dwell Time',
           type: 'number',
           defaultValue: 0,
           min: 0,
           max: 10,
           step: 0.1,
           unit: 'sec',
-          description: 'Tempo di sosta sul fondo (0 per nessuna sosta)'
+          description: 'Dwell time at the bottom (0 for no dwell)'
         }
       ],
       generateCode: (params, controllerType) => {
-        // Calcola la profondità necessaria per ottenere il diametro di svasatura desiderato
+        // Calculate the depth needed to achieve the desired chamfer diameter
         const tg = Math.tan((params.coneAngle / 2) * Math.PI / 180);
         const calculatedDepth = params.chamferDiameter / (2 * tg);
-        const finalDepth = Math.min(params.depth, calculatedDepth); // Usa il valore più piccolo tra quello calcolato e quello richiesto
+        const finalDepth = Math.min(params.depth, calculatedDepth); // Use the smaller value between calculated and requested
         
         if (controllerType === 'fanuc') {
-          return `(CICLO DI CENTRINATURA)
-(DIAMETRO SVASATURA: ${params.chamferDiameter}mm, PROFONDITA: ${finalDepth.toFixed(2)}mm)
+          return `(CENTER DRILLING CYCLE)
+(CHAMFER DIAMETER: ${params.chamferDiameter}mm, DEPTH: ${finalDepth.toFixed(2)}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -2274,19 +2276,19 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI CENTRINATURA
-; DIAMETRO SVASATURA: ${params.chamferDiameter}mm, PROFONDITA: ${finalDepth.toFixed(2)}mm
+          return `; CENTER DRILLING CYCLE
+; CHAMFER DIAMETER: ${params.chamferDiameter}mm, DEPTH: ${finalDepth.toFixed(2)}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 240 CENTRATURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q343=0                        ; SELEZ. DIAM./PROF.
-  Q201=-${finalDepth.toFixed(2)}; PROFONDITA
-  Q344=-${params.chamferDiameter}; DIAMETRO
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q211=${params.dwellTime}      ; TEMPO ATTESA SOTTO
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
+CYCL DEF 240 CENTERING
+  Q200=2                        ; SAFETY DISTANCE
+  Q343=0                        ; SELECT DIAM./DEPTH
+  Q201=-${finalDepth.toFixed(2)}; DEPTH
+  Q344=-${params.chamferDiameter}; DIAMETER
+  Q206=${params.feedrate}       ; FEEDRATE FOR PLUNGING
+  Q211=${params.dwellTime}      ; DWELL TIME AT BOTTOM
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -2298,104 +2300,104 @@ M5`;
       }
     },
     
-    // Ciclo di smusso
+    // Chamfering cycle
     {
       id: 'chamfering-cycle',
-      name: 'Smusso',
-      description: 'Ciclo per la fresatura di smussi',
+      name: 'Chamfering',
+      description: 'Cycle for milling chamfers',
       icon: <ChamferIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Fresa',
+          label: 'Cutter Diameter',
           type: 'number',
           defaultValue: 12,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa per smussi'
+          description: 'Diameter of the chamfering cutter'
         },
         {
           name: 'chamferWidth',
-          label: 'Larghezza Smusso',
+          label: 'Chamfer Width',
           type: 'number',
           defaultValue: 2,
           min: 0.1,
           max: 50,
           step: 0.1,
           unit: 'mm',
-          description: 'Larghezza dello smusso'
+          description: 'Width of the chamfer'
         },
         {
           name: 'chamferAngle',
-          label: 'Angolo Smusso',
+          label: 'Chamfer Angle',
           type: 'number',
           defaultValue: 45,
           min: 30,
           max: 60,
           step: 1,
-          unit: 'gradi',
-          description: 'Angolo dello smusso (tipicamente 45°)'
+          unit: 'degrees',
+          description: 'Angle of the chamfer (typically 45°)'
         },
         {
           name: 'contourLength',
-          label: 'Lunghezza Contorno',
+          label: 'Contour Length',
           type: 'number',
           defaultValue: 100,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Lunghezza del contorno da smussare'
+          description: 'Length of the contour to be chamfered'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 400,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la fresatura'
+          description: 'Feed rate for milling'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 3000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'contourType',
-          label: 'Tipo Contorno',
+          label: 'Contour Type',
           type: 'select',
           defaultValue: 'external',
           options: [
-            { value: 'external', label: 'Esterno' },
-            { value: 'internal', label: 'Interno' }
+            { value: 'external', label: 'External' },
+            { value: 'internal', label: 'Internal' }
           ],
-          description: 'Tipo di contorno: esterno o interno'
+          description: 'Contour type: external or internal'
         }
       ],
       generateCode: (params, controllerType) => {
-        // Calcola la profondità dello smusso in base all'angolo
+        // Calculate the chamfer depth based on the angle
         const chamferDepth = params.chamferWidth * Math.tan((90 - params.chamferAngle) * Math.PI / 180);
         
-        // Determina il codice di compensazione in base al tipo di contorno
+        // Determine the compensation code based on contour type
         const compensationCode = params.contourType === 'external' 
           ? (controllerType === 'fanuc' ? 'G42' : 'RR')
           : (controllerType === 'fanuc' ? 'G41' : 'RL');
         
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FRESATURA SMUSSO)
-(LARGHEZZA: ${params.chamferWidth}mm, ANGOLO: ${params.chamferAngle}°)
+          return `(CHAMFER MILLING CYCLE)
+(WIDTH: ${params.chamferWidth}mm, ANGLE: ${params.chamferAngle}°)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -2415,30 +2417,30 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI FRESATURA SMUSSO
-; LARGHEZZA: ${params.chamferWidth}mm, ANGOLO: ${params.chamferAngle}°
+          return `; CHAMFER MILLING CYCLE
+; WIDTH: ${params.chamferWidth}mm, ANGLE: ${params.chamferAngle}°
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-; DEFINIZIONE CICLO SMUSSO
-CYCL DEF 275 FR. TROC. SCAN. PROF
-  Q215=2                        ; TIPO LAVORAZIONE
-  Q219=${params.chamferWidth}   ; LARGHEZZA SCANALATURA
-  Q368=0                        ; QUOTA LATERALE CONS.
-  Q436=${chamferDepth.toFixed(2)} ; INCREMENTO PER GIRO
-  Q207=${params.feedrate}       ; AVANZ. FRESATURA
-  Q351=+1                       ; MODO FRESATURA
-  Q201=-${chamferDepth.toFixed(2)} ; PROFONDITA
-  Q202=${chamferDepth.toFixed(2)} ; PROF. INCREMENTO
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q338=0                        ; INCREMENTO FINITURA
-  Q385=${params.feedrate}       ; AVANZAMENTO FINITURA
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
-  Q366=0                        ; STRATEGIA PENETRAZIONE
-  Q369=0                        ; PROFONDITA' CONSEN.
-  Q439=0                        ; RIFERIMENTO AVANZAMENTO
-; PERCORSO CONTORNO
+; CHAMFER CYCLE DEFINITION
+CYCL DEF 275 MILL TROUGH SLOT PROF
+  Q215=2                        ; MACHINING TYPE
+  Q219=${params.chamferWidth}   ; SLOT WIDTH
+  Q368=0                        ; SIDE ALLOWANCE
+  Q436=${chamferDepth.toFixed(2)} ; INCREMENT PER REVOLUTION
+  Q207=${params.feedrate}       ; MILLING FEEDRATE
+  Q351=+1                       ; MILLING MODE
+  Q201=-${chamferDepth.toFixed(2)} ; DEPTH
+  Q202=${chamferDepth.toFixed(2)} ; PLUNGING DEPTH
+  Q206=${params.feedrate}       ; PLUNGING FEEDRATE
+  Q338=0                        ; FINISHING STEP
+  Q385=${params.feedrate}       ; FINISHING FEEDRATE
+  Q200=2                        ; SAFETY DISTANCE
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  Q366=0                        ; PLUNGING STRATEGY
+  Q369=0                        ; DEPTH ALLOWANCE
+  Q439=0                        ; FEED REFERENCE
+; CONTOUR PATH
 L X-10 Y+0 R0 FMAX
 L Z+5 R0 FMAX
 L Z-${chamferDepth.toFixed(2)} F100
@@ -2455,96 +2457,96 @@ M5`;
       }
     },
     
-    // Ciclo di foratura con scarico (G83)
+    // Peck drilling cycle (G83)
     {
       id: 'peck-drilling',
-      name: 'Foratura con Scarico',
-      description: 'Ciclo di foratura con ritorno completo per lo scarico',
+      name: 'Peck Drilling',
+      description: 'Drilling cycle with full retract for chip clearing',
       icon: <PeckDrillIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'drillDiameter',
-          label: 'Diametro Punta',
+          label: 'Drill Diameter',
           type: 'number',
           defaultValue: 12,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della punta da utilizzare'
+          description: 'Diameter of the drill bit to use'
         },
         {
           name: 'depth',
-          label: 'Profondità Totale',
+          label: 'Total Depth',
           type: 'number',
           defaultValue: 100,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale del foro'
+          description: 'Total depth of the hole'
         },
         {
           name: 'peckDepth',
-          label: 'Profondità Incremento',
+          label: 'Peck Depth',
           type: 'number',
           defaultValue: 15,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di ogni incremento prima dello scarico'
+          description: 'Depth of each peck before retracting'
         },
         {
           name: 'retractHeight',
-          label: 'Altezza Ritorno',
+          label: 'Retract Height',
           type: 'number',
           defaultValue: 5,
           min: 1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Altezza di ritorno dopo ogni incremento'
+          description: 'Retract height after each peck'
         },
         {
           name: 'feedrate',
-          label: 'Avanzamento',
+          label: 'Feedrate',
           type: 'number',
           defaultValue: 120,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per la foratura'
+          description: 'Feed rate for drilling'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 1000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         },
         {
           name: 'dwellTime',
-          label: 'Tempo Sosta',
+          label: 'Dwell Time',
           type: 'number',
           defaultValue: 0.2,
           min: 0,
           max: 10,
           step: 0.1,
           unit: 'sec',
-          description: 'Tempo di sosta sul fondo di ogni incremento'
+          description: 'Dwell time at the bottom of each peck'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          return `(CICLO DI FORATURA CON SCARICO COMPLETO)
-(DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm, INCREMENTO: ${params.peckDepth}mm)
+          return `(PECK DRILLING CYCLE - FULL RETRACT)
+(DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm, PECK: ${params.peckDepth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -2561,18 +2563,20 @@ G00 Z50
 M9
 M5`;
         } else {
-          return `; CICLO DI FORATURA CON SCARICO COMPLETO
-; DIAMETRO: ${params.drillDiameter}mm, PROFONDITA: ${params.depth}mm, INCREMENTO: ${params.peckDepth}mm
+          return `; PECK DRILLING CYCLE - FULL RETRACT
+; DIAMETER: ${params.drillDiameter}mm, DEPTH: ${params.depth}mm, PECK: ${params.peckDepth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 201 ALESATURA
-  Q200=${params.retractHeight}  ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q206=${params.feedrate}       ; AVANZ. INCREMENTO
-  Q211=${params.dwellTime}      ; TEMPO ATTESA SOTTO
-  Q208=500                      ; AVANZAM. RITORNO
-  Q203=+0                       ; COORD. SUPERFICIE
-  Q204=50                       ; 2. DIST. SICUREZZA
+CYCL DEF 201 BORING
+  Q200=${params.retractHeight}  ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; DEPTH
+  Q206=${params.feedrate}       ; FEEDRATE FOR PLUNGING
+  Q211=${params.dwellTime}      ; DWELL TIME AT BOTTOM
+  Q208=500                      ; FEEDRATE FOR RETRACT
+  Q203=+0                       ; SURFACE COORDINATE
+  Q204=50                       ; 2ND SAFETY DISTANCE
+  // Note: Heidenhain CYCL DEF 205 is typically used for pecking
+  // Using 201 here might not perform full retract pecking as intended
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L X+10 Y+10 R0 FMAX M99
@@ -2584,125 +2588,125 @@ M5`;
       }
     },
     
-    // Ciclo di fresatura a tuffo (Plunge Milling)
+    // Plunge Milling cycle
     {
       id: 'plunge-milling',
-      name: 'Fresatura a Tuffo',
-      description: 'Ciclo di fresatura a tuffo per sgrossatura rapida',
+      name: 'Plunge Milling',
+      description: 'Plunge milling cycle for rapid roughing',
       icon: <PlungeMillingIcon />,
       controllerTypes: ['fanuc', 'heidenhain'],
       parameters: [
         {
           name: 'toolDiameter',
-          label: 'Diametro Fresa',
+          label: 'Cutter Diameter',
           type: 'number',
           defaultValue: 20,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Diametro della fresa da utilizzare'
+          description: 'Diameter of the milling cutter to use'
         },
         {
           name: 'pocketWidth',
-          label: 'Larghezza Area',
+          label: 'Area Width',
           type: 'number',
           defaultValue: 100,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Larghezza dell\'area da sgrossare'
+          description: 'Width of the area to be roughed'
         },
         {
           name: 'pocketLength',
-          label: 'Lunghezza Area',
+          label: 'Area Length',
           type: 'number',
           defaultValue: 150,
           min: 1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Lunghezza dell\'area da sgrossare'
+          description: 'Length of the area to be roughed'
         },
         {
           name: 'depth',
-          label: 'Profondità',
+          label: 'Depth',
           type: 'number',
           defaultValue: 20,
           min: 0.1,
           max: 1000,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità totale della lavorazione'
+          description: 'Total depth of the operation'
         },
         {
           name: 'stepDown',
-          label: 'Incremento Z',
+          label: 'Z Increment',
           type: 'number',
           defaultValue: 4,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Profondità di ogni tuffo'
+          description: 'Depth of each plunge'
         },
         {
           name: 'stepOver',
-          label: 'Passo Laterale',
+          label: 'Lateral Step',
           type: 'number',
           defaultValue: 15,
           min: 0.1,
           max: 100,
           step: 0.1,
           unit: 'mm',
-          description: 'Distanza tra i tuffi'
+          description: 'Distance between plunges'
         },
         {
           name: 'plungeFeedrate',
-          label: 'Avanzamento Tuffo',
+          label: 'Plunge Feedrate',
           type: 'number',
           defaultValue: 250,
           min: 1,
           max: 5000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per il tuffo'
+          description: 'Feed rate for plunging'
         },
         {
           name: 'traverseFeedrate',
-          label: 'Avanzamento Spostamento',
+          label: 'Traverse Feedrate',
           type: 'number',
           defaultValue: 1000,
           min: 1,
           max: 10000,
           step: 1,
           unit: 'mm/min',
-          description: 'Velocità di avanzamento per lo spostamento tra tuffi'
+          description: 'Feed rate for traversing between plunges'
         },
         {
           name: 'spindleSpeed',
-          label: 'Velocità Mandrino',
+          label: 'Spindle Speed',
           type: 'number',
           defaultValue: 2000,
           min: 1,
           max: 24000,
           step: 100,
           unit: 'RPM',
-          description: 'Velocità di rotazione del mandrino'
+          description: 'Spindle rotation speed'
         }
       ],
       generateCode: (params, controllerType) => {
         if (controllerType === 'fanuc') {
-          // Calcola il numero di passi X e Y
+          // Calculate the number of X and Y steps
           const stepsX = Math.floor((params.pocketWidth - params.toolDiameter) / params.stepOver) + 1;
           const stepsY = Math.floor((params.pocketLength - params.toolDiameter) / params.stepOver) + 1;
           
-          // Calcola il numero di livelli Z
+          // Calculate the number of Z levels
           const zLevels = Math.ceil(params.depth / params.stepDown);
           
-          let code = `(CICLO DI FRESATURA A TUFFO)
-(AREA: ${params.pocketWidth}x${params.pocketLength}mm, PROFONDITA: ${params.depth}mm)
+          let code = `(PLUNGE MILLING CYCLE)
+(AREA: ${params.pocketWidth}x${params.pocketLength}mm, DEPTH: ${params.depth}mm)
 G90 G54
 G00 X0 Y0
 G43 Z50 H1
@@ -2711,14 +2715,14 @@ M8\n`;
           
           for (let z = 0; z < zLevels; z++) {
             const currentDepth = Math.min((z + 1) * params.stepDown, params.depth);
-            code += `(LIVELLO Z ${z + 1} - PROFONDITA: ${currentDepth}mm)\n`;
+            code += `(Z LEVEL ${z + 1} - DEPTH: ${currentDepth}mm)\n`;
             
-            // Pattern a zigzag per ridurre i tempi di posizionamento
+            // Zigzag pattern to reduce positioning time
             for (let y = 0; y < stepsY; y++) {
               const yPos = -params.pocketLength/2 + params.toolDiameter/2 + y * params.stepOver;
               
               if (y % 2 === 0) {
-                // Direzione positiva su X
+                // Positive X direction
                 for (let x = 0; x < stepsX; x++) {
                   const xPos = -params.pocketWidth/2 + params.toolDiameter/2 + x * params.stepOver;
                   code += `G00 X${xPos.toFixed(3)} Y${yPos.toFixed(3)}\n`;
@@ -2727,7 +2731,7 @@ M8\n`;
                   code += `G01 Z5 F${params.traverseFeedrate}\n`;
                 }
               } else {
-                // Direzione negativa su X
+                // Negative X direction
                 for (let x = stepsX - 1; x >= 0; x--) {
                   const xPos = -params.pocketWidth/2 + params.toolDiameter/2 + x * params.stepOver;
                   code += `G00 X${xPos.toFixed(3)} Y${yPos.toFixed(3)}\n`;
@@ -2742,24 +2746,24 @@ M8\n`;
           code += `G00 Z50\nM9\nM5`;
           return code;
         } else {
-          return `; CICLO DI FRESATURA A TUFFO
-; AREA: ${params.pocketWidth}x${params.pocketLength}mm, PROFONDITA: ${params.depth}mm
+          return `; PLUNGE MILLING CYCLE
+; AREA: ${params.pocketWidth}x${params.pocketLength}mm, DEPTH: ${params.depth}mm
 TOOL CALL 1 Z S${params.spindleSpeed}
 L Z+50 R0 FMAX
-CYCL DEF 241 FOR. PROF. PUNTE CANN.
-  Q200=2                        ; DISTANZA SICUREZZA
-  Q201=-${params.depth}         ; PROFONDITA
-  Q227=0                        ; PUNTO DI PARTENZA X
-  Q228=0                        ; PUNTO DI PARTENZA Y
-  Q229=${params.pocketWidth}    ; PUNTO FINALE X
-  Q230=${params.pocketLength}   ; PUNTO FINALE Y
-  Q231=${Math.floor((params.pocketWidth - params.toolDiameter) / params.stepOver) + 1} ; NUMERO COLONNE
-  Q232=${Math.floor((params.pocketLength - params.toolDiameter) / params.stepOver) + 1} ; NUMERO RIGHE
-  Q233=0                        ; ALTEZZA SUPERFICIE
-  Q240=${Math.ceil(params.depth / params.stepDown)} ; NUMERO ACCOSTAMENTI
-  Q351=1                        ; TIPOLOGIA FRESATURA
-  Q253=${params.traverseFeedrate} ; PRE-POSIZIONAMENTO F
-  Q253=${params.plungeFeedrate} ; AVANZAMENTO PROF.
+CYCL DEF 241 DEEP HOLE DRILLING WITH CANNULAS // Using an approximation
+  Q200=2                        ; SAFETY DISTANCE
+  Q201=-${params.depth}         ; DEPTH
+  Q227=0                        ; STARTING POINT X
+  Q228=0                        ; STARTING POINT Y
+  Q229=${params.pocketWidth}    ; END POINT X
+  Q230=${params.pocketLength}   ; END POINT Y
+  Q231=${Math.floor((params.pocketWidth - params.toolDiameter) / params.stepOver) + 1} ; NUMBER OF COLUMNS
+  Q232=${Math.floor((params.pocketLength - params.toolDiameter) / params.stepOver) + 1} ; NUMBER OF ROWS
+  Q233=0                        ; SURFACE HEIGHT
+  Q240=${Math.ceil(params.depth / params.stepDown)} ; NUMBER OF APPROACHES
+  Q351=1                        ; MILLING TYPE
+  Q253=${params.traverseFeedrate} ; PRE-POSITIONING FEED
+  Q206=${params.plungeFeedrate} ; PLUNGING FEEDRATE // Q206 is plunge feed
 L X+0 Y+0 R0 FMAX M3
 CYCL CALL
 L Z+50 R0 FMAX
@@ -2769,36 +2773,36 @@ M5`;
     }
   ];
 
-  // Filtra i cicli in base al tipo di controller
+  // Filter cycles based on controller type
   const availableCycles = cycleTemplates.filter(cycle => 
     cycle.controllerTypes.includes(controllerType)
   );
 
-  // Inizializza i parametri quando viene selezionato un nuovo ciclo
+  // Initialize parameters when a new cycle is selected
   const handleCycleSelection = (cycleId: string) => {
     setSelectedCycleId(cycleId);
     
     const selectedCycle = cycleTemplates.find(c => c.id === cycleId);
     if (selectedCycle) {
-      // Inizializza i parametri con i valori predefiniti
+      // Initialize parameters with default values
       const initialParams: Record<string, any> = {};
       selectedCycle.parameters.forEach(param => {
         initialParams[param.name] = param.defaultValue;
       });
       setCycleParams(initialParams);
       
-      // Genera il codice di anteprima
+      // Generate preview code
       const code = selectedCycle.generateCode(initialParams, controllerType);
       setPreviewCode(code);
     }
   };
 
-  // Aggiorna i parametri e rigenera il codice
+  // Update parameters and regenerate code
   const handleParamChange = (paramName: string, value: any) => {
     const newParams = { ...cycleParams, [paramName]: value };
     setCycleParams(newParams);
     
-    // Rigenera il codice di anteprima
+    // Regenerate preview code
     const selectedCycle = cycleTemplates.find(c => c.id === selectedCycleId);
     if (selectedCycle) {
       const code = selectedCycle.generateCode(newParams, controllerType);
@@ -2806,7 +2810,7 @@ M5`;
     }
   };
 
-  // Gestisce l'inserimento del ciclo
+  // Handle cycle insertion
   const handleInsertCycle = () => {
     if (previewCode) {
       onCycleCodeGenerated(previewCode);
@@ -2816,17 +2820,17 @@ M5`;
   return (
     <div className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white rounded-lg shadow-md overflow-hidden">
       <div className="bg-gray-50 border-b border-gray-200 dark:bg-gray-700 dark:border-gray-600 p-4">
-        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Cicli di Lavorazione</h2>
+        <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Machining Cycles</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Seleziona e configura cicli predefiniti per {controllerType === 'fanuc' ? 'Fanuc' : 'Heidenhain'}
+          Select and configure predefined cycles for {controllerType === 'fanuc' ? 'Fanuc' : 'Heidenhain'}
         </p>
       </div>
       
       <div className="list md:grid-cols-2 gap-4 p-4">
-        {/* Pannello di selezione dei cicli */}
+        {/* Cycle selection panel */}
         <div className="border rounded-md overflow-hidden dark:border-gray-600">
           <div className="bg-gray-50 px-4 py-2 border-b dark:bg-gray-700 dark:border-gray-600">
-            <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Cicli Disponibili</h3>
+            <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Available Cycles</h3>
           </div>
           <div className="p-2 max-h-72 overflow-y-auto">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -2848,13 +2852,13 @@ M5`;
           </div>
         </div>
         
-        {/* Pannello configurazione e anteprima */}
+        {/* Configuration and preview panel */}
         <div className="border rounded-md overflow-hidden dark:border-gray-600">
           {selectedCycleId ? (
             <>
               <div className="bg-gray-50 px-4 py-2 border-b dark:bg-gray-700 dark:border-gray-600">
                 <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">
-                  {cycleTemplates.find(c => c.id === selectedCycleId)?.name || 'Configurazione Ciclo'}
+                  {cycleTemplates.find(c => c.id === selectedCycleId)?.name || 'Cycle Configuration'}
                 </h3>
               </div>
               <div className="p-4 max-h-72 overflow-y-auto">
@@ -2921,23 +2925,23 @@ M5`;
             <div className="p-4 text-center text-gray-500 dark:text-gray-400">
               <div className="my-4">
                 <CycleIcon className="mx-auto mb-2 h-12 w-12 text-gray-400 dark:text-gray-500" />
-                <p>Seleziona un ciclo per configurarlo</p>
+                <p>Select a cycle to configure it</p>
               </div>
             </div>
           )}
         </div>
       </div>
       
-      {/* Anteprima del codice */}
+      {/* Code preview */}
       {selectedCycleId && (
         <div className="p-4 border-t border-gray-200 dark:border-gray-600">
           <div className="flex justify-between items-center mb-2">
-            <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Anteprima Codice</h3>
+            <h3 className="text-md font-medium text-gray-900 dark:text-gray-100">Code Preview</h3>
             <button
               onClick={handleInsertCycle}
               className="bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-600"
             >
-              Inserisci Ciclo
+              Insert Cycle
             </button>
           </div>
           <pre className="bg-gray-100 p-3 rounded-md text-sm font-mono overflow-x-auto max-h-60 dark:bg-gray-900 dark:text-gray-300">
@@ -2949,7 +2953,7 @@ M5`;
   );
 };
 
-// Componenti icona per i cicli
+// Icon components for cycles
 const DrillIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
     <path d="M14 4V20M8 4V7M8 12V15M4 4H20M4 20H20M12 12V15" />
@@ -2984,7 +2988,7 @@ const CycleIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Nuove icone per i cicli aggiunti
+// New icons for added cycles
 const DeepDrillIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-full h-full">
     <path d="M12 2v20M8 4v4M8 10v4M8 16v4M16 4v4M16 10v4M16 16v4M4 7h16M4 13h16M4 19h16" />

@@ -1,7 +1,7 @@
 // src/pages/api/ai/analyze-gcode.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from '@/src/lib/api/auth';
-import { unifiedAIService } from '@/src/lib/ai/ai-new/unifiedAIService';
+import { unifiedAIService } from '@/src/lib/ai/unifiedAIService';
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,7 +15,7 @@ export default async function handler(
   }
 
   try {
-    const { gcode, model = 'claude-3-5-sonnet-20240229' } = req.body;
+    const { gcode, model = 'claude-3-7-sonnet-20250219' } = req.body;
 
     if (!gcode) {
       return res.status(400).json({ message: 'G-code is required' });

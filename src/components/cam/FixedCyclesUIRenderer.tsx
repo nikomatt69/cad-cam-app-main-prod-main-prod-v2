@@ -32,11 +32,11 @@ interface ParameterField {
 function getCycleParameterFields(cycleType: FixedCycleType): ParameterField[] {
   // Campi comuni a tutti i cicli
   const commonFields: ParameterField[] = [
-    { name: 'x', label: 'X', description: 'Posizione X', defaultValue: 0 },
-    { name: 'y', label: 'Y', description: 'Posizione Y', defaultValue: 0 },
-    { name: 'z', label: 'Z', description: 'Profondità finale', defaultValue: -10, unit: 'mm', required: true },
-    { name: 'r', label: 'R', description: 'Piano di riferimento', defaultValue: 2, unit: 'mm', required: true },
-    { name: 'f', label: 'F', description: 'Avanzamento', defaultValue: 100, unit: 'mm/min', required: true }
+    { name: 'x', label: 'X', description: 'Position X', defaultValue: 0 },
+    { name: 'y', label: 'Y', description: 'Position Y', defaultValue: 0 },
+    { name: 'z', label: 'Z', description: 'Final Depth', defaultValue: -10, unit: 'mm', required: true },
+    { name: 'r', label: 'R', description: 'Reference Plane', defaultValue: 2, unit: 'mm', required: true },
+    { name: 'f', label: 'F', description: 'Feed Rate', defaultValue: 100, unit: 'mm/min', required: true }
   ];
   
   // Campi specifici per ciascun tipo di ciclo
@@ -47,21 +47,21 @@ function getCycleParameterFields(cycleType: FixedCycleType): ParameterField[] {
     case FixedCycleType.DRILLING_DWELL:
       return [
         ...commonFields,
-        { name: 'p', label: 'P', description: 'Tempo di sosta', defaultValue: 0.5, min: 0, step: 0.1, unit: 's', required: true }
+        { name: 'p', label: 'P', description: 'Dwell Time', defaultValue: 0.5, min: 0, step: 0.1, unit: 's', required: true }
       ];
       
     case FixedCycleType.PECK_DRILLING:
       return [
         ...commonFields,
-        { name: 'q', label: 'Q', description: 'Profondità di incremento', defaultValue: 2, min: 0.1, step: 0.1, unit: 'mm', required: true },
-        { name: 'p', label: 'P', description: 'Tempo di sosta', defaultValue: 0, min: 0, step: 0.1, unit: 's' }
+        { name: 'q', label: 'Q', description: 'Increment Depth', defaultValue: 2, min: 0.1, step: 0.1, unit: 'mm', required: true },
+        { name: 'p', label: 'P', description: 'Dwell Time', defaultValue: 0, min: 0, step: 0.1, unit: 's' }
       ];
       
     case FixedCycleType.RIGHT_TAPPING:
       return [
         ...commonFields,
-        { name: 'p', label: 'P', description: 'Tempo di sosta', defaultValue: 0, min: 0, step: 0.1, unit: 's' },
-        { name: 's', label: 'S', description: 'Velocità mandrino', defaultValue: 500, min: 1, unit: 'rpm', required: true }
+        { name: 'p', label: 'P', description: 'Dwell Time', defaultValue: 0, min: 0, step: 0.1, unit: 's' },
+        { name: 's', label: 'S', description: 'Spindle Speed', defaultValue: 500, min: 1, unit: 'rpm', required: true }
       ];
       
     case FixedCycleType.BORING:
@@ -70,28 +70,28 @@ function getCycleParameterFields(cycleType: FixedCycleType): ParameterField[] {
     case FixedCycleType.BORING_DWELL:
       return [
         ...commonFields,
-        { name: 'p', label: 'P', description: 'Tempo di sosta', defaultValue: 0.5, min: 0, step: 0.1, unit: 's', required: true }
+        { name: 'p', label: 'P', description: 'Dwell Time', defaultValue: 0.5, min: 0, step: 0.1, unit: 's', required: true }
       ];
       
     case FixedCycleType.BACK_BORING:
       return [
         ...commonFields,
-        { name: 'i', label: 'I', description: 'Spostamento X', defaultValue: 0, unit: 'mm' },
-        { name: 'j', label: 'J', description: 'Spostamento Y', defaultValue: 0, unit: 'mm' },
-        { name: 'k', label: 'K', description: 'Distanza di sicurezza', defaultValue: 2, unit: 'mm', required: true }
+        { name: 'i', label: 'I', description: 'X Offset', defaultValue: 0, unit: 'mm' },
+        { name: 'j', label: 'J', description: 'Y Offset', defaultValue: 0, unit: 'mm' },
+        { name: 'k', label: 'K', description: 'Safety Distance', defaultValue: 2, unit: 'mm', required: true }
       ];
       
     case FixedCycleType.LEFT_TAPPING:
       return [
         ...commonFields,
-        { name: 'p', label: 'P', description: 'Tempo di sosta', defaultValue: 0, min: 0, step: 0.1, unit: 's' },
-        { name: 's', label: 'S', description: 'Velocità mandrino', defaultValue: 500, min: 1, unit: 'rpm', required: true }
+        { name: 'p', label: 'P', description: 'Dwell Time', defaultValue: 0, min: 0, step: 0.1, unit: 's' },
+        { name: 's', label: 'S', description: 'Spindle Speed', defaultValue: 500, min: 1, unit: 'rpm', required: true }
       ];
       
     case FixedCycleType.BORING_WITH_RETRACT:
       return [
         ...commonFields,
-        { name: 'p', label: 'P', description: 'Tempo di sosta', defaultValue: 0.5, min: 0, step: 0.1, unit: 's', required: true }
+        { name: 'p', label: 'P', description: 'Dwell Time', defaultValue: 0.5, min: 0, step: 0.1, unit: 's', required: true }
       ];
       
     default:
@@ -129,16 +129,16 @@ function mapCycleTypeToOperationType(cycleType: FixedCycleType): MillingOperatio
  */
 function getCycleTitle(cycleType: FixedCycleType): string {
   switch (cycleType) {
-    case FixedCycleType.DRILLING: return 'Foratura';
-    case FixedCycleType.DRILLING_DWELL: return 'Foratura con Sosta';
-    case FixedCycleType.PECK_DRILLING: return 'Foratura a Rompitruciolo';
-    case FixedCycleType.RIGHT_TAPPING: return 'Maschiatura Destra';
-    case FixedCycleType.BORING: return 'Alesatura';
-    case FixedCycleType.BORING_DWELL: return 'Alesatura con Sosta';
-    case FixedCycleType.BACK_BORING: return 'Alesatura Posteriore';
-    case FixedCycleType.LEFT_TAPPING: return 'Maschiatura Sinistra';
-    case FixedCycleType.BORING_WITH_RETRACT: return 'Alesatura con Ritrazione';
-    default: return 'Ciclo Personalizzato';
+    case FixedCycleType.DRILLING: return 'Drilling';
+    case FixedCycleType.DRILLING_DWELL: return 'Drilling with Dwell';
+    case FixedCycleType.PECK_DRILLING: return 'Peck Drilling';
+    case FixedCycleType.RIGHT_TAPPING: return 'Right Tapping';
+    case FixedCycleType.BORING: return 'Boring';
+    case FixedCycleType.BORING_DWELL: return 'Boring with Dwell';
+    case FixedCycleType.BACK_BORING: return 'Back Boring';
+    case FixedCycleType.LEFT_TAPPING: return 'Left Tapping';
+    case FixedCycleType.BORING_WITH_RETRACT: return 'Boring with Retract';
+    default: return 'Custom Cycle';
   }
 }
 
@@ -162,7 +162,7 @@ function generateFixedCycleGCode(
     case FixedCycleType.BACK_BORING: gcode = 'G87'; break;
     case FixedCycleType.LEFT_TAPPING: gcode = 'G74'; break;
     case FixedCycleType.BORING_WITH_RETRACT: gcode = 'G89'; break;
-    default: gcode = 'G81'; // Default a foratura semplice
+    default: gcode = 'G81'; // Default to simple drilling
   }
   
   // Aggiungi le coordinate
@@ -283,7 +283,7 @@ export const FixedCyclesUIRenderer: React.FC<FixedCyclesUIRendererProps> = ({
             className="apply-button px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-offset-gray-800"
             onClick={handleApply}
           >
-            Applica Modifiche
+            Apply Changes
           </button>
         </div>
       )}
@@ -316,7 +316,7 @@ export const FixedCycleInfoPanel: React.FC<{
   
   return (
     <div className="fixed-cycles-info-panel">
-      <h3>Cicli Fissi Rilevati ({detectedCycles.length})</h3>
+      <h3>Detected Fixed Cycles ({detectedCycles.length})</h3>
       <div className="cycles-list">
         {detectedCycles.map((cycle, index) => (
           <div 

@@ -109,7 +109,7 @@ export default function SignUp() {
   return (
     <>
        <MetaTags
-        ogImage="/og-default.png" 
+        ogImage="/og-image.png" 
         title="CAD/CAM FUN" 
         description="A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI."
      

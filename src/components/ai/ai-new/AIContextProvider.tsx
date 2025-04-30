@@ -35,6 +35,7 @@ import { useContextStore } from '@/src/store/contextStore';
 import { openAIService } from '@/src/lib/ai/openaiService';
 import { v4 as uuidv4 } from 'uuid';
 import { Element, useElementsStore } from '@/src/store/elementsStore';
+import { useEnhancedContext } from '@/src/hooks/useEnhancedContext';
 
 // Ripristina definizione locale di ForceToolChoice
 interface ForceToolChoice {
@@ -216,6 +217,9 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
   const [state, dispatch] = useReducer(aiReducer, initialState);
   const router = useRouter();
   const { getActiveContexts } = useContextStore();
+  
+  // Usa il nuovo hook per il contesto avanzato
+  const { getContextDescription, getStructuredContext } = useEnhancedContext();
 
   /**
    * Imposta il provider AI preferito
@@ -347,12 +351,23 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
         ...(providedContext || []),
         ...activeContextFiles.map(file => file.content)
       ];
+      
+      // Usa il contesto arricchito
+      const enhancedContext = getContextDescription();
+      const structuredContext = getStructuredContext();
+      
+      // Aggiungi il contesto arricchito ai testi di contesto se disponibile
+      if (enhancedContext) {
+        contextTexts.push(enhancedContext);
+      }
+      
       const requestWithContext: TextToCADRequest = {
         description,
         constraints,
         complexity: 'moderate',
         style: 'precise',
         context: contextTexts.length > 0 ? contextTexts : undefined,
+        structuredContext: Object.keys(structuredContext).length > 0 ? structuredContext : undefined
       };
       
       const result = await unifiedAIService.textToCADElements(requestWithContext);
@@ -463,7 +478,16 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
       const provider = state.settings.preferredProvider;
       const startTime = Date.now();
       
-      const result = await unifiedAIService.optimizeGCode(gcode, machineType);
+      // Aggiungi il contesto arricchito
+      const enhancedContext = getContextDescription();
+      const structuredContext = getStructuredContext();
+      
+      const result = await unifiedAIService.optimizeGCode(
+        gcode, 
+        machineType,
+        enhancedContext || undefined,
+        Object.keys(structuredContext).length > 0 ? structuredContext : undefined
+      );
       
       const processingTime = Date.now() - startTime;
       
@@ -510,7 +534,15 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
       const provider = state.settings.preferredProvider;
       const startTime = Date.now();
       
-      const result = await unifiedAIService.analyzeDesign(elements);
+      // Aggiungi il contesto arricchito
+      const enhancedContext = getContextDescription();
+      const structuredContext = getStructuredContext();
+      
+      const result = await unifiedAIService.analyzeDesign(
+        elements,
+        enhancedContext || undefined,
+        Object.keys(structuredContext).length > 0 ? structuredContext : undefined
+      );
       
       const processingTime = Date.now() - startTime;
       
@@ -556,7 +588,11 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
       const model = selectOptimalModel('low');
       const provider = state.settings.preferredProvider;
       
-      const result = await unifiedAIService.generateSuggestions(context, state.mode);
+      // Aggiungi il contesto arricchito
+      const enhancedContext = getContextDescription();
+      const combinedContext = context + (enhancedContext ? `\n\n${enhancedContext}` : '');
+      
+      const result = await unifiedAIService.generateSuggestions(combinedContext, state.mode);
       
       if (result.success && result.data) {
         dispatch({ type: 'SET_SUGGESTIONS', payload: result.data });
@@ -616,6 +652,11 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
     // 2. Gather context and parameters
     const activeContextFiles = getActiveContexts();
     const canvasElements = useElementsStore.getState().elements;
+    
+    // Usa il contesto arricchito
+    const enhancedContext = getContextDescription();
+    const structuredContext = getStructuredContext();
+    
     let elementContextString = "Current Canvas Elements:\n";
     if (canvasElements.length > 0) {
       elementContextString += canvasElements.map(el => 
@@ -626,7 +667,7 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
     }
     
     const fileContextString = activeContextFiles.map(f => `--- File: ${f.name} ---\n${f.content}`).join('\n\n');
-    const contextString = `${elementContextString}\n\n${fileContextString}`.trim(); 
+    const contextString = `${elementContextString}\n\n${fileContextString}\n\n${enhancedContext || ''}`.trim(); 
     
     const assistantActions = ['generateCADElement', 'updateCADElement', 'removeCADElement', 'suggestOptimizations', 'chainOfThoughtAnalysis', 'thinkAloudMode', 'exportCADProjectAsZip']; 
     const assistantRole: AssistantRole = "CAD Assistant"; 
@@ -669,7 +710,8 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
           responseStyle,
           complexityLevel,
           assistantRole,
-          forceToolChoice 
+          forceToolChoice,
+         // Passa il contesto strutturato
         );
         console.log("[AIContextProvider] Received response from openaiService:", response);
         // Manually add success: true/false based on whether content/actions exist, 
@@ -699,7 +741,8 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
           complexityLevel,
           assistantRole,
           undefined, // No forceToolChoice for general chat
-          modelToUse 
+          modelToUse,
+          structuredContext // Passa il contesto strutturato
         );
         console.log("[AIContextProvider] Received response from getAssistantCompletion:", response);
       }

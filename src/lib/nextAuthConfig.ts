@@ -5,7 +5,6 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import { compare } from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
 // Function to generate a minimal WebSocket token
 export const generateWebSocketToken = (userId: string): string => {
   return jwt.sign(

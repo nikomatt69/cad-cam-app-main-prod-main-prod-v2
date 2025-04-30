@@ -9,16 +9,18 @@ class AIService {
   constructor() {
     this.client = new Anthropic({
       apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
-      dangerouslyAllowBrowser: true
+      dangerouslyAllowBrowser: true,
+      
       
     });
   }
 
   async generateResponse(prompt: string): Promise<string> {
     try {
-      const response = await this.client.messages.create({
+      const response = await this.client.beta.messages.create({
         model: 'claude-3-7-sonnet-20250219',
         max_tokens: 6000,
+        thinking: { type: 'enabled', budget_tokens: Math.min(1600, 6000 / 2) },
         messages: [{ role: 'user', content: prompt }]
       });
 

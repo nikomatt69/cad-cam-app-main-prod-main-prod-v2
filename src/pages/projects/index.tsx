@@ -375,7 +375,7 @@ export default function ProjectsPage() {
     <MotionConfig reducedMotion="user">
       <ErrorBoundary>
         <MetaTags
-  ogImage="/og-default.png" title={'Projects'} />
+  ogImage="/og-image.png" title={'Projects'} />
         <DynamicLayout>
           <motion.div 
             className="p-5 md:p-6 max-w-7xl mx-auto"

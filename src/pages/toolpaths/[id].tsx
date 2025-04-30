@@ -423,7 +423,7 @@ export default function ToolpathDetail() {
   return (
     <>
       <MetaTags
-  ogImage="/og-default.png" title={toolpath?.name || 'Toolpath Details'} />
+  ogImage="/og-image.png" title={toolpath?.name || 'Toolpath Details'} />
       
       <Layout>
         <div className="p-4 md:p-6">
