@@ -18,12 +18,18 @@ import toast from 'react-hot-toast';
 import { generateComponentToolpath, generateElementToolpath } from 'src/lib/componentToolpathUtils';
 import { FixedCyclesUIRenderer, isFixedCycle } from 'src/components/cam/FixedCyclesUIRenderer';
 import ToolpathGeneratorIntegration from 'src/components/cam/ToolpathGeneratorIntegration';
-import render3DPrinterSection from 'src/components/cam/render3DPrinterSection';
+import PrinterSection from './3DPrinterSection';
+import PrinterSettings from './3DPrinterSettings';
+import PrinterPreview from './3DPrinterPreview';
 import { FixedCycleType } from './toolpathUtils/fixedCycles/fixedCyclesParser';
 import router from 'next/router';
 import { c } from 'framer-motion/dist/types.d-6pKw1mTI';
 import { generate3DPrinterFromElement } from './3DPrinterToolpathHelpers';
 import { use3DPrinterSettings } from './3DPrinterIntegration';
+import PrinterOperations from './Printe3DOperations';
+// Import the new 3D printer toolpath functions
+import { generate3DPrinterGCodeForElement, generateCompositeElement3D } from 'src/lib/toolpath/3dprinterToolpaths';
+
 interface ToolpathGeneratorProps {
   onGCodeGenerated: (gcode: string) => void;
   onToolSelected?: (tool: any) => void; // Added for tool selection
@@ -117,7 +123,7 @@ const ToolpathGenerator: React.FC<ToolpathGeneratorProps> = ({ onGCodeGenerated,
     cutting: false,
     advanced: false,
     ai: false,
-    printer: false,
+    printer: true,
     lathe: false,
     origin: true ,
     fixedCycles: false,  // Nuova sezione
@@ -598,31 +604,49 @@ const ToolpathGenerator: React.FC<ToolpathGeneratorProps> = ({ onGCodeGenerated,
           gcode = generateLatheGCode();
           break;
         case '3dprinter':
-          // Ensure an element is selected for 3D printing
+          // --- Integrate new 3D printer logic ---
           if (selectedElement) {
-            // Call the generate3DPrinterFromElement function *now local* to this component
-            gcode = generate3DPrinterFromElement(
-              selectedElement,
-              settings,
-              { // Pass the state variables as options
-                infillDensity,
-                infillPattern,
-                supportType,
-                shellCount,
-                printResolution,
-                printOrientation
-              }
-            );
+            // 1. Gather all necessary 3D print settings
+            const printerSettings = {
+              layerHeight: settings.layerHeight || 0.2,
+              printSpeed: settings.printSpeed || 60,
+              travelSpeed: 150, // Example default, maybe add to settings state?
+              printTemperature: settings.printTemperature || 200,
+              bedTemperature: settings.bedTemperature || 60,
+              extrusionWidth: settings.extrusionWidth || settings.nozzleDiameter || 0.4,
+              filamentDiameter: settings.filamentDiameter || 1.75,
+              retractionDistance: 2, // Example default, maybe add to settings state?
+              retractionSpeed: 60,   // Example default, maybe add to settings state?
+              infillDensity: infillDensity, // From use3DPrinterSettings hook
+              infillPattern: infillPattern, // From use3DPrinterSettings hook
+              shellCount: shellCount,       // From use3DPrinterSettings hook
+              supportType: supportType,     // From use3DPrinterSettings hook
+              supportOverhangAngle: 45, // Example default, maybe add to settings state?
+              supportDensity: 20,       // Example default, maybe add to settings state?
+              raftLayers: 0,            // Example default, maybe add to settings state?
+              brimWidth: 0,             // Example default, maybe add to settings state?
+              material: settings.material, // Include material if needed by generators
+              nozzleDiameter: settings.nozzleDiameter || 0.4,
+              // Add any other relevant settings from ToolpathSettings if needed
+            };
+
+            // 2. Check element type and call the appropriate generator
+            if (selectedElement.type === 'composite' || selectedElement.type === 'component' || selectedElement.type === 'group') {
+               gcode = generateCompositeElement3D(selectedElement, printerSettings);
+            } else {
+               gcode = generate3DPrinterGCodeForElement(selectedElement, printerSettings);
+            }
           } else {
-            // Handle the case where no element is selected
             toast.error('Please select a CAD element for 3D printing.');
-            // Optionally set an error state or return placeholder G-code
             gcode = '; Error: No element selected for 3D printing\n';
-            // Stop further processing if needed
-             setIsGenerating(false); // Stop loading spinner
-             return; // Exit the function early
+            setIsGenerating(false);
+            return; // Exit early
           }
+          // --- End integration ---
           break;
+        default:
+          setError('Unsupported machine type');
+          gcode = '; Error: Unsupported machine type\n';
       }
       
       // Ottimizzazioni avanzate (solo se abilitate nelle impostazioni avanzate)
@@ -1154,224 +1178,6 @@ const ToolpathGenerator: React.FC<ToolpathGeneratorProps> = ({ onGCodeGenerated,
     gcode += `G1 X${(stockDiameter! + 0.2).toFixed(3)} F${feedrate/2} ; Approach with pressure\n`;
     gcode += `G1 Z${knurlEndZ.toFixed(3)} F${feedrate/4} ; Knurl along length again\n`;
     gcode += `G0 X${(stockDiameter! + 5).toFixed(3)} ; Retract\n`;
-    
-    return gcode;
-  };
-  
-  // Generate G-code for 3D printer operations
-  const generate3DPrinterGCode = () => {
-    let gcode = '';
-    
-    // Program header
-    gcode += '; Generated 3D Printer G-code with AI assistance\n';
-    gcode += `; Operation: ${settings.operationType}\n`;
-    gcode += `; Material: ${settings.material === 'plastic' ? 'PLA' : settings.material}\n`;
-    gcode += `; Nozzle: ${settings.nozzleDiameter}mm\n`;
-    gcode += `; Layer Height: ${settings.layerHeight}mm\n`;
-    gcode += `; Date: ${new Date().toISOString()}\n\n`;
-    
-    // Program initialization
-    gcode += 'M82 ; Set extruder to absolute mode\n';
-    gcode += 'G21 ; Set units to millimeters\n';
-    gcode += 'G90 ; Use absolute coordinates\n';
-    gcode += `M104 S${settings.printTemperature} ; Set extruder temperature\n`;
-    gcode += `M140 S${settings.bedTemperature} ; Set bed temperature\n`;
-    gcode += 'M109 S' + settings.printTemperature + ' ; Wait for extruder temperature\n';
-    gcode += 'M190 S' + settings.bedTemperature + ' ; Wait for bed temperature\n';
-    gcode += 'G28 ; Home all axes\n';
-    gcode += 'G1 Z5 F5000 ; Move Z up a bit\n';
-    gcode += 'G1 X0 Y0 Z0.3 F3000 ; Move to start position\n';
-    gcode += 'G1 E5 F1800 ; Prime the extruder\n';
-    gcode += 'G92 E0 ; Reset extruder position\n\n';
-    
-    // G-code generation based on 3D printer operation type
-    switch (settings.operationType as PrinterOperationType) {
-      case 'standard':
-        gcode += generate3DPrinterStandardOperation();
-        break;
-      case 'vase':
-        gcode += generate3DPrinterVaseOperation();
-        break;
-      case 'support':
-        gcode += generate3DPrinterSupportOperation();
-        break;
-      case 'infill':
-        gcode += generate3DPrinterInfillOperation();
-        break;
-      case 'raft':
-        gcode += generate3DPrinterRaftOperation();
-        break;
-      case 'brim':
-        gcode += generate3DPrinterBrimOperation();
-        break;
-    }
-    
-    // Program ending
-    gcode += '\n; End of print\n';
-    gcode += 'G1 E-2 F1800 ; Retract filament\n';
-    gcode += 'G1 Z' + (settings.depth + 5).toFixed(2) + ' F3000 ; Move Z up\n';
-    gcode += 'G1 X0 Y200 F3000 ; Move to front\n';
-    gcode += 'M104 S0 ; Turn off extruder\n';
-    gcode += 'M140 S0 ; Turn off bed\n';
-    gcode += 'M84 ; Disable motors\n';
-    
-    return gcode;
-  };
-  
-  // Generate standard 3D print operation
-  const generate3DPrinterStandardOperation = () => {
-    const { layerHeight, extrusionWidth, printSpeed, depth } = settings;
-    const layers = Math.ceil(depth / layerHeight!);
-    let gcode = '\n; Standard printing operation\n';
-    
-    // Simple example: print a small square object
-    const size = Math.min(rectangleWidth, rectangleHeight);
-    
-    // Calculate extrusion values
-    const filamentArea = Math.PI * Math.pow(settings.filamentDiameter! / 2, 2);
-    const extrusionArea = extrusionWidth! * layerHeight!;
-    const extrusionMultiplier = extrusionArea / filamentArea;
-    
-    // Print layers
-    for (let layer = 0; layer < layers; layer++) {
-      const z = layerHeight! * (layer + 1);
-      gcode += `\n; Layer ${layer + 1}, Z=${z.toFixed(3)}\n`;
-      
-      // Move to new layer
-      gcode += `G1 Z${z.toFixed(3)} F3000 ; Move to new layer\n`;
-      
-      // Outer perimeter
-      gcode += 'G1 F' + printSpeed + ' ; Set print speed\n';
-      gcode += `G1 X${(-size/2).toFixed(3)} Y${(-size/2).toFixed(3)} E0.5 ; Move to start position\n`;
-      gcode += `G1 X${(size/2).toFixed(3)} Y${(-size/2).toFixed(3)} E${(extrusionMultiplier * size).toFixed(5)} ; Draw line\n`;
-      gcode += `G1 X${(size/2).toFixed(3)} Y${(size/2).toFixed(3)} E${(extrusionMultiplier * size * 2).toFixed(5)} ; Draw line\n`;
-      gcode += `G1 X${(-size/2).toFixed(3)} Y${(size/2).toFixed(3)} E${(extrusionMultiplier * size * 3).toFixed(5)} ; Draw line\n`;
-      gcode += `G1 X${(-size/2).toFixed(3)} Y${(-size/2).toFixed(3)} E${(extrusionMultiplier * size * 4).toFixed(5)} ; Draw line\n`;
-      
-      // Simple infill (if not first or last layer)
-      if (layer > 0 && layer < layers - 1) {
-        // Reset extruder for infill
-        gcode += 'G92 E0 ; Reset extruder position\n';
-        
-        // Infill pattern - simple zigzag
-        const infillSpacing = extrusionWidth! * 2;
-        for (let y = -size/2 + infillSpacing; y < size/2; y += infillSpacing) {
-          const dir = (Math.floor(y / infillSpacing) % 2 === 0);
-          gcode += `G1 X${(dir ? -size/2 : size/2).toFixed(3)} Y${y.toFixed(3)} F3000 E0.1 ; Move to start infill line\n`;
-          gcode += `G1 X${(dir ? size/2 : -size/2).toFixed(3)} Y${y.toFixed(3)} F${printSpeed} E${(extrusionMultiplier * size).toFixed(5)} ; Infill line\n`;
-        }
-      }
-      
-      // Reset extruder before next layer
-      gcode += 'G92 E0 ; Reset extruder position\n';
-    }
-    
-    return gcode;
-  };
-  
-  // Generate vase mode 3D print operation
-  const generate3DPrinterVaseOperation = () => {
-    const { layerHeight, extrusionWidth, printSpeed, depth } = settings;
-    const layers = Math.ceil(depth / layerHeight!);
-    let gcode = '\n; Vase mode printing operation\n';
-    
-    // Vase parameters
-    const baseRadius = circleRadius;
-    const topRadius = baseRadius * 0.8; // Slight taper at the top
-    
-    // Calculate extrusion values
-    const filamentArea = Math.PI * Math.pow(settings.filamentDiameter! / 2, 2);
-    const extrusionArea = extrusionWidth! * layerHeight!;
-    const extrusionMultiplier = extrusionArea / filamentArea;
-    
-    // Print base (first layer)
-    gcode += `\n; Base layer, Z=${layerHeight!.toFixed(3)}\n`;
-    gcode += `G1 Z${layerHeight!.toFixed(3)} F3000 ; Move to first layer\n`;
-    
-    // Concentric circles for base
-    for (let r = baseRadius; r > 0; r -= extrusionWidth! * 1.2) {
-      const circumference = 2 * Math.PI * r;
-      gcode += `G1 X${r.toFixed(3)} Y0 F3000 ; Move to radius\n`;
-      gcode += `G1 F${printSpeed} E0.5 ; Prepare to print\n`;
-      gcode += `G2 X${r.toFixed(3)} Y0 I${(-r).toFixed(3)} J0 E${(extrusionMultiplier * circumference).toFixed(5)} ; Print circle\n`;
-    }
-    
-    // Reset extruder before wall
-    gcode += 'G92 E0 ; Reset extruder position\n';
-    
-    // Print spiral wall
-    gcode += '\n; Spiral vase walls\n';
-    gcode += 'M106 S255 ; Fan on full\n';
-    gcode += 'G1 F3000 ; Set move speed\n';
-    gcode += `G1 X${baseRadius.toFixed(3)} Y0 ; Move to start position\n`;
-    
-    // Continuous spiral with Z change
-    gcode += 'G92 E0 ; Reset extruder position\n';
-    gcode += `G1 F${printSpeed} ; Set print speed\n`;
-    
-    const segments = 32; // Number of segments per revolution
-    const angleStep = 360 / segments;
-    
-    for (let layer = 1; layer < layers; layer++) {
-      const z = layerHeight! * (layer + 1);
-      const ratio = layer / layers;
-      const currentRadius = baseRadius - (baseRadius - topRadius) * ratio;
-      
-      for (let i = 0; i < segments; i++) {
-        const angle = i * angleStep;
-        const x = currentRadius * Math.cos(angle * Math.PI / 180);
-        const y = currentRadius * Math.sin(angle * Math.PI / 180);
-        const zHeight = z + (i / segments) * layerHeight!;
-        const extrusionAmount = extrusionMultiplier * (2 * Math.PI * currentRadius / segments);
-        
-        gcode += `G1 X${x.toFixed(3)} Y${y.toFixed(3)} Z${zHeight.toFixed(3)} E${(layer * 10 + i * extrusionAmount).toFixed(5)} ; Spiral\n`;
-      }
-    }
-    
-    return gcode;
-  };
-  
-  // Generate support operation for 3D printer
-  const generate3DPrinterSupportOperation = () => {
-    const { layerHeight, extrusionWidth, printSpeed, depth } = settings;
-    const layers = Math.ceil(depth / layerHeight!);
-    let gcode = '\n; Support structure printing operation\n';
-    
-    // Support parameter - sparse grid
-    const gridSpacing = 5; // mm between support lines
-    const size = Math.max(rectangleWidth, rectangleHeight);
-    
-    // Calculate extrusion values
-    const filamentArea = Math.PI * Math.pow(settings.filamentDiameter! / 2, 2);
-    const extrusionArea = extrusionWidth! * layerHeight!;
-    const extrusionMultiplier = extrusionArea / filamentArea * 0.8; // Slightly less for supports
-    
-    for (let layer = 0; layer < layers; layer++) {
-      const z = layerHeight! * (layer + 1);
-      gcode += `\n; Support Layer ${layer + 1}, Z=${z.toFixed(3)}\n`;
-      gcode += `G1 Z${z.toFixed(3)} F3000 ; Move to new layer\n`;
-      
-      // Reset extruder for this layer
-      gcode += 'G92 E0 ; Reset extruder position\n';
-      
-      // Alternate direction of support grid
-      const altLayer = layer % 2 === 0;
-      
-      // Print support grid
-      if (altLayer) {
-        // X direction lines
-        for (let y = -size/2; y <= size/2; y += gridSpacing) {
-          gcode += `G1 X${(-size/2).toFixed(3)} Y${y.toFixed(3)} F3000 ; Move to start line\n`;
-          gcode += `G1 X${(size/2).toFixed(3)} Y${y.toFixed(3)} F${printSpeed} E${(extrusionMultiplier * size).toFixed(5)} ; Support line\n`;
-        }
-      } else {
-        // Y direction lines
-        for (let x = -size/2; x <= size/2; x += gridSpacing) {
-          gcode += `G1 X${x.toFixed(3)} Y${(-size/2).toFixed(3)} F3000 ; Move to start line\n`;
-          gcode += `G1 X${x.toFixed(3)} Y${(size/2).toFixed(3)} F${printSpeed} E${(extrusionMultiplier * size).toFixed(5)} ; Support line\n`;
-        }
-      }
-    }
     
     return gcode;
   };
@@ -3918,21 +3724,265 @@ function generateText3DToolpath(element: any, settings: any): string {
                   <option value="knurling">Knurling</option>
                 </select>
               )}
-              
-              {settings.machineType === '3dprinter' && (
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  value={settings.operationType}
-                  onChange={(e) => updateSettings('operationType', e.target.value)}
-                >
-                  <option value="standard">Standard Print</option>
-                  <option value="vase">Vase Mode (Spiral)</option>
-                  <option value="support">Support Structures</option>
-                  <option value="infill">Infill</option>
-                  <option value="raft">Raft Base</option>
-                  <option value="brim">Brim</option>
-                </select>
-              )}
+{settings.machineType === '3dprinter' && (
+<div className="flex flex-col gap-4">
+      <div className="space-y-4">
+        {/* Element Selection Section */}
+        <div className="p-4 bg-white rounded-md shadow-sm border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-700 mb-3">Element Selection</h3>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Geometry Source
+              </label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={geometryType}
+                onChange={(e) => setGeometryType(e.target.value as 'rectangle' | 'circle' | 'polygon' | 'custom' | 'selected' | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'extrude' | 'line' | 'pyramid' | 'hemisphere' | 'ellipsoid' | 'capsule' | 'triangle' | 'ellipse' | 'prism')}
+              >
+                <option value="selected">From Selected Element</option>
+                <option value="rectangle">Rectangle</option>
+                <option value="circle">Circle</option>
+                <option value="polygon">Polygon</option>
+                <option value="cube">Cube</option>
+                <option value="sphere">Sphere</option>
+                <option value="cylinder">Cylinder</option>
+                <option value="cone">Cone</option>
+              </select>
+            </div>
+            
+            {/* Show selected element info if "selected" is chosen */}
+            {geometryType === 'selected' && (
+              <div className={`p-3 ${selectedElement ? 'bg-green-50' : 'bg-yellow-50'} rounded-md`}>
+                {selectedElement ? (
+                  <div>
+                    <p className="text-sm text-green-700 font-medium mb-1">
+                      Selected Element: {selectedElement.type} (ID: {selectedElement.id.substring(0, 6)}...)
+                    </p>
+                    
+                    <div className="mt-2 text-xs text-green-600">
+                      {selectedElement.type === 'cube' && (
+                        <span>Cube: {selectedElement.width}mm × {selectedElement.height}mm × {selectedElement.depth}mm</span>
+                      )}
+                      {selectedElement.type === 'sphere' && (
+                        <span>Sphere: {selectedElement.radius * 2}mm diameter</span>
+                      )}
+                      {selectedElement.type === 'cylinder' && (
+                        <span>Cylinder: {selectedElement.radius * 2}mm diameter × {selectedElement.height}mm height</span>
+                      )}
+                      {selectedElement.type === 'cone' && (
+                        <span>Cone: {selectedElement.radius * 2}mm base diameter × {selectedElement.height}mm height</span>
+                      )}
+                      {selectedElement.type === 'rectangle' && (
+                        <span>Rectangle: {selectedElement.width}mm × {selectedElement.height}mm</span>
+                      )}
+                      {selectedElement.type === 'circle' && (
+                        <span>Circle: {selectedElement.radius * 2}mm diameter</span>
+                      )}
+                      {selectedElement.type === 'polygon' && (
+                        <span>Polygon: {selectedElement.sides} sides, {selectedElement.radius * 2}mm diameter</span>
+                      )}
+          </div>
+                    <div className="mt-3 p-2 bg-blue-50 rounded-md">
+                          <label className="block text-sm font-medium text-blue-700 mb-1">
+                            Machining Depth (mm)
+                          </label>
+                          <input
+                            type="number"
+                            min="0.1"
+                            step="0.1"
+                            className="w-full p-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            value={settings.depth}
+                            onChange={(e) => {
+                              const value = parseFloat(e.target.value);
+                              if (!isNaN(value) && value > 0) {
+                                updateSettings('depth', value);
+                              }
+                            }}
+                          />
+                        </div>
+                        
+                        {/* Button to use these dimensions */}
+                        <div className="mt-3 flex justify-between">
+                          <button
+                            type="button"
+                            className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onClick={() => {
+                              // Use the selected element dimensions based on type
+                              if (selectedElement.type === 'rectangle') {
+                                setRectangleWidth(selectedElement.width);
+                                setRectangleHeight(selectedElement.height);
+                              } else if (selectedElement.type === 'circle') {
+                                setCircleRadius(selectedElement.radius);
+                              } else if (selectedElement.type === 'polygon' && selectedElement.sides && selectedElement.radius) {
+                                setPolygonSides(selectedElement.sides);
+                                setPolygonRadius(selectedElement.radius);
+                              }
+                              
+                              // Show success message
+                              setSuccess('Dimensions applied from CAD');
+                              if (successTimerRef.current) {
+                                clearTimeout(successTimerRef.current);
+                              }
+                              successTimerRef.current = setTimeout(() => {
+                                setSuccess(null);
+                              }, 3000);
+                            }}
+                          >
+                            Use XY Dimensions
+                          </button>
+                          
+                          {/* Aggiungiamo un pulsante specifico per usare lo spessore dalla geometria 3D */}
+                          {(selectedElement.type === 'cube' || 
+                            selectedElement.type === 'sphere' || 
+                            selectedElement.type === 'cylinder' || 
+                            selectedElement.type === 'cone') && (
+                            <button
+                              type="button"
+                              className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                              onClick={() => {
+                                // Imposta lo spessore in base al tipo di geometria 3D
+                                if (selectedElement.type === 'cube') {
+                                  updateSettings('depth', selectedElement.depth);
+                                } else if (selectedElement.type === 'sphere') {
+                                  updateSettings('depth', selectedElement.radius * 2);
+                                } else if (selectedElement.type === 'cylinder') {
+                                  updateSettings('depth', selectedElement.height);
+                                } else if (selectedElement.type === 'cone') {
+                                  updateSettings('depth', selectedElement.height);
+                                }
+                                
+                                // Show success message
+                                setSuccess('Depth updated from 3D geometry');
+                                if (successTimerRef.current) {
+                                  clearTimeout(successTimerRef.current);
+                                }
+                                successTimerRef.current = setTimeout(() => {
+                                  setSuccess(null);
+                                }, 3000);
+                              }}
+                            >
+                              Use 3D Depth
+                            </button>
+        )}
+      </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-yellow-700">
+                    No element selected. Select an element in the CAD Editor.
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* List available elements to select */}
+            {geometryType === 'selected' && elements.length > 0 && (
+              <div className="mt-2">
+                <h4 className="text-xs font-medium text-gray-600 mb-1">Available Elements:</h4>
+                <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md">
+                  <ul className="divide-y divide-gray-200">
+                    {elements.map((element) => (
+                      <li 
+                        key={element.id} 
+                        className={`px-2 py-1 text-xs hover:bg-blue-50 cursor-pointer ${
+                          selectedElement?.id === element.id ? 'bg-blue-100' : ''
+                        }`}
+                        onClick={() => {
+                          const newGeometryType = element.type as 'rectangle' | 'circle' | 'polygon' | 'custom' | 'selected' | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'extrude' | 'line' | 'pyramid' | 'hemisphere' | 'ellipsoid' | 'capsule' | 'triangle' | 'ellipse' | 'prism';
+                          setGeometryType(newGeometryType);
+                          
+                          // Quando cambia il tipo di geometria, aggiorni lo spessore se è selezionato un elemento
+                          if (newGeometryType === 'selected' && selectedElement) {
+                            // Se c'è un elemento selezionato, usa la sua dimensione come spessore
+                            let depth = 0;
+                            
+                            if (selectedElement.type === 'rectangle' || selectedElement.type === 'circle' || 
+                                selectedElement.type === 'polygon') {
+                              // Per elementi 2D, manteniamo lo spessore attuale
+                              depth = settings.depth; 
+                            } else if (selectedElement.type === 'cube') {
+                              depth = selectedElement.depth || settings.depth;
+                            } else if (selectedElement.type === 'cylinder') {
+                              depth = selectedElement.height || settings.depth;
+                            } else if (selectedElement.type === 'sphere') {
+                              depth = selectedElement.radius * 2 || settings.depth;
+                            } else if (selectedElement.type === 'cone') {
+                              depth = selectedElement.height || settings.depth;
+                            } else if (selectedElement.type === 'extrude') {
+                              depth = selectedElement.height || settings.depth;
+                            } else if (selectedElement.type === 'pyramid') {
+                              depth = selectedElement.height || settings.depth;
+                            } else if (selectedElement.type === 'hemisphere') {
+                              depth = selectedElement.radius || settings.depth;
+                            } else if (selectedElement.type === 'prism') {
+                              depth = selectedElement.height || settings.depth;
+                            } else if (selectedElement.type === 'ellipsoid') {
+                              depth = selectedElement.radiusZ * 2 || selectedElement.depth || settings.depth;
+                            } else if (selectedElement.type === 'capsule') {
+                              depth = selectedElement.height || settings.depth;
+                            } else if (selectedElement.type === 'triangle') {
+                              // Per elementi 2D, manteniamo lo spessore attuale
+                              depth = settings.depth;
+                            } else if (selectedElement.type === 'arc') {
+                              // Per elementi 2D, manteniamo lo spessore attuale
+                              depth = settings.depth;
+                            } else if (selectedElement.type === 'ellipse') {
+                              // Per elementi 2D, manteniamo lo spessore attuale
+                            }
+                            
+                            // Aggiorna lo spessore
+                            updateSettings('depth', depth);
+                          }
+                        
+                          // This would typically be done via a store action
+                        }}
+                      >
+                        {element.type}: {element.name || element.id.substring(0, 8)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* 3D Printer Preview */}
+        <div className="bg-white rounded-md shadow-sm border border-gray-200">
+          <PrinterPreview
+            element={selectedElement}
+            settings={settings}
+            infillDensity={infillDensity}
+            shellCount={shellCount}
+            supportType={supportType}
+            infillPattern={infillPattern}
+          />
+        </div>
+      </div>
+      
+      {/* 3D Printer Settings */}
+      <div className="bg-white p-4 rounded-md shadow-sm border border-gray-200">
+        <PrinterSettings
+          settings={settings}
+          updateSettings={((origUpdateSettings) => (key: string, value: any) => origUpdateSettings(key as keyof ToolpathSettings, value))(updateSettings)}
+          infillDensity={infillDensity}
+          setInfillDensity={setInfillDensity}
+          infillPattern={infillPattern}
+          setInfillPattern={setInfillPattern}
+          supportType={supportType}
+          setSupportType={setSupportType}
+          shellCount={shellCount}
+          setShellCount={setShellCount}
+          printResolution={printResolution}
+          setPrintResolution={setPrintResolution}
+          printOrientation={printOrientation}
+          setPrintOrientation={setPrintOrientation}
+          selectedElement={selectedElement}
+        />
+      </div>
+    </div>
+    )}
             </div>
             
             {/* Descrizione dell'operazione */}
@@ -3945,12 +3995,12 @@ function generateText3DToolpath(element: any, settings: any): string {
             {/* Show geometry options only for mill operations */}
             {settings.machineType === 'mill' && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                     Geometry Type
-                  </label>
-                  <select
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              </label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     value={geometryType}
                     onChange={(e) => {
                       const newGeometryType = e.target.value as 'rectangle' | 'circle' | 'polygon' | 'custom' | 'selected' | 'cube' | 'sphere' | 'cylinder' | 'cone' | 'extrude' | 'line' | 'pyramid' | 'hemisphere' | 'ellipsoid' | 'capsule' | 'triangle' | 'ellipse' | 'prism';
@@ -4005,8 +4055,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                     <option value="polygon">Polygon</option>
                     <option value="selected">From Selected Element</option>
                     <option value="custom">Custom</option>
-                  </select>
-                </div>
+              </select>
+            </div>
 
                 {/* Selection state if "Da elemento selezionato" is chosen */}
                 {geometryType === 'selected' && (
@@ -4043,13 +4093,13 @@ function generateText3DToolpath(element: any, settings: any): string {
                                 <div className="flex justify-between">
                                   <span className="text-gray-600">Position Z:</span>
                               <span className="font-medium">{selectedElement.z} mm</span>
-                                </div>
-                              )}
+          </div>
+        )}
                               {/* Aggiungiamo il campo per lo spessore di lavorazione */}
                               <div className="flex justify-between col-span-2 mt-2 border-t border-green-200 pt-2">
                                 <span className="text-gray-600 font-medium">Machining Depth:</span>
                                 <span className="font-medium text-blue-600">{settings.depth} mm</span>
-                              </div>
+      </div>
                             </div>
                           )}
                           
@@ -4371,7 +4421,7 @@ function generateText3DToolpath(element: any, settings: any): string {
                               Use 3D Depth
                             </button>
                           )}
-                        </div>
+        </div>
                        </div>
                       ) : (
                          <p className="text-sm text-yellow-700">
@@ -4385,14 +4435,14 @@ function generateText3DToolpath(element: any, settings: any): string {
                 {geometryType === 'rectangle' && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                           Width (mm)(X)
-                        </label>
+              </label>
                         <input
                           type="number"
                           min="1"
-                          className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           value={rectangleWidth}
                           onChange={(e) => updateNumericValue(e, setRectangleWidth)}
                         />
@@ -4492,8 +4542,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                         <circle cx="200" cy="150" r="5" fill="#EF4444" />
                         <text x="210" y="160" fontSize="12" fontWeight="500" fill="#EF4444">Origin</text>
                       </svg>
-                    </div>
-                  </div>
+            </div>
+          </div>
               </>
             )}
               
@@ -4530,8 +4580,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                         }}
                       />
         </div>
-                  </div>
-                  
+      </div>
+      
                   {/* Geometry Preview Cerchio - Stilizzata come nell'immagine richiesta */}
                   <div className="border border-gray-200 rounded-md p-4 bg-white">
                     <h4 className="text-sm font-medium text-gray-700 mb-4 text-center">Geometry Preview</h4>
@@ -4821,7 +4871,7 @@ function generateText3DToolpath(element: any, settings: any): string {
   };
   // Render material section
   const renderMaterialSection = () => {
-    return (
+  return (
       <div className="mb-6 text-xs">
         <div
           className="flex items-center justify-between cursor-pointer"
@@ -4829,16 +4879,16 @@ function generateText3DToolpath(element: any, settings: any): string {
         >
           <h3 className="text-lg font-medium text-gray-900">Material</h3>
           {expanded.material ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </div>
-
+        </div>
+        
         {expanded.material && (
           <div className="mt-3 space-y-4">
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Material Type
-                 </label>
-                 <select
-                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              </label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 value={settings.material}
                 onChange={(e) => updateSettings('material', e.target.value)}
               >
@@ -4850,8 +4900,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                 <option value="titanium">Titanium</option>
                 <option value="composite">Composite</option>
                 <option value="other">Other</option>
-                 </select>
-               </div>
+              </select>
+            </div>
             
             {/* Material property preview */}
             {settings.material && materialProperties[settings.material] && (
@@ -4898,10 +4948,10 @@ function generateText3DToolpath(element: any, settings: any): string {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Tool Coating:</span>
                       <span className="font-medium text-blue-700">{materialProperties[settings.material].recommendedToolCoating}</span>
-                    </div>
-                  )}
-             </div>
-
+          </div>
+        )}
+      </div>
+      
                 {/* Apply recommended parameters button */}
                 <button
                   type="button"
@@ -4940,7 +4990,7 @@ function generateText3DToolpath(element: any, settings: any): string {
               <div className="mt-2 p-3 bg-blue-50 rounded-md">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-blue-800">Workpiece Information</span>
-                  <button
+        <button
                     type="button"
                     className="text-xs text-blue-600 hover:text-blue-800"
                     onClick={() => {
@@ -4952,8 +5002,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                     }}
                   >
                     Info
-                  </button>
-                </div>
+        </button>
+      </div>
                 <div className="mt-1 text-xs text-blue-600">
                   {workpiece.width} x {workpiece.height} x {workpiece.depth} mm ({workpiece.material})
                 </div>
@@ -5048,8 +5098,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                 )}
               </select>
             </div>
-          </div>
-        )}
+        </div>
+      )}
     </div>
   );
 };
@@ -5074,8 +5124,8 @@ function generateText3DToolpath(element: any, settings: any): string {
               </label>
               
               {settings.machineType === 'mill' && (
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={settings.toolType}
                   onChange={(e) => updateSettings('toolType', e.target.value)}
                 >
@@ -5085,8 +5135,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                   <option value="vbit">V-bit</option>
                   <option value="chamfer">Chamfer</option>
                   <option value="threadmill">Threadmill</option>
-                  <option value="reamer">Reamer</option>
-                </select>
+                <option value="reamer">Reamer</option>
+              </select>
               )}
               
               {settings.machineType === 'lathe' && (
@@ -5116,7 +5166,7 @@ function generateText3DToolpath(element: any, settings: any): string {
                   <option value="ruby">Ruby</option>
                 </select>
               )}
-              </div>
+            </div>
             <div className="p-3 bg-gray-50 rounded-md">
             <div className="flex justify-between items-start">
               <h4 className="text-sm font-medium text-gray-700 mb-2">
@@ -5140,7 +5190,7 @@ function generateText3DToolpath(element: any, settings: any): string {
                   `${selectedLibraryTool.name || 'Custom tool'}` : 
                   'Generic tool'
                 }
-                         </div>
+          </div>
             </div>
             <div className="flex items-center">
               <div className="w-20 h-20 mr-4 bg-white rounded-md border border-gray-200 flex items-center justify-center">
@@ -5230,29 +5280,29 @@ function generateText3DToolpath(element: any, settings: any): string {
                 </table>
               </div>
             </div>
-                 </div>
-
+        </div>
+        
             
             {settings.machineType !== '3dprinter' && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Tool Diameter (mm)
-                  </label>
-                  <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    value={settings.toolDiameter}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value) && value > 0) {
-                        updateSettings('toolDiameter', value);
-                      }
-                    }}
-                  />
-                       </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tool Diameter (mm)
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                value={settings.toolDiameter}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value > 0) {
+                    updateSettings('toolDiameter', value);
+                  }
+                }}
+              />
+            </div>
                 
                 {settings.machineType === 'mill' && (
                   <div>
@@ -5272,27 +5322,27 @@ function generateText3DToolpath(element: any, settings: any): string {
                         }
                       }}
                     />
-                       </div>
-                     )}
+          </div>
+        )}
                 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                     Rotation Speed (RPM)
-                  </label>
-                  <input
-                    type="number"
+              </label>
+              <input
+                type="number"
                     min="1000"
                     step="500"
-                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     value={settings.rpm}
-                    onChange={(e) => {
+                onChange={(e) => {
                       const value = parseInt(e.target.value);
-                      if (!isNaN(value) && value > 0) {
+                  if (!isNaN(value) && value > 0) {
                         updateSettings('rpm', value);
-                      }
-                    }}
-                  />
-                  </div>
+                  }
+                }}
+              />
+            </div>
 
                 <div className="flex items-center">
                   <input
@@ -5305,7 +5355,7 @@ function generateText3DToolpath(element: any, settings: any): string {
                   <label htmlFor="coolant" className="ml-2 block text-sm text-gray-700">
                     Activate Coolant
                   </label>
-                </div>
+          </div>
               </>
             )}
             
@@ -5379,8 +5429,8 @@ function generateText3DToolpath(element: any, settings: any): string {
                   </optgroup>
                 )}
               </select>
-            </div>
-            
+      </div>
+      
             {/* Tool library management */}
             <div className="mt-2 flex justify-between items-center pt-2 border-t border-gray-200">
               <span className="text-sm text-gray-600">Upload from library</span>
@@ -5470,7 +5520,7 @@ function generateText3DToolpath(element: any, settings: any): string {
 )}
 
 {selectedCycle && (
-                 <div className="mt-4">
+        <div className="mt-4">
     <h4 className="text-sm font-medium text-gray-800 mb-2">Modify Fixed Cycle</h4>
     <FixedCyclesUIRenderer
       gCodeLine={selectedCycle.gcode}
@@ -5522,12 +5572,12 @@ function generateText3DToolpath(element: any, settings: any): string {
       Remove All Fixed Cycles
     </button>
   )}
-                 </div>
           </div>
-        )}
-      </div>
-    );
-  };
+        </div>
+      )}
+    </div>
+  );
+};
 
   // Render cutting parameters section
   const renderCuttingSection = () => {
@@ -5571,11 +5621,11 @@ function generateText3DToolpath(element: any, settings: any): string {
               <div className="flex justify-between text-xs text-gray-500 mt-1">
                 <span>Min: 0.1mm</span>
                 <span>Max recommended: 3mm</span>
-              </div>
             </div>
-
-               <div>
-                 <label className="block text-sm font-medium text-gray-700 mb-1">
+      </div>
+      
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Feedrate (mm/min)
               </label>
               <input
@@ -5596,10 +5646,10 @@ function generateText3DToolpath(element: any, settings: any): string {
                   <span className={`${cuttingFeedback.startsWith('✓') ? 'text-green-600' : 'text-yellow-600'} font-medium`}>
                     {cuttingFeedback}
                   </span>
-                )}
-              </div>
-            </div>
-            
+        )}
+      </div>
+        </div>
+        
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Entry Speed (mm/min)
@@ -5618,9 +5668,9 @@ function generateText3DToolpath(element: any, settings: any): string {
               />
               <div className="text-xs text-gray-500 mt-1">
                 Recommended: {recommendedPlunge} mm/min ({Math.round((recommendedPlunge / settings.feedrate) * 100)}% of feedrate)
-              </div>
             </div>
-            
+      </div>
+      
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Stepover (% of diameter)
@@ -5640,22 +5690,22 @@ function generateText3DToolpath(element: any, settings: any): string {
               />
               <div className="text-xs text-gray-500 mt-1">
                 Effective width: {effectiveStepover.toFixed(2)} mm
-              </div>
             </div>
-            
+      </div>
+      
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tool Offset
-                 </label>
-                 <select
-                   className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              </label>
+              <select
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 value={settings.offset}
                 onChange={(e) => updateSettings('offset', e.target.value)}
               >
                 <option value="outside">Outside</option>
                 <option value="inside">Inside</option>
                 <option value="center">Center</option>
-                 </select>
+              </select>
               
               {/* Visualizzazione grafica offset utensile */}
               <div className="mt-2 flex justify-center">
@@ -5688,10 +5738,10 @@ function generateText3DToolpath(element: any, settings: any): string {
                       </>
                     )}
                   </svg>
-               </div>
-              </div>
-             </div>
-
+            </div>
+          </div>
+      </div>
+      
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Cutting Direction
@@ -5742,7 +5792,7 @@ function generateText3DToolpath(element: any, settings: any): string {
             </div>
             
             <div className="flex items-center">
-              <input
+                  <input
                 type="checkbox"
                 id="finishingPass"
                 className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
@@ -5751,28 +5801,28 @@ function generateText3DToolpath(element: any, settings: any): string {
               />
               <label htmlFor="finishingPass" className="ml-2 block text-sm text-gray-700">
                 Add Finishing Pass
-              </label>
-            </div>
+                  </label>
+                </div>
             
             {settings.finishingPass && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                   Finishing Allowance (mm)
-                </label>
-                <input
-                  type="number"
+                  </label>
+                  <input
+                    type="number"
                   min="0.05"
                   max="1"
                   step="0.05"
-                  className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={settings.finishingAllowance}
-                  onChange={(e) => {
-                    const value = parseFloat(e.target.value);
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
                     if (!isNaN(value) && value > 0) {
                       updateSettings('finishingAllowance', value);
-                    }
-                  }}
-                />
+                      }
+                    }}
+                  />
               </div>
             )}
             
@@ -5806,7 +5856,7 @@ function generateText3DToolpath(element: any, settings: any): string {
 
   // Render advanced section
   const renderAdvancedSection = () => {
-    return (
+  return (
       <div className="mb-6" data-testid="advanced-options-panel">
         <div
           className="flex items-center justify-between cursor-pointer"
@@ -5848,30 +5898,30 @@ function generateText3DToolpath(element: any, settings: any): string {
               <h4 className="text-sm font-medium text-gray-800 mb-2">Path Optimization</h4>
               
               <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
+            <div className="flex items-center">
+              <input
+                type="checkbox"
                     id="use-path-optimization"
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     checked={settings.optimizePath || false}
-                    onChange={(e) => updateSettings('optimizePath', e.target.checked)}
-                  />
+                onChange={(e) => updateSettings('optimizePath', e.target.checked)}
+              />
                   <label htmlFor="use-path-optimization" className="ml-2 block text-sm text-gray-700">
                     Enable path optimization
-                  </label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
+              </label>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
                     id="use-arc-fitting"
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     checked={settings.useArcFitting || false}
                     onChange={(e) => updateSettings('useArcFitting', e.target.checked)}
-                  />
+              />
                   <label htmlFor="use-arc-fitting" className="ml-2 block text-sm text-gray-700">
                     Convert segments to arcs (G2/G3)
-                  </label>
+              </label>
                 </div>
               </div>
             </div>
@@ -5881,35 +5931,35 @@ function generateText3DToolpath(element: any, settings: any): string {
               <h4 className="text-sm font-medium text-gray-800 mb-2">Advanced Cutting Strategies</h4>
               
               <div className="space-y-3">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
+            <div className="flex items-center">
+              <input
+                type="checkbox"
                     id="use-adaptive-feeds"
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     checked={settings.useAdaptiveFeeds || false}
                     onChange={(e) => updateSettings('useAdaptiveFeeds', e.target.checked)}
-                  />
+              />
                   <label htmlFor="use-adaptive-feeds" className="ml-2 block text-sm text-gray-700">
                     Enable adaptive feeds in curves
-                  </label>
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
+              </label>
+            </div>
+            
+            <div className="flex items-center">
+              <input
+                type="checkbox"
                     id="use-rest-machining"
-                    className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                     checked={settings.useRestMachining || false}
                     onChange={(e) => updateSettings('useRestMachining', e.target.checked)}
-                  />
+              />
                   <label htmlFor="use-rest-machining" className="ml-2 block text-sm text-gray-700">
                     Use rest machining (Rest Machining)
-                  </label>
-                </div>
+              </label>
+            </div>
                 
                 {settings.finishingPass && (
                   <div>
-                    <label className="block text-sm text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Finishing Strategy
                     </label>
                     <select
@@ -5922,11 +5972,11 @@ function generateText3DToolpath(element: any, settings: any): string {
                       <option value="spiral">Spiral</option>
                       <option value="radial">Radial</option>
                     </select>
-                  </div>
-                )}
+          </div>
+        )}
               </div>
-            </div>
-            
+      </div>
+      
             {/* Opzioni di compensazione */}
             <div className="border-t border-gray-200 pt-4">
               <h4 className="text-sm font-medium text-gray-800 mb-2">Tool Compensation</h4>
@@ -6002,10 +6052,10 @@ function generateText3DToolpath(element: any, settings: any): string {
             
             {settings.useAI && (
               <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                     Project Complexity
-                  </label>
+              </label>
                   <select
                     className="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     value={settings.aiDifficulty}
@@ -6082,7 +6132,7 @@ function generateText3DToolpath(element: any, settings: any): string {
                       }
                     }}
                   />
-                  <button
+        <button
                     type="button"
                     className="absolute right-2 top-2 text-blue-600"
                     onClick={() => {
@@ -6096,22 +6146,23 @@ function generateText3DToolpath(element: any, settings: any): string {
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                     </svg>
-                  </button>
-                </div>
-              </div>
+        </button>
+      </div>
+          </div>
             </>
-          )}
-        </div>
+        )}
+      </div>
       )}
     </div>
   );
-  }
+};
+
   return (
     <div className={`bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white p-4 rounded-md shadow-md ${showFullscreen ? "fixed inset-0 z-50 overflow-auto" : ""}`}>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold dark:text-white text-gray-900">Toolpath Generator</h2>
         <div className="flex items-center space-x-2">
-          <button
+        <button
             type="button"
             onClick={() => setShowFullscreen(!showFullscreen)}
             className="p-1 rounded-md hover:bg-gray-100 text-gray-600"
@@ -6158,8 +6209,8 @@ function generateText3DToolpath(element: any, settings: any): string {
       )}
       
       <button
-        onClick={generateGCode}
-        disabled={isGenerating}
+          onClick={generateGCode}
+          disabled={isGenerating}
         className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center"
       >
         {isGenerating ? (
@@ -6240,7 +6291,7 @@ function generateText3DToolpath(element: any, settings: any): string {
               }}
             >
                 <Upload size={14} className="mr-1" /> Upload
-            </button>
+        </button>
           </div>
         </div>
       </div>
