@@ -97,6 +97,10 @@ export const MODEL_CAPABILITIES = {
     bestFor: ['advanced_reasoning', 'complex_design', 'enhanced_analysis'],
     costTier: 'medium',
     tokensPerSecond: 30,
+    thinking: true,
+    thinkingBudget: 2000,
+    reasoning: true,
+    reasoningBudget: 2000,
     supportedFeatures: ['enhanced_reasoning', 'code_generation', 'technical_analysis', 'complex_reasoning'],
     provider: AI_PROVIDERS.CLAUDE
   },
@@ -268,31 +272,31 @@ export class AIConfigManager {
     switch (requestType) {
       case 'text_to_cad':
         return {
-          model: AI_MODELS.CLAUDE_OPUS,
+          model: AI_MODELS.CLAUDE_SONNET_7,
           temperature: 0.5,
           maxTokens: 6000
         };
       case 'design_analysis':
         return {
-          model: AI_MODELS.CLAUDE_OPUS,
+          model: AI_MODELS.CLAUDE_SONNET_7,
           temperature: 0.3,
           maxTokens: 4000
         };
       case 'gcode_optimization':
         return {
-          model: AI_MODELS.CLAUDE_SONNET,
+          model: AI_MODELS.CLAUDE_SONNET_7,
           temperature: 0.2,
           maxTokens: 4000
         };
       case 'suggestions':
         return {
-          model: AI_MODELS.CLAUDE_HAIKU,
+          model: AI_MODELS.CLAUDE_SONNET_7,
           temperature: 0.7,
           maxTokens: 1000
         };
       case 'chat':
         return {
-          model: AI_MODELS.CLAUDE_SONNET,
+          model: AI_MODELS.CLAUDE_SONNET_7,
           temperature: 0.7,
           maxTokens: 2000
         };

@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from '@/src/lib/api/auth';
 import { v4 as uuidv4 } from 'uuid';
-import { unifiedAIService } from '@/src/lib/ai/ai-new/unifiedAIService';
+import { unifiedAIService } from '@/src/lib/ai/unifiedAIService';
 import { aiAnalytics } from '@/src/lib/ai/ai-new/aiAnalytics';
 
 // Storage simulato per le sessioni (in produzione usare un database)

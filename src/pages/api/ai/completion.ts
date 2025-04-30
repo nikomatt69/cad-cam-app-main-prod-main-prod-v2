@@ -1,7 +1,7 @@
 // src/pages/api/ai/completion.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { requireAuth } from '@/src/lib/api/auth';
-import { unifiedAIService } from '@/src/lib/ai/ai-new/unifiedAIService';
+import { unifiedAIService } from '@/src/lib/ai/unifiedAIService';
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,7 +15,7 @@ export default async function handler(
   }
 
   try {
-    const { prompt, systemPrompt, model = 'claude-3-5-sonnet-20240229', temperature = 0.3 } = req.body;
+    const { prompt, systemPrompt, model = 'claude-3-7-sonnet-20250219', temperature = 0.3 } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ message: 'Prompt is required' });

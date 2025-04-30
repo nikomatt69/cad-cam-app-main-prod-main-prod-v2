@@ -367,23 +367,23 @@ const ToolpathGenerator: React.FC<ToolpathGeneratorProps> = ({ onGCodeGenerated,
         switch (settings.machineType) {
           case 'mill':
             suggestions = [
-              `Per ${settings.material} con fresa da ${settings.toolDiameter}mm, consigliata una velocità di avanzamento di ${settings.material === 'aluminum' ? 800 : settings.material === 'steel' ? 400 : 600} mm/min.`,
-              `Con profondità di ${settings.depth}mm, suggeriamo incrementi di ${Math.min(settings.toolDiameter / 4, 1).toFixed(1)}mm per migliori risultati.`,
-              `Per ottimizzare durata utensile su ${settings.material}, considera ${settings.material === 'steel' || settings.material === 'titanium' ? 'refrigerante ad alta pressione' : 'refrigerante standard'}.`
+              `For ${settings.material} with a ${settings.toolDiameter}mm cutter, a feed rate of ${settings.material === 'aluminum' ? 800 : settings.material === 'steel' ? 400 : 600} mm/min is recommended.`,
+              `With a depth of ${settings.depth}mm, we suggest increments of ${Math.min(settings.toolDiameter / 4, 1).toFixed(1)}mm for better results.`,
+              `To optimize tool life on ${settings.material}, consider ${settings.material === 'steel' || settings.material === 'titanium' ? 'high-pressure coolant' : 'standard coolant'}.`
             ];
             break;
           case 'lathe':
             suggestions = [
-              `Per tornitura di ${settings.material}, la velocità di avanzamento consigliata è ${settings.material === 'aluminum' ? 0.2 : settings.material === 'steel' ? 0.15 : 0.25} mm/giro.`,
-              `Profondità di passata consigliata: ${settings.material === 'aluminum' ? 1.5 : settings.material === 'steel' ? 0.8 : 1.0}mm per sgrossatura.`,
-              `Velocità di taglio ottimale: ${settings.material === 'aluminum' ? 300 : settings.material === 'steel' ? 150 : 200} m/min.`
+              `For turning ${settings.material}, the recommended feed rate is ${settings.material === 'aluminum' ? 0.2 : settings.material === 'steel' ? 0.15 : 0.25} mm/rev.`,
+              `Recommended depth of cut: ${settings.material === 'aluminum' ? 1.5 : settings.material === 'steel' ? 0.8 : 1.0}mm for roughing.`,
+              `Optimal cutting speed: ${settings.material === 'aluminum' ? 300 : settings.material === 'steel' ? 150 : 200} m/min.`
             ];
             break;
           case '3dprinter':
             suggestions = [
-              `La temperatura consigliata per ${settings.material === 'plastic' ? 'PLA' : settings.material} è ${settings.material === 'plastic' ? '200-220°C' : '240-260°C'}.`,
-              `Per un'altezza del layer di ${settings.layerHeight}mm, una velocità di stampa di ${settings.printSpeed}mm/s è ottimale.`,
-              `Temperatura del piatto consigliata: ${settings.material === 'plastic' ? '60°C per PLA, 80°C per PETG' : '100-110°C per ABS/ASA'}.`
+              `The recommended temperature for ${settings.material === 'plastic' ? 'PLA' : settings.material} is ${settings.material === 'plastic' ? '200-220°C' : '240-260°C'}.`,
+              `For a layer height of ${settings.layerHeight}mm, a print speed of ${settings.printSpeed}mm/s is optimal.`,
+              `Recommended bed temperature: ${settings.material === 'plastic' ? '60°C for PLA, 80°C for PETG' : '100-110°C for ABS/ASA'}.`
             ];
             break;
         }

@@ -2,70 +2,70 @@
 export interface OperationDescription {
     title: string;
     description: string;
-    icon?: string; // Opzionale per futura espansione con icone
+    icon?: string; // Optional for future expansion with icons
   }
   
   export const getOperationDescription = (operationType: string): OperationDescription => {
     const descriptions: {[key: string]: OperationDescription} = {
-      // Operazioni fresatura
+      // Milling operations
       'contour': {
-        title: 'Contornatura',
-        description: 'Contornatura - Segue il profilo esterno o interno del pezzo mantenendo pareti verticali.'
+        title: 'Contouring',
+        description: 'Contouring - Follows the external or internal profile of the part while maintaining vertical walls.'
       },
       'pocket': {
-        title: 'Svuotamento Tasca',
-        description: 'Svuotamento Tasca - Rimuove il materiale all\'interno di un profilo chiuso creando una cavità.'
+        title: 'Pocket Clearing',
+        description: 'Pocket Clearing - Removes material inside a closed profile creating a cavity.'
       },
       'drill': {
-        title: 'Foratura',
-        description: 'Foratura - Crea fori verticali di profondità definita.'
+        title: 'Drilling',
+        description: 'Drilling - Creates vertical holes of a defined depth.'
       },
       'engrave': {
-        title: 'Incisione',
-        description: 'Incisione - Traccia linee poco profonde seguendo un percorso.'
+        title: 'Engraving',
+        description: 'Engraving - Traces shallow lines following a path.'
       },
       'profile': {
-        title: 'Profilo 3D',
-        description: 'Profilo 3D - Segue un profilo tridimensionale variando la profondità di lavoro.'
+        title: '3D Profile',
+        description: '3D Profile - Follows a three-dimensional profile varying the working depth.'
       },
       'threading': {
-        title: 'Filettatura',
-        description: 'Filettatura - Crea filettature interne o esterne con fresa o maschio.'
+        title: 'Threading',
+        description: 'Threading - Creates internal or external threads with a milling cutter or tap.'
       },
       '3d_surface': {
-        title: 'Superficie 3D',
-        description: 'Superficie 3D - Lavora superfici tridimensionali complesse con percorsi ottimizzati.'
+        title: '3D Surface',
+        description: '3D Surface - Works on complex three-dimensional surfaces with optimized paths.'
       },
       
-      // Operazioni tornio
+      // Lathe operations
       'turning': {
-        title: 'Tornitura',
-        description: 'Tornitura - Crea superfici cilindriche esterne rimuovendo materiale radialmente.'
+        title: 'Turning',
+        description: 'Turning - Creates external cylindrical surfaces by removing material radially.'
       },
       'facing': {
-        title: 'Sfacciatura',
-        description: 'Sfacciatura - Crea superfici piane perpendicolari all\'asse di rotazione.'
+        title: 'Facing',
+        description: 'Facing - Creates flat surfaces perpendicular to the axis of rotation.'
       },
       'boring': {
-        title: 'Alesatura',
-        description: 'Alesatura - Allarga o rifinisce con precisione fori o superfici interne.'
+        title: 'Boring',
+        description: 'Boring - Widens or precisely finishes holes or internal surfaces.'
       },
-      // Altre operazioni tornio con stesse chiavi
+      // Other lathe operations with the same keys
       
-      // Operazioni 3D printing
+      // 3D printing operations
       'standard': {
-        title: 'Stampa Standard',
-        description: 'Stampa Standard - Stampa con parametri normali per qualità e velocità bilanciate.'
+        title: 'Standard Printing',
+        description: 'Standard Printing - Prints with normal parameters for balanced quality and speed.'
       },
       'vase': {
-        title: 'Vaso (Spirale)',
-        description: 'Vaso (Spirale) - Stampa in modalità a spirale continua senza cuciture per oggetti cavi.'
+        title: 'Vase (Spiral)',
+        description: 'Vase (Spiral) - Prints in continuous spiral mode without seams for hollow objects.'
       }
-      // Altre operazioni stampa 3D
+      // Other 3D printing operations
     };
     
     return descriptions[operationType] || {
-      title: 'Operazione personalizzata',
-      description: 'Operazione personalizzata con parametri definiti dall\'utente.'
+      title: 'Custom Operation',
+      description: 'Custom operation with user-defined parameters.'
     };
   };

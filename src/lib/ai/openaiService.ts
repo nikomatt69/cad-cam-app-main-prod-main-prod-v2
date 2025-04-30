@@ -446,6 +446,25 @@ export class OpenAIService {
           }
         }
       },
+      groupCADElements: {
+        type: "function",
+        function: {
+          name: 'groupCADElements',
+        description: 'Group multiple CAD elements together',
+        parameters: {
+          type: 'object',
+          properties: {
+            elementIds: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'IDs of elements to group'
+            },
+            groupName: { type: 'string', description: 'Name for the group' }
+          },
+          required: ['elementIds']
+        }
+        }
+      },
       chainOfThoughtAnalysis: {
         type: "function",
         function: {

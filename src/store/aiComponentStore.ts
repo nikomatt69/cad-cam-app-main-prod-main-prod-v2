@@ -74,8 +74,8 @@ export const useAIComponentStore = create<AIComponentState>((set, get) => ({
       description: action.payload.description || `Component with ${elements.length} elements`,
       timestamp: Date.now(),
       elements,
-      source: 'ai',
-      tags: ['ai-generated'],
+      source: 'user',
+      tags: ['custom'],
       metadata: {
         originalAction: action.type,
         generationPrompt: action.payload.prompt || ''
@@ -102,8 +102,8 @@ export const useAIComponentStore = create<AIComponentState>((set, get) => ({
       description: '',
       timestamp: Date.now(),
       elements,
-      source: 'ai',
-      tags: ['artifact'],
+      source: 'user',
+      tags: ['custom'],
       metadata: {}
     };
     

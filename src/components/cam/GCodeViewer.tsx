@@ -418,9 +418,9 @@ const GCodeViewer: React.FC<GCodeViewerProps> = ({
         {!gcode && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-80">
             <div className="text-center p-6 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-lg shadow-md">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun G-Code caricato</h3>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No G-Code loaded</h3>
               <p className="text-gray-600">
-                Importa un file G-Code o generane uno con il generatore di percorsi per visualizzare qui.
+                Import a G-Code file or generate one with the toolpath generator to display here.
               </p>
             </div>
           </div>
@@ -429,7 +429,7 @@ const GCodeViewer: React.FC<GCodeViewerProps> = ({
         <div className="absolute top-4 left-4 p-2 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white bg-opacity-80 rounded-md shadow-sm">
           {toolPath.length > 0 && (
             <>
-              <p className="text-sm font-medium">Posizione corrente:</p>
+              <p className="text-sm font-medium">Current Position (mm):</p>
               {currentPoint < toolPath.length && (
                 <p className="text-xs text-gray-600">
                   X: {toolPath[currentPoint].x.toFixed(2)}, 
@@ -473,26 +473,26 @@ const GCodeViewer: React.FC<GCodeViewerProps> = ({
           <div className="absolute bottom-4 left-4 right-4 p-3 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white bg-opacity-90 rounded-md shadow-sm text-xs">
             <div className="flex justify-between items-center">
               <div>
-                <span className="font-medium">Dimensioni:</span> X: {stats.boundaries.minX.toFixed(2)} - {stats.boundaries.maxX.toFixed(2)}, 
+                <span className="font-medium">Dimensions:</span> X: {stats.boundaries.minX.toFixed(2)} - {stats.boundaries.maxX.toFixed(2)}, 
                 Y: {stats.boundaries.minY.toFixed(2)} - {stats.boundaries.maxY.toFixed(2)}, 
                 Z: {stats.boundaries.minZ.toFixed(2)} - {stats.boundaries.maxZ.toFixed(2)}
               </div>
               <div className="flex space-x-4">
                 <div>
-                  <span className="font-medium">Rapidi:</span> {stats.rapidMoves}
+                  <span className="font-medium">Rapids:</span> {stats.rapidMoves}
                 </div>
                 <div>
-                  <span className="font-medium">Lineari:</span> {stats.linearMoves}
+                  <span className="font-medium">Linear:</span> {stats.linearMoves}
                 </div>
                 <div>
-                  <span className="font-medium">Circolari:</span> {stats.circularMoves}
+                  <span className="font-medium">Circular:</span> {stats.circularMoves}
                 </div>
               </div>
             </div>
             
             <div className="mt-1 text-gray-500 flex items-center">
               <Info size={12} className="mr-1" />
-              Usa il mouse per spostare la vista. Rotella per zoom.
+              Use the mouse to move the view. Wheel to zoom.
             </div>
           </div>
         )}
@@ -501,58 +501,58 @@ const GCodeViewer: React.FC<GCodeViewerProps> = ({
       {/* Dettagli statistici avanzati */}
       {toolPath.length > 0 && (
         <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white shadow-md rounded-md p-4 mt-4 mx-2 mb-2">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Analisi dettagliata</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Detailed Analysis</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-3 bg-gray-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700">Totale Punti</p>
+              <p className="text-sm font-medium text-gray-700">Total Points</p>
               <p className="text-xl font-bold text-blue-600">{toolPath.length}</p>
             </div>
             
             <div className="p-3 bg-blue-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700">Movimenti Rapidi</p>
+              <p className="text-sm font-medium text-gray-700">Rapids</p>
               <p className="text-xl font-bold text-blue-600">{stats.rapidMoves}</p>
             </div>
             
             <div className="p-3 bg-green-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700">Movimenti Lineari</p>
+              <p className="text-sm font-medium text-gray-700">Linear</p>
               <p className="text-xl font-bold text-green-600">{stats.linearMoves}</p>
             </div>
             
             <div className="p-3 bg-purple-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700">Movimenti Circolari</p>
+              <p className="text-sm font-medium text-gray-700">Circular</p>
               <p className="text-xl font-bold text-purple-600">{stats.circularMoves}</p>
             </div>
           </div>
           
           <div className="mt-4 p-3 bg-gray-50 rounded-md">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Dimensioni di lavoro</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Work Dimensions</h4>
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div>
-                <span className="font-medium">Larghezza:</span> {(stats.boundaries.maxX - stats.boundaries.minX).toFixed(2)} mm
+                <span className="font-medium">Width:</span> {(stats.boundaries.maxX - stats.boundaries.minX).toFixed(2)} mm
               </div>
               <div>
-                <span className="font-medium">Altezza:</span> {(stats.boundaries.maxY - stats.boundaries.minY).toFixed(2)} mm
+                <span className="font-medium">Height:</span> {(stats.boundaries.maxY - stats.boundaries.minY).toFixed(2)} mm
               </div>
               <div>
-                <span className="font-medium">Profondità:</span> {(stats.boundaries.maxZ - stats.boundaries.minZ).toFixed(2)} mm
+                <span className="font-medium">Depth:</span> {(stats.boundaries.maxZ - stats.boundaries.minZ).toFixed(2)} mm
               </div>
             </div>
           </div>
           
           <div className="mt-4 p-3 bg-yellow-50 rounded-md">
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Aiuti per la Navigazione</h4>
+            <h4 className="text-sm font-medium text-gray-700 mb-2">Navigation Tips</h4>
             <div className="flex flex-wrap gap-4 text-xs text-gray-600">
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-blue-100 mr-1 border border-blue-200"></div>
-                <span>Spostare: Click e Trascina</span>
+                <span>Move: Click and Drag</span>
               </div>
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-green-100 mr-1 border border-green-200"></div>
-                <span>Zoom: Rotella Mouse</span>
+                <span>Zoom: Wheel</span>
               </div>
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-purple-100 mr-1 border border-purple-200"></div>
-                <span>Reset Vista: Pulsante Home</span>
+                <span>Reset View: Home Button</span>
               </div>
             </div>
           </div>

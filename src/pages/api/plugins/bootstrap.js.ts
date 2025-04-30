@@ -61,15 +61,19 @@ const bootstrapHandler: ApiHandlerWithRegistry = async (req, res, registry) => {
      return res.status(500).send(`/* Plugin ${id} has no valid main entry point in manifest. */`);
   }
 
-  // --- The rest of the script generation logic remains the same --- 
+  // --- Reverting to original /api/plugins/serve URL ---
   const manifestJson = JSON.stringify(manifest);
   const pluginCodeUrl = `/api/plugins/serve?id=${encodeURIComponent(id)}&file=${encodeURIComponent(manifest.main)}`;
+  console.log(`[API/Bootstrap] Generated plugin code URL (via serve API): ${pluginCodeUrl}`);
+  // --- End Revert ---
 
   // Build the bootstrap script using simple string concatenation
   let script = '';
   script += '// --- Plugin Bootstrap Script (Served from API for ' + id + ') ---\n';
   script += '(async function() {\n';
-  script += '  console.log(\'[Plugin Bootstrap (\' + id + \')] Starting...\');\n';
+  script += '  const pluginId = ' + JSON.stringify(id) + ';\n'; 
+  script += '  const pluginCodeUrl = ' + JSON.stringify(pluginCodeUrl) + ';\n'; 
+  script += '  console.log(`[Plugin Bootstrap (${pluginId})] Starting...`);\n';
   script += '  const pluginManifest = ' + manifestJson + ';\n'; // Embed manifest
   script += '  const pluginRoot = document.getElementById(\'plugin-root\');\n';
   script += '  const pendingPromises = new Map();\n';
@@ -79,28 +83,36 @@ const bootstrapHandler: ApiHandlerWithRegistry = async (req, res, registry) => {
   // reportError function
   script += '  const reportError = (stage, error) => {\n';
   script += '    const errorMsg = error?.message || String(error);\n';
-  script += '    console.error(\"`[Plugin Bootstrap (\' + id + \')] Error during ${stage}:`\", errorMsg, error?.stack);\n'; // Use backticks carefully
+  script += '    console.error(`[Plugin Bootstrap (${pluginId})] Error during ${stage}:`, errorMsg, error?.stack);\n';
+  // --- BEGIN DEBUG LOGGING in reportError ---
+  script += '    if (stage === \'activate\') {\n'; // Only log extra details for activate errors
+  script += '       console.log(\'[Plugin Bootstrap DEBUG] Logging pluginApi state during activate error:\');\n';
+  script += '       console.log(\'[Plugin Bootstrap DEBUG] typeof pluginApi:\', typeof pluginApi);\n';
+  script += '       try { console.log(\'[Plugin Bootstrap DEBUG] pluginApi object:\', pluginApi); } catch(e) { console.log(\'[Plugin Bootstrap DEBUG] Could not log pluginApi object\'); }\n'; 
+  script += '       console.log(\'[Plugin Bootstrap DEBUG] typeof pluginApi?.host:\', typeof pluginApi?.host);\n';
+  script += '    }\n';
+  // --- END DEBUG LOGGING in reportError ---
   script += '    pluginRoot.innerHTML = \`<div class=\"plugin-error-state\">Failed (${stage})</div>\`; \n';
-  script += '    window.parent.postMessage({ type: \'plugin-init-result\', success: false, pluginId: pluginManifest.id, error: \`${stage}: ${errorMsg}\` }, \'*\');\n'; // Use backticks carefully
+  script += '    window.parent.postMessage({ type: \'plugin-init-result\', success: false, pluginId: pluginId, error: \`${stage}: ${errorMsg}\` }, \'*\');\n';
   script += '  };\n\n';
 
   // Helper Functions (Concatenated)
   script += '  function generateMessageId() { return \'msg_\' + Date.now() + \'_\' + Math.random().toString(36).substr(2, 9); }\n';
-  script += '  function callHostMethod(method, params, transferables) { return new Promise((resolve, reject) => { const msgId = generateMessageId(); pendingPromises.set(msgId, { resolve, reject }); window.parent.postMessage({ id: msgId, pluginId: pluginManifest.id, type: \'request\', method, params }, \'*\', transferables || []); }); }\n';
+  script += '  function callHostMethod(method, params, transferables) { return new Promise((resolve, reject) => { const msgId = generateMessageId(); pendingPromises.set(msgId, { resolve, reject }); window.parent.postMessage({ id: msgId, pluginId: pluginId, type: \'request\', method, params }, \'*\', transferables || []); }); }\n';
   script += '  function onHostEvent(eventName, handler) { pluginExports = pluginExports || {}; pluginExports._eventHandlers = pluginExports._eventHandlers || {}; const [ns, name] = eventName.split(\'.\'); pluginExports._eventHandlers[ns] = pluginExports._eventHandlers[ns] || {}; pluginExports._eventHandlers[ns][name] = pluginExports._eventHandlers[ns][name] || []; const hs = pluginExports._eventHandlers[ns][name]; hs.push(handler); return () => { const i = hs.indexOf(handler); if (i !== -1) hs.splice(i, 1); }; }\n';
-  script += '  async function handleRequest(message) { const { id, method, params } = message; try { if (method.startsWith(\'_lifecycle.\')) { const lm = method.split(\'.\')[1]; let r; if (lm === \'deactivate\' && typeof pluginExports?.deactivate === \'function\') r = await pluginExports.deactivate(); else throw new Error(\'Unsupported lifecycle: \' + lm); window.parent.postMessage({ id, pluginId: pluginManifest.id, type: \'response\', result:r }, \'*\'); return; } const [ns, mn] = method.split(\'.\'); if (!ns || !mn) throw new Error(\'Invalid method: \' + method); const h = pluginExports && (pluginExports[ns]?.[mn] ?? pluginExports[mn]); if (typeof h !== \'function\') throw new Error(\'Method not found: \' + method); const r = await h(params); window.parent.postMessage({ id, pluginId: pluginManifest.id, type: \'response\', result:r }, \'*\'); } catch (e) { window.parent.postMessage({ id, pluginId: pluginManifest.id, type: \'response\', error: { code: e?.code || -32000, message: e?.message || \'Unknown error\', data: e?.data } }, \'*\'); } }\n';
+  script += '  async function handleRequest(message) { const { id, method, params } = message; try { if (method.startsWith(\'_lifecycle.\')) { const lm = method.split(\'.\')[1]; let r; if (lm === \'deactivate\' && typeof pluginExports?.deactivate === \'function\') r = await pluginExports.deactivate(); else throw new Error(\'Unsupported lifecycle: \' + lm); window.parent.postMessage({ id, pluginId: pluginId, type: \'response\', result:r }, \'*\'); return; } const [ns, mn] = method.split(\'.\'); if (!ns || !mn) throw new Error(\'Invalid method: \' + method); const h = pluginExports && (pluginExports[ns]?.[mn] ?? pluginExports[mn]); if (typeof h !== \'function\') throw new Error(\'Method not found: \' + method); const r = await h(params); window.parent.postMessage({ id, pluginId: pluginId, type: \'response\', result:r }, \'*\'); } catch (e) { window.parent.postMessage({ id, pluginId: pluginId, type: \'response\', error: { code: e?.code || -32000, message: e?.message || \'Unknown error\', data: e?.data } }, \'*\'); } }\n';
   script += '  function handleResponse(message) { const { id, result, error } = message; const p = pendingPromises.get(id); if (!p) return; pendingPromises.delete(id); if (error) { const e = new Error(error.message); /*e.code = error.code; e.data = error.data;*/ p.reject(e); } else { p.resolve(result); } }\n';
   script += '  function handleEvent(message) { const { method, params } = message; if (!method) return; const [ns, en] = method.split(\'.\'); const eh = pluginExports?._eventHandlers?.[ns]?.[en]; if (Array.isArray(eh)) { eh.forEach(h => { try { h(params); } catch (e) { console.error(\'Evt handler err (\'+method+\'):\', e); } }); } }\n';
-  script += '  function createPluginApi(pluginId) { const api = {}; const um = { resizeToContent: () => callHostMethod(\'ui.resizeFrame\', { height: document.documentElement.scrollHeight }), getTheme: () => callHostMethod(\'ui.getTheme\', {}), onThemeChanged: (h) => onHostEvent(\'ui.themeChanged\', h) }; const nss = [\'model\', \'ui\', \'file\', \'network\', \'storage\']; nss.forEach(ns => { api[ns] = new Proxy({}, { get(t, p) { if (typeof p !== \'string\') return; if (ns === \'ui\' && p in um) return um[p]; if (p.startsWith(\'on\') && p.length > 2) { const en = p[2].toLowerCase() + p.slice(3); return (h) => onHostEvent(ns + \'.\' + en, h); } return (...a) => callHostMethod(ns + \'.\' + p, a[0]||{}, a[1]||[]); } }); }); return api; }\n\n';
+  script += '  function createPluginApi(pluginId) { const api = {}; const um = { resizeToContent: () => callHostMethod(\'ui.resizeFrame\', { height: document.documentElement.scrollHeight }), getTheme: () => callHostMethod(\'ui.getTheme\', {}), onThemeChanged: (h) => onHostEvent(\'ui.themeChanged\', h) }; const nss = [\'model\', \'ui\', \'file\', \'network\', \'storage\', \'host\']; nss.forEach(ns => { api[ns] = new Proxy({}, { get(t, p) { if (typeof p !== \'string\') return; if (ns === \'ui\' && p in um) return um[p]; if (p.startsWith(\'on\') && p.length > 2) { const en = p[2].toLowerCase() + p.slice(3); return (h) => onHostEvent(ns + \'.\' + en, h); } return (...a) => callHostMethod(ns + \'.\' + p, a[0]||{}, a[1]||[]); } }); }); return api; }\n\n';
 
   // Main Execution Logic
   script += '  try {\n';
-  script += '    pluginApi = createPluginApi(pluginManifest.id);\n';
-  script += '    console.log(`[Plugin Bootstrap (${id})] API created. Importing module from ${pluginCodeUrl}...`);\n'; // Corrected backticks
+  script += '    pluginApi = createPluginApi(pluginId);\n';
+  script += '    console.log(`[Plugin Bootstrap (${pluginId})] API created. Importing module from ${pluginCodeUrl}...`);\n';
   script += '    try {\n';
-  script += '      const pluginModule = await import(\' + JSON.stringify(pluginCodeUrl) + \');\n'; // Use JSON.stringify for safety
+  script += '      const pluginModule = await import(pluginCodeUrl);\n';
   script += '      pluginExports = pluginModule.default || pluginModule;\n';
-  script += '      console.log(`[Plugin Bootstrap (${id})] Module imported.`);\n'; // Corrected backticks
+  script += '      console.log(`[Plugin Bootstrap (${pluginId})] Module imported.`);\n';
   script += '    } catch (importError) {\n';
   script += '      reportError(\'import\', importError);\n';
   script += '      return; \n';
@@ -112,28 +124,33 @@ const bootstrapHandler: ApiHandlerWithRegistry = async (req, res, registry) => {
 
   // ---- ADDED activate() CALL ----
   script += '    if (typeof pluginExports?.activate === \'function\') {\n';
-  script += '      console.log(`[Plugin Bootstrap (${id})] Calling activate...`);\n'; // Corrected backticks
+  script += '      console.log(`[Plugin Bootstrap (${pluginId})] Calling activate...`);\n';
   script += '      try {\n';
-  script += '         const context = { pluginId: pluginManifest.id, pluginApi: pluginApi, pluginRoot: pluginRoot };\n'; // Create context object
-  script += '         // Note: activate might return an object of exported methods for the host\n';
+  // --- BEGIN DEBUG LOGGING ---
+  script += '         console.log(\'[Plugin Bootstrap DEBUG] Checking context before calling activate...\');\n';
+  script += '         console.log(\'[Plugin Bootstrap DEBUG] typeof pluginApi:\', typeof pluginApi);\n';
+  script += '         console.log(\'[Plugin Bootstrap DEBUG] typeof pluginApi?.host:\', typeof pluginApi?.host);\n';
+  script += '         console.log(\'[Plugin Bootstrap DEBUG] typeof pluginApi?.host?.log:\', typeof pluginApi?.host?.log);\n';
+  // --- END DEBUG LOGGING ---
+  script += '         const context = { pluginId: pluginId, pluginApi: pluginApi, pluginRoot: pluginRoot };\n';
+  script += '         console.log(\'[Plugin Bootstrap DEBUG] context object:\', context);\n'; // Log context
   script += '         const hostCallableApi = await pluginExports.activate(context);\n';
-  script += '         // If activate returns something, merge it into pluginExports for host calls\n';
   script += '         if(hostCallableApi && typeof hostCallableApi === \'object\') {\n';
   script += '            Object.assign(pluginExports, hostCallableApi);\n';
   script += '         }\n';
-  script += '         console.log(`[Plugin Bootstrap (${id})] Activate done.`);\n'; // Corrected backticks
+  script += '         console.log(`[Plugin Bootstrap (${pluginId})] Activate done.`);\n';
   script += '      } catch (activateError) {\n';
   script += '         reportError(\'activate\', activateError);\n';
   script += '         return;\n';
   script += '      }\n';
   script += '    } else {\n';
-  script += '        console.log(`[Plugin Bootstrap (${id})] No activate() function found (required).`);\n'; // Corrected backticks
+  script += '        console.log(`[Plugin Bootstrap (${pluginId})] No activate() function found (required).`);\n';
   script += '        reportError(\'activation\', new Error(\'Plugin does not export an activate function.\'));\n';
   script += '        return; // Stop if no activate function\n';
   script += '    }\n\n';
 
-  script += '    console.log(`[Plugin Bootstrap (${id})] Success.`);\n'; // Corrected backticks
-  script += '    window.parent.postMessage({ type: \'plugin-init-result\', success: true, pluginId: pluginManifest.id }, \'*\');\n\n';
+  script += '    console.log(`[Plugin Bootstrap (${pluginId})] Success.`);\n';
+  script += '    window.parent.postMessage({ type: \'plugin-init-result\', success: true, pluginId: pluginId }, \'*\');\n\n';
   script += '  } catch (bootstrapError) {\n';
   script += '    reportError(\'bootstrap\', bootstrapError);\n';
   script += '  }\n\n';

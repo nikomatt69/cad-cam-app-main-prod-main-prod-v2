@@ -1,6 +1,3 @@
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
 
 
 /** @type {import('next').NextConfig} */
@@ -150,4 +147,4 @@ const nextConfig = {
 };
 
 // Esporta la configurazione per l'utilizzo da parte di Next.js
-module.exports = withBundleAnalyzer(nextConfig);
+module.exports = (nextConfig);

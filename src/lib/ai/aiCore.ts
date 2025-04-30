@@ -11,6 +11,10 @@ const AIResponseSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
   timestamp: z.string().datetime(),
   model: z.enum(['claude-3-7-sonnet-20250219']),
+  thinking: z.object({
+    type: z.string(),
+    budget_tokens: z.number()
+  }),
   usage: z.object({
     promptTokens: z.number(),
     completionTokens: z.number(),
@@ -107,11 +111,15 @@ export class AICore {
       
       if (onProgress) {
         // Streaming response
-        const stream = await this.client.messages.create({
+        const stream = await this.client.beta.messages.create({
           model,
           max_tokens: maxTokens,
           temperature,
           system: systemPrompt,
+          thinking: {
+            type: "enabled",
+            budget_tokens: 1500
+          },
           messages: [{ role: 'user', content: prompt }],
           stream: true,
         });
@@ -128,6 +136,10 @@ export class AICore {
           model,
           max_tokens: maxTokens,
           temperature,
+          thinking: {
+            type: "enabled",
+            budget_tokens: 1500
+          },
           system: systemPrompt,
           messages: [{ role: 'user', content: prompt }]
         });
@@ -176,6 +188,7 @@ export class AICore {
           data: parsedData,
           parsingError,
           processingTime,
+          
           model,
           success: true,
           warnings: undefined

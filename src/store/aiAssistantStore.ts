@@ -40,7 +40,7 @@ export const useAIAssistantStore = create<AIAssistantState>((set) => ({
   isVisible: false,
   isExpanded: false,
   currentMode: 'general',
-  selectedModel: 'claude-3-5-sonnet-20240229',
+  selectedModel: 'claude-3-7-sonnet-20250219',
   position: getDefaultPosition(),
   messageHistory: [],
   

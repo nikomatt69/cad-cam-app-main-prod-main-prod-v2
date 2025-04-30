@@ -10,10 +10,6 @@ class MyDocument extends Document {
     return (
       <Html lang="en">
         <Head>
-        <script
-          crossOrigin="anonymous"
-          src="//unpkg.com/react-scan/dist/auto.global.js"
-        />
           <meta charSet="utf-8" />
           <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />

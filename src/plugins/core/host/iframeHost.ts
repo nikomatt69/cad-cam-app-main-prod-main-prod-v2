@@ -296,15 +296,25 @@ export class IFramePluginHost extends PluginHostBase {
    * Determine the allowed origin for postMessage security
    */
   private determineAllowedOrigin(): string {
-    // In a production environment, this would be restricted to the plugin's domain
-    // For development, we use a more permissive setting
-    if (process.env.NODE_ENV === 'development') {
-      return '*'; // Allow any origin during development
+    // Determine the origin from which the plugin code will be served
+    // This is crucial for postMessage security
+    const pluginUrlPath = this.getPluginUrl(); // Keep this as the relative path
+    try {
+        // Construct URL using the current window's origin as the base
+        if (typeof window === 'undefined') {
+            // Handle server-side or worker context where window is not available
+            // This host type is likely client-only anyway, but good practice.
+            throw new Error('Cannot determine origin: window object is not available.');
+        }
+        const base = window.location.origin;
+        const absoluteUrl = new URL(pluginUrlPath, base);
+        console.log(`[IFrameHost ${this.manifest.id}] Determined allowed origin: ${absoluteUrl.origin}`);
+        return absoluteUrl.origin;
+    } catch (e) {
+        console.error(`[IFrameHost ${this.manifest.id}] Failed to construct URL from plugin path: ${pluginUrlPath} with base ${window?.location?.origin}`, e);
+        // Re-throw the error, as falling back is insecure and hides the root cause.
+        throw new Error(`Failed to determine plugin origin. Invalid path: ${pluginUrlPath}. Error: ${e}`);
     }
-    
-    // In production, use the plugin's origin
-    const pluginUrl = new URL(this.getPluginUrl());
-    return `${pluginUrl.protocol}//${pluginUrl.host}`;
   }
   
   /**

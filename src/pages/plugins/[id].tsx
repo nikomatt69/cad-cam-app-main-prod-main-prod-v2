@@ -191,7 +191,7 @@ const PluginDetailPage: NextPage<PluginPageProps> = ({ initialPluginData, error,
          });
          setPlugin(installedPlugin);
          await refreshPlugins();
-         await activatePlugin(pluginId);
+         await activatePlugin(pluginId,document.body);
      } catch (err) {
          console.error("Install failed:", err);
          setActionError(err instanceof Error ? err.message : 'Install failed.');
@@ -210,7 +210,7 @@ const PluginDetailPage: NextPage<PluginPageProps> = ({ initialPluginData, error,
 
   const handleActivate = () => performAction(
       () => apiRequest(`/api/plugins/${pluginId}/enable`, { method: 'POST' }),
-      async () => { await activatePlugin(pluginId!); }
+      async () => { await activatePlugin(pluginId!,document.body); }
   );
 
   const handleDeactivate = () => performAction(
