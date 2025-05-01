@@ -23,7 +23,7 @@ import PrinterSettings from './3DPrinterSettings';
 import PrinterPreview from './3DPrinterPreview';
 import { FixedCycleType } from './toolpathUtils/fixedCycles/fixedCyclesParser';
 import router from 'next/router';
-import { c } from 'framer-motion/dist/types.d-6pKw1mTI';
+
 import { generate3DPrinterFromElement } from './3DPrinterToolpathHelpers';
 import { use3DPrinterSettings } from './3DPrinterIntegration';
 import PrinterOperations from './Printe3DOperations';

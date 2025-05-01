@@ -27,7 +27,7 @@ import MaterialBrowser from '../cam/MaterialBroswer';
 import SnapSettings from '../cad/SnapSettings';
 
 import ToolMenus from '../cam/ToolMenus';
-import { Puzzle } from 'lucide-react';
+import { BrainCircuitIcon, Puzzle } from 'lucide-react';
 
 interface EnhancedSidebarProps {
   isOpen: boolean;
@@ -198,9 +198,23 @@ const EnhancedSidebarCam: React.FC<EnhancedSidebarProps> = ({
       },
       { 
         name: 'Docs', 
-        href: 'https://docs.cadcamfun.xyz', 
+        href: '#', 
         icon: <BookOpen size={20} />, 
-        current: router.pathname.startsWith('https://docs.cadcamfun.xyz') 
+        current: router.pathname.startsWith('#') ,
+        children: [
+          { 
+            name: 'UserGuide', 
+            href: 'https://docs.cadcamfun.xyz', 
+            icon: <FileText size={16} />, 
+            current: router.pathname === 'https://docs.cadcamfun.xyz' 
+          },
+          { 
+            name: 'Api Playground', 
+            href: '/graphql', 
+            icon: <BrainCircuitIcon size={16} />, 
+            current: router.pathname === '/graphql' 
+          }
+        ]
       },
       {
         name: 'Settings',

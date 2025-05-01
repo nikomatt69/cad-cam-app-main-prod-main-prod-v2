@@ -251,7 +251,7 @@ export default function Home() {
           {/* Welcome section with system overview */}
           <div className="mb-6 sm:mb-8">
             <h1 className="text-2xl sm:text-3xl flex items-center px-2 sm:px-5 font-bold text-gray-900">
-              <Image src='/logo.png' className='h-12 sm:h-28 mr-2' width={300} height={100} alt="Logo"/>
+              <Image src='/logo.png' className=' mr-2' width={500} height={180} alt="Logo"/>
             </h1>
             <p className="mt-2 text-base sm:text-lg text-gray-600 px-2 sm:px-0">
               A modern platform for 2D/3D design, parametric modeling, and CNC machine control with AI.
