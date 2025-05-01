@@ -35,11 +35,15 @@ import { useElementsStore } from 'src/store/elementsStore';
 import { ThemeProvider } from '../contexts/ThemeProvider';
 import { ConstraintProvider } from '../contexts/ConstraintContext';
 
+
+
 // Ensure this initialization runs only once client-side
 let pluginSystemInitialized = false;
 
 export default function App({ Component, pageProps: { session, ...pageProps }, router }: AppProps) {
 
+
+  
   // Get the function to add elements from the Zustand store
   const addElements = useElementsStore((state) => state.addElements);
 
@@ -97,6 +101,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
   
   return (
     <ErrorBoundary>
+
       <SessionProvider session={session}>
         <AuthProvider>
           <LanguageProvider>
@@ -138,6 +143,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
           </LanguageProvider>
         </AuthProvider>
       </SessionProvider>
+
     </ErrorBoundary>
   );
 }

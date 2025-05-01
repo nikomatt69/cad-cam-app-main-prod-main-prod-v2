@@ -1,6 +1,8 @@
 // 3DPrinterToolpathHelpers.tsx
 // Helper functions for 3D printer toolpath generation
 
+import { generateElementToolpath } from "@/src/lib/toolpath";
+
 /**
  * Extract dimensions from a CAD element
  */
@@ -229,14 +231,15 @@ export const generate3DPrinterFromElement = (element: any, settings: any, option
       break;
     default:
       // Default to simple rectangular object
-      gcode += generateCubeGCode({
-        width: width,
-        height: height,
-        depth: depth,
-        x: 0,
-        y: 0,
-        z: 0
-      }, layers, layerHeight, extrusionWidth, printSpeed, infillDensity, infillPattern);
+      try {
+        // Import from our new toolpath generator modules
+        const { generateDefaultToolpath } = require('src/lib/toolpath');
+        gcode += generateDefaultToolpath(element, layers, layerHeight, extrusionWidth, printSpeed, infillDensity, infillPattern);
+      } catch (error) {
+        console.error('Error generating toolpath:', error);
+        gcode += `; Error generating generic toolpath: ${error}\n; Falling back to component toolpath\n`;
+        gcode += generateElementToolpath(element, settings);
+      }
   }
   
   // End G-code

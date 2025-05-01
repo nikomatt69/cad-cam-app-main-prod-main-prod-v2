@@ -935,6 +935,11 @@ const PropertyPanel: React.FC = () => {
           { name: 'x', label: 'X', type: 'number', step: 0.1 },
           { name: 'y', label: 'Y', type: 'number', step: 0.1 },
           { name: 'z', label: 'Z', type: 'number', step: 0.1 },
+          { name: 'width', label: 'Width', type: 'number', min: 0.1, step: 1 },
+          { name: 'height', label: 'Height', type: 'number', min: 0.1, step: 1 },
+          { name: 'depth', label: 'Depth', type: 'number', min: 0.1, step: 1 },
+          { name: 'radius', label: 'Radius', type: 'number', min: 0.1, step: 1 },
+          { name: 'segments', label: 'Segments', type: 'number', min: 3, step: 1 },
           { name: 'color', label: 'Color', type: 'color' },
           { name: 'rotation', label: 'Rotation', type: 'vector3', unit: '°' },
           { name: 'wireframe', label: 'Wireframe', type: 'checkbox' }
