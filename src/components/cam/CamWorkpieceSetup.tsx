@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useCADStore } from '@/src/store/cadStore';
 import { useCAMStore } from '@/src/store/camStore';
 import { useElementsStore, Element } from '@/src/store/elementsStore';
@@ -24,10 +24,12 @@ type WorkpieceType = 'rectangular' | 'cylindrical';
 
 const CAMWorkpieceSetup: React.FC = () => {
   const { workpiece, setWorkpiece, selectedMachine, setSelectedMachine } = useCADStore();
-  const { elements } = useElementsStore();
+  const { elements, selectedElement } = useElementsStore();
   const { 
     selectedWorkpieceElementId,
-    setSelectedWorkpieceElementId
+    setSelectedWorkpieceElementId,
+    syncWorkpieceFromCAD,
+    workpieceElements
   } = useCAMStore();
 
   const [machineConfigs, setMachineConfigs] = useState<MachineConfig[]>([]);
@@ -36,19 +38,34 @@ const CAMWorkpieceSetup: React.FC = () => {
   
   // Form state for the raw piece
   const [formState, setFormState] = useState({
-    width: workpiece.width,
-    height: workpiece.height,
-    depth: workpiece.depth,
-    diameter: 50, // Default diameter for cylindrical workpiece
+    width: useCADStore?.getState()?.workpiece?.width || workpiece?.width,
+    height: useCADStore?.getState()?.workpiece?.height || workpiece?.height,
+    depth: useCADStore?.getState()?.workpiece?.depth || workpiece?.depth,
+    diameter: 50,
+    radius: useCADStore?.getState()?.workpiece?.radius || workpiece?.radius, // Default diameter for cylindrical workpiece
     length: 100, // Default length for cylindrical workpiece
-    material: workpiece.material,
-    units: workpiece.units,
+    material: useCADStore?.getState()?.workpiece?.material || workpiece?.material,
+
     stockAllowance: 1.0 // Stock allowance for CAM
   });
   
   const workpieceExists = workpiece !== undefined;
-  
+  const camStore = useCAMStore();
   // Load machine configurations
+  // Nuova funzione per sincronizzare il workpiece dalle selezioni CAD
+  const syncFromCADSelection = useCallback(() => {
+    // Se c'è un elemento selezionato nel CAD ma non sincronizzato nel CAM
+    if (selectedElement && (!selectedWorkpieceElementId || selectedWorkpieceElementId !== selectedElement.id)) {
+      console.log('Rilevata nuova selezione CAD, sincronizzazione con CAM:', selectedElement.id);
+      syncWorkpieceFromCAD();
+    }
+  }, [selectedElement, selectedWorkpieceElementId, syncWorkpieceFromCAD]);
+  
+  // Effetto per sincronizzare automaticamente quando si cambia la selezione nel CAD
+  useEffect(() => {
+    syncFromCADSelection();
+  }, [selectedElement, syncFromCADSelection]);
+
   useEffect(() => {
     const fetchMachineConfigs = async () => {
       try {
@@ -141,19 +158,21 @@ const CAMWorkpieceSetup: React.FC = () => {
   const handleApplyWorkpiece = () => {
     if (workpieceType === 'rectangular') {
       setWorkpiece({
-        width: formState.width,
-        height: formState.height,
-        depth: formState.depth,
-        material: formState.material,
-        units: formState.units as 'mm' | 'inch'
+        width: useCADStore?.getState()?.workpiece?.width || formState.width,
+        height: useCADStore?.getState()?.workpiece?.height || formState.height,
+        depth: useCADStore?.getState()?.workpiece?.depth || formState.depth,
+        radius: useCADStore?.getState()?.workpiece?.radius || formState.radius,
+        material: useCADStore?.getState()?.workpiece?.material || formState.material,
+
       });
     } else {
       setWorkpiece({
-        width: formState.diameter,
-        height: formState.diameter,
-        depth: formState.length,
-        material: formState.material,
-        units: formState.units as 'mm' | 'inch'
+        width: useCADStore?.getState()?.workpiece?.width || formState.diameter,
+        height: useCADStore?.getState()?.workpiece?.height || formState.diameter,
+        depth: useCADStore?.getState()?.workpiece?.depth || formState.length,
+        radius: useCADStore?.getState()?.workpiece?.radius || formState.radius,
+        material: useCADStore?.getState()?.workpiece?.material || formState.material,
+
       });
     }
   };
@@ -185,12 +204,46 @@ const CAMWorkpieceSetup: React.FC = () => {
       {/* Element Selection for Workpiece */}
       <div className="mt-4 border-t border-gray-200 dark:border-gray-600 pt-4">
         <h4 className="text-md font-medium text-gray-800 dark:text-gray-200 mb-2">Select Workpiece Element</h4>
+        
+        {/* Opzioni avanzate per la sincronizzazione */}
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 rounded-md">
+          <h5 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Synchronization Options</h5>
+          
+          <div className="flex flex-col space-y-2">
+            {/* Opzione per preservare la geometria completa */}
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                checked={camStore.preserveGeometry}
+                onChange={(e) => camStore.preserveGeometry = e.target.checked}
+                className="form-checkbox h-4 w-4 text-blue-600 dark:text-blue-400"
+              />
+              <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                Preserve full geometry (keep holes, cuts, etc.)
+              </span>
+            </label>
+          </div>
+          
+          {/* Bottone per sincronizzare con la selezione CAD */}
+          <button
+            type="button"
+            onClick={syncFromCADSelection}
+            className="w-full mt-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            Sync Workpiece from CAD Selection
+          </button>
+        </div>
+        
         {elements && elements.length > 0 ? (
           <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-md p-2 bg-white dark:bg-gray-700">
             {elements.map((element: Element) => (
               <button
                 key={element.id}
-                onClick={() => setSelectedWorkpieceElementId(element.id)}
+                onClick={() => {
+                  setSelectedWorkpieceElementId(element.id);
+                  // Aggiorna anche il workpiece nel CAD store
+                  useCADStore.getState().setWorkpiece(element.workpiece);
+                }}
                 className={`w-full text-left p-2 rounded-md flex items-center justify-between ${
                   selectedWorkpieceElementId === element.id 
                     ? 'bg-blue-100 dark:bg-blue-900 ring-1 ring-blue-500' 
@@ -204,6 +257,12 @@ const CAMWorkpieceSetup: React.FC = () => {
                 <span className="flex items-center">
                   <Box size={16} className="mr-2 text-gray-500 dark:text-gray-400" /> 
                   {element.name || `Element ${element.id.substring(0, 6)}`}
+                  {element.type && (
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">({element.type})</span>
+                  )}
+                  {selectedElement && selectedElement.id === element.id && (
+                    <span className="ml-2 text-xs font-semibold text-blue-500 dark:text-blue-300">(Selected in CAD)</span>
+                  )}
                 </span>
                 {selectedWorkpieceElementId === element.id && (
                    <span className="text-xs font-semibold text-green-600 dark:text-green-400 ml-auto">(Workpiece)</span>
@@ -363,27 +422,13 @@ const CAMWorkpieceSetup: React.FC = () => {
             {/* Add more materials as needed */}
           </select>
         </div>
-        <div>
-          <label htmlFor="units" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Units
-          </label>
-          <select
-            name="units"
-            id="units"
-            value={formState.units}
-            onChange={handleInputChange}
-            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF] dark:bg-gray-700 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          >
-            <option value="mm">Millimeters (mm)</option>
-            <option value="inch">Inches (in)</option>
-          </select>
-        </div>
+        
       </div>
       
       {/* Stock Allowance */}
       <div>
         <label htmlFor="stockAllowance" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Stock Allowance ({formState.units})
+          Stock Allowance 
         </label>
         <input
           type="number"

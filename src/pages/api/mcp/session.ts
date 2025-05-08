@@ -1,9 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { SessionManager } from '@/src/server/mcp/sessionManager'; // Adjust path if needed
 import { logger } from '@/src/server/mcp/logger';               // Adjust path if needed
+import { sessionManager } from '@/src/server/mcp/sharedInstances'; // Import shared instance
 
 // --- IMPORTANT: Manage Instances ---
-const sessionManager = new SessionManager();
+// Use the shared instance
+// const sessionManager = new SessionManager(); // Remove this line
 // ----------------------------------
 
 export default function handler(

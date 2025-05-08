@@ -3619,13 +3619,13 @@ return (
       <div className="flex flex-col rounded-xl h-full">
         {/* Header */}
         <motion.div 
-          className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4 md:px-6"
+          className="bg-white dark:bg-gray-900 border m-3 border-gray-200 dark:border-gray-800 rounded-xl px-4 py-4 md:px-6"
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-            <div className="flex items-center">
+          <div className="md:flex flex-col p-2 md:flex-row md:justify-between md:items-center gap-4">
+            <div className=" items-center">
               <motion.button
                 onClick={handleBack}
                 className="mr-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -3635,7 +3635,7 @@ return (
                 <ArrowLeft size={20} />
               </motion.button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                <h1 className="text-xl p-8 font-semibold text-gray-900 justify-center dark:text-white flex items-center">
                   {component ? component.name : 'Component not found'}
                   {component?.isPublic && (
                     <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300">
@@ -3667,10 +3667,10 @@ return (
             </div>
             
             {component && (
-              <div className="flex flex-col gap-2">
+              <div className="flex p-3 flex-col gap-2">
                 <motion.button
                   onClick={handleSendToCAD}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm"
+                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 justify-center focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -3679,7 +3679,7 @@ return (
                 </motion.button>
                 <motion.button
                   onClick={handleDuplicateComponent}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center shadow-sm"
+                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 justify-center focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center shadow-sm"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -3688,7 +3688,7 @@ return (
                 </motion.button>
                 <motion.button
                   onClick={handleSaveToLocalLibrary}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center shadow-sm"
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 justify-center focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center shadow-sm"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -3697,7 +3697,7 @@ return (
                 </motion.button>
                 <motion.button
                   onClick={exportComponent}
-                  className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 flex items-center shadow-sm"
+                  className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 justify-center focus:outline-none focus:ring-2 focus:ring-amber-500 flex items-center shadow-sm"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -3706,7 +3706,7 @@ return (
                 </motion.button>
                 <motion.button
                   onClick={handleDelete}
-                  className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center"
+                  className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-red-600 justify-center dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   disabled={isSaving || isLoading}
@@ -3717,7 +3717,7 @@ return (
                 <motion.button
                   onClick={() => handleSave(true)}
                   disabled={isSaving || isLoading}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center shadow-sm"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center shadow-sm"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -3758,7 +3758,7 @@ return (
           <>
             {/* Tabs */}
             <motion.div 
-              className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800"
+              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 0.4 }}

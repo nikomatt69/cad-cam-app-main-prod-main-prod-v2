@@ -268,10 +268,10 @@ export default function MaterialDetailPage() {
   ogImage="/og-image.png" title={material ? `${material.name} | Material Editor` : 'Material Editor'} />
       
       <Layout>
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col rounded-xl h-full">
           {/* Header */}
           <motion.div 
-            className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-4 md:px-6"
+            className="bg-white dark:bg-gray-900 border-b rounded-xl border-gray-200 dark:border-gray-800 px-4 py-4 md:px-6"
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.4 }}
@@ -305,11 +305,11 @@ export default function MaterialDetailPage() {
                 </div>
               </div>
               {material && (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col p-3 gap-3">
                   {/* Send to CAD button */}
                   <motion.button
                     onClick={sendToCAD}
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm"
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 justify-center focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm"
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -325,7 +325,7 @@ export default function MaterialDetailPage() {
                       isInLibrary 
                         ? 'bg-gray-300 dark:bg-gray-900 cursor-not-allowed' 
                         : 'bg-indigo-600 hover:bg-indigo-700'
-                    } text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 flex items-center shadow-sm`}
+                    } text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 justify-center focus:ring-indigo-500 flex items-center shadow-sm`} 
                     whileHover={isInLibrary ? {} : { scale: 1.02, y: -2 }}
                     whileTap={isInLibrary ? {} : { scale: 0.98 }}
                   >
@@ -335,7 +335,7 @@ export default function MaterialDetailPage() {
                   
                   <motion.button
                     onClick={handleDelete}
-                    className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center"
+                    className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 justify-center text-red-600 dark:text-red-400 px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center"
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     disabled={isSaving || isLoading}
@@ -347,7 +347,7 @@ export default function MaterialDetailPage() {
                   <motion.button
                     onClick={handleSave}
                     disabled={isSaving || isLoading}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center shadow-sm"
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 justify-center focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center shadow-sm"
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                   >

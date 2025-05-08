@@ -20,7 +20,7 @@ export const useAIAssistantStoreOpenai = create<AIAssistantStore>((set, get) => 
   isOpen: false,
   error: null,
   context: 'default',
-  availableActions: ['generateCADComponent', 'analyzeDesign', 'optimizeModel', 'removeCADElement', 'exportCADProjectAsZip', 'thinkAloudMode', 'chainOfThoughtAnalysis', 'suggestOptimizations'],
+  availableActions: ['generateCADComponent', 'analyzeDesign', 'optimizeModel', 'removeCADElement', 'exportCADProjectAsZip', 'thinkAloudMode', 'chainOfThoughtAnalysis', 'suggestOptimizations', 'generate2DTechnicalDrawings', 'simulatePhysicalProperties', 'autoQuoteCADElements', 'analyzeManufacturability'],
 
   addMessage: (role, content, artifacts = []) => {
     const newMessage: AIMessage = {

@@ -2,8 +2,10 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { getSession } from 'next-auth/react';
 import { prisma } from 'src/lib/prisma';
 import stripe from 'src/lib/stripe-server';
-import { SUBSCRIPTION_PLANS } from 'src/lib/stripe';
+
 import { requireAuth } from 'src/lib/api/auth';
+import { createCheckout } from '@lemonsqueezy/lemonsqueezy.js';
+import { LEMONSQUEEZY_PLAN_MAP, SUBSCRIPTION_PLANS } from '@/src/lib/lemonsqueezy';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const userId = await requireAuth(req, res);
@@ -12,151 +14,149 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // GET - Get current subscription
   if (req.method === 'GET') {
     try {
-      // Get user's subscription from the database
       const userSubscription = await prisma.subscription.findUnique({
         where: { userId }
       });
       
+      // If no subscription record, treat as Free
       if (!userSubscription) {
-        // User has no subscription, return free plan details
         return res.status(200).json({
-          plan: SUBSCRIPTION_PLANS.FREE,
-          status: 'active',
+          plan: SUBSCRIPTION_PLANS.FREE, 
+          status: 'active', // Default to active free
           periodEnd: null,
           cancelAtPeriodEnd: false
         });
       }
       
-      // Calculate trial end date if applicable
-      let effectivePeriodEnd = userSubscription.stripeCurrentPeriodEnd;
-      if (userSubscription.status === 'trialing' && userSubscription.createdAt) {
-        const trialEndDate = new Date(userSubscription.createdAt);
-        trialEndDate.setDate(trialEndDate.getDate() + 7); // Add 7 days for trial
-        effectivePeriodEnd = trialEndDate;
+      // --- Trial Logic --- 
+      if (userSubscription.status === 'trialing') {
+        const now = new Date();
+        const trialEnds = userSubscription.trialEndsAt ? new Date(userSubscription.trialEndsAt) : null;
+        
+        // Check if trial has expired
+        if (trialEnds && trialEnds <= now) {
+           console.log(`User ${userId} trial expired on ${trialEnds}. Reporting as FREE.`);
+           // Ideally, update the DB via a cron job.
+           // For now, just report as free. The DB record remains 'trialing' until updated.
+           // TODO: Implement background job to update status to 'expired'/'active' (free) 
+           //       and plan to FREE, and clear trialEndsAt.
+           return res.status(200).json({
+             plan: SUBSCRIPTION_PLANS.FREE, // Report as Free after expiry
+             status: 'expired', // Report status as expired trial
+             periodEnd: null, // No period end for expired trial / free
+             cancelAtPeriodEnd: false
+           });
+        } else {
+           // Trial is active, return trial details
+           console.log(`User ${userId} is trialing PRO until ${trialEnds}`);
+           return res.status(200).json({
+             plan: userSubscription.plan, // Should be the PRO variant ID
+             status: 'trialing',
+             periodEnd: userSubscription.trialEndsAt, // Report trial end date
+             cancelAtPeriodEnd: false // Not applicable during trial
+           });
+        }
       }
-
-      // Return subscription details
+      // --- End Trial Logic ---
+      
+      // --- Regular Lemon Squeezy Subscription Logic ---
+      // If status is not trialing, use LS data (assuming webhook updated it)
+      if (!userSubscription.lsVariantId) {
+           // If not trialing and no LS data, default to Free (edge case?)
+           console.warn(`User ${userId} subscription status is ${userSubscription.status} but no lsVariantId found. Defaulting to FREE.`);
+            return res.status(200).json({
+                plan: SUBSCRIPTION_PLANS.FREE, 
+                status: 'active',
+                periodEnd: null,
+                cancelAtPeriodEnd: false
+            });
+      }
+      
+      // Return details based on LS data updated by webhooks
       return res.status(200).json({
-        plan: userSubscription.plan,
-        status: userSubscription.status,
-        periodEnd: effectivePeriodEnd, // Use calculated end date for trial
-        cancelAtPeriodEnd: userSubscription.status === 'canceled' || userSubscription.cancelAtPeriodEnd // Consider DB field too
+        plan: userSubscription.lsVariantId, // Return the variant ID from LS
+        status: userSubscription.status, // Return the status from LS (e.g., active, cancelled, past_due)
+        periodEnd: userSubscription.lsCurrentPeriodEnd, // Return billing cycle end from LS
+        cancelAtPeriodEnd: userSubscription.cancelAtPeriodEnd
       });
+
     } catch (error) {
       console.error('Failed to fetch subscription:', error);
       return res.status(500).json({ message: 'Failed to fetch subscription' });
     }
   }
   
-  // POST - Create checkout session for subscription
+  // POST - Create Lemon Squeezy checkout session
   else if (req.method === 'POST') {
     try {
-      const { priceId, successUrl, cancelUrl } = req.body;
-      
-      if (!priceId || !successUrl || !cancelUrl) {
-        return res.status(400).json({ message: 'Missing required fields' });
+      const { variantId } = req.body;
+      const storeId = process.env.LEMONSQUEEZY_STORE_ID;
+
+      if (!variantId) {
+        return res.status(400).json({ message: 'Missing required field: variantId' });
       }
-      
-      // Get user data
+      if (!storeId) {
+        console.error('LEMONSQUEEZY_STORE_ID is not set');
+        return res.status(500).json({ message: 'Server configuration error' });
+      }
+
+      // Get user data for pre-filling checkout
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { subscription: true }
       });
-      
+
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
       
-      // Check if we need to create or use existing Stripe customer
-      let stripeCustomerId = user.subscription?.stripeCustomerId;
-      
-      if (!stripeCustomerId) {
-        // Create new customer in Stripe
-        const customer = await stripe.customers.create({
-          email: user.email!,
-          name: user.name || undefined,
-          metadata: {
-            userId
-          }
-        });
-        stripeCustomerId = customer.id;
-        
-        // Create or update subscription record
-        await prisma.subscription.upsert({
-          where: { userId },
-          create: {
-            userId,
-            stripeCustomerId,
-            plan: SUBSCRIPTION_PLANS.FREE
+      // Define checkout data separately
+      const checkoutData = {
+          email: user.email ?? undefined,
+          name: user.name ?? undefined,
+          custom: {
+            user_id: userId,
           },
-          update: {
-            stripeCustomerId
-          }
-        });
+      };
+      
+      // Define product options with correct casing
+      const productOptions = {
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/settings/subscription`
+      };
+      
+      // Define checkout options
+      const checkoutOptions = {
+           // Add checkout options here if needed (e.g., button_color)
       }
-      
-      // Create checkout session
-      const session = await stripe.checkout.sessions.create({
-        customer: stripeCustomerId,
-        line_items: [
-          {
-            price: priceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        subscription_data: {
-          metadata: {
-            userId
-          }
-        },
-        metadata: {
-          userId
-        }
-      });
-      
-      return res.status(200).json({ url: session.url });
-    } catch (error) {
-      console.error('Failed to create checkout session:', error);
+
+      console.log('Creating Lemon Squeezy checkout for variant:', variantId);
+
+      // Create Lemon Squeezy checkout - Pass options correctly
+      const checkout = await createCheckout( 
+          parseInt(storeId!, 10),
+          parseInt(variantId, 10),
+          { checkoutData, productOptions, checkoutOptions } // Pass structured options
+      );
+
+      if (!checkout.data?.data.attributes.url) {
+        console.error('Lemon Squeezy checkout creation failed:', checkout.error || checkout.data);
+        throw new Error('Failed to create Lemon Squeezy checkout URL');
+      }
+
+      return res.status(200).json({ url: checkout.data.data.attributes.url });
+    } catch (error: any) {
+      console.error('Failed to create Lemon Squeezy checkout session:', error);
       return res.status(500).json({ message: 'Failed to create checkout session' });
     }
   }
   
-  // DELETE - Cancel subscription
-  else if (req.method === 'DELETE') {
-    try {
-      // Get user's subscription
-      const subscription = await prisma.subscription.findUnique({
-        where: { userId }
-      });
-      
-      if (!subscription || !subscription.stripeSubscriptionId) {
-        return res.status(404).json({ message: 'No active subscription found' });
-      }
-      
-      // Cancel subscription in Stripe
-      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-        cancel_at_period_end: true
-      });
-      
-      // Update subscription status
-      await prisma.subscription.update({
-        where: { userId },
-        data: {
-          status: 'canceled'
-        }
-      });
-      
-      return res.status(200).json({ message: 'Subscription canceled successfully' });
-    } catch (error) {
-      console.error('Failed to cancel subscription:', error);
-      return res.status(500).json({ message: 'Failed to cancel subscription' });
-    }
-  }
-  
   else {
-    return res.status(405).json({ message: 'Method not allowed' });
+    res.setHeader('Allow', ['GET', 'POST']);
+    return res.status(405).json({ message: `Method ${req.method} Not Allowed` });
   }
+}
+
+function getPlanNameByVariantId(variantId: string | null): string {
+    if (!variantId) return SUBSCRIPTION_PLANS.FREE;
+    const entry = Object.entries(LEMONSQUEEZY_PLAN_MAP).find(([_, id]) => id === variantId);
+    return entry ? entry[0] : SUBSCRIPTION_PLANS.FREE;
 }

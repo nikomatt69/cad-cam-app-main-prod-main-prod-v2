@@ -40,15 +40,23 @@ model User {
   Toolpath                Toolpath[]
   ToolpathVersion         ToolpathVersion[]
   ToolpathComment         ToolpathComment[]
-
+  apiKey                  ApiKey[] // Add relation to ApiKey
+  
+  // Production costs relationships
+  toolWearCosts           ToolWearCost[]
+  materialCosts           MaterialCost[]
+  operationCosts          OperationCost[]
+  productionCostEstimates ProductionCostEstimate[]
+  costSettings            CostSettings?
 }
 
 // Subscription model for Stripe integration
 model Subscription {
   id                    String    @id @default(cuid())
   userId                String    @unique
-  plan                  String    @default("FREE")
-  status                String    @default("inactive")
+  plan                  String    @default("FREE") // Will store LS Variant ID or 'free'
+  status                String    @default("inactive") // e.g., active, past_due, trialing, cancelled, expired
+  trialEndsAt           DateTime? // Added specifically for trial end tracking
   
   // Stripe fields (mantieni per compatibilità)
   stripeCustomerId      String?
@@ -112,6 +120,13 @@ model Organization {
   LibraryItem   LibraryItem[]
   Conversation  Conversation[]
   notifications Notification[] // Aggiunto per il sistema di notifiche
+  
+  // Production costs relationships
+  toolWearCosts           ToolWearCost[]
+  materialCosts           MaterialCost[]
+  operationCosts          OperationCost[]
+  productionCostEstimates ProductionCostEstimate[]
+  costSettings            CostSettings?
 }
 
 model OrganizationInvitation {
@@ -219,9 +234,10 @@ model Material {
   organizationId String? // Add organization relationship
 
   // Relationships
-  owner        User?         @relation(fields: [ownerId], references: [id])
-  organization Organization? @relation(fields: [organizationId], references: [id])
-  toolpaths    Toolpath[]
+  owner          User?         @relation(fields: [ownerId], references: [id])
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  toolpaths      Toolpath[]
+  materialCosts  MaterialCost[]
 }
 
 model Tool {
@@ -247,6 +263,7 @@ model Tool {
   owner        User?         @relation(fields: [ownerId], references: [id])
   organization Organization? @relation(fields: [organizationId], references: [id])
   toolpaths    Toolpath[]
+  toolWearCosts ToolWearCost[]
 }
 
 model Toolpath {
@@ -275,6 +292,9 @@ model Toolpath {
   toolId          String?
   MachineConfig   MachineConfig?    @relation(fields: [machineConfigId], references: [id])
   machineConfigId String?
+  
+  // Production costs relationship
+  productionCostEstimates ProductionCostEstimate[]
 }
 
 model ToolpathVersion {
@@ -535,4 +555,134 @@ model PluginConfiguration {
 
   // Explicit relation back to PluginRegistryEntry
   plugin        PluginRegistryEntry @relation(fields: [pluginId], references: [id], onDelete: Cascade) // Cascade delete config if plugin is removed
+}
+
+model ApiKey {
+  id        String   @id @default(cuid())
+  keyHash   String   @unique // Store a hash of the key, not the key itself
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  lastUsed  DateTime? // Optional: Track last usage
+  expiresAt DateTime? // Optional: Set an expiry date
+
+  @@index([userId])
+}
+
+// Costi di usura utensili
+model ToolWearCost {
+  id                  String   @id @default(cuid())
+  toolId              String
+  wearRatePerMeter    Float    // Tasso di usura in percentuale per metro
+  replacementCost     Float    // Costo di sostituzione
+  replacementThreshold Float   @default(100) // Soglia di usura quando sostituire (0-100%)
+  currencyCode        String   @default("EUR")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  ownerId             String?
+  organizationId      String?
+
+  // Relazioni
+  tool                Tool           @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  owner               User?          @relation(fields: [ownerId], references: [id])
+  organization        Organization?  @relation(fields: [organizationId], references: [id])
+}
+
+// Costi dei materiali
+model MaterialCost {
+  id             String   @id @default(cuid())
+  materialId     String
+  costPerUnit    Float    // Costo per unità volumetrica
+  wasteFactor    Float    @default(0) // Fattore di scarto (percentuale)
+  minimumCharge  Float    @default(0) // Tariffa minima
+  currencyCode   String   @default("EUR")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ownerId        String?
+  organizationId String?
+
+  // Relazioni
+  material       Material       @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  owner          User?          @relation(fields: [ownerId], references: [id])
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
+}
+
+// Costi delle operazioni
+model OperationCost {
+  id                 String   @id @default(cuid())
+  name               String
+  machineHourlyRate  Float
+  operatorHourlyRate Float
+  setupTime          Float    @default(30) // Tempo di setup in minuti
+  currencyCode       String   @default("EUR")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  ownerId            String
+  organizationId     String?
+
+  // Relazioni
+  owner              User          @relation(fields: [ownerId], references: [id])
+  organization       Organization?  @relation(fields: [organizationId], references: [id])
+  productionEstimates ProductionCostEstimate[]
+}
+
+// Stime dei costi di produzione
+model ProductionCostEstimate {
+  id               String   @id @default(cuid())
+  toolpathId       String
+  materialCost     Float
+  toolWearCost     Float
+  machineTime      Float    // Tempo macchina in minuti
+  machineTimeCost  Float
+  operatorTime     Float    // Tempo operatore in minuti
+  operatorTimeCost Float
+  setupCost        Float
+  totalCost        Float
+  currencyCode     String   @default("EUR")
+  details          Json     @default("{}")  // Dettagli aggiuntivi (percorso, volume materiale, ecc.)
+  operationCostId  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  ownerId          String
+  organizationId   String?
+
+  // Relazioni
+  owner            User           @relation(fields: [ownerId], references: [id])
+  organization     Organization?  @relation(fields: [organizationId], references: [id])
+  toolpath         Toolpath       @relation(fields: [toolpathId], references: [id], onDelete: Cascade)
+  operationCost    OperationCost? @relation(fields: [operationCostId], references: [id])
+}
+
+// Impostazioni dei costi
+model CostSettings {
+  id                      String   @id @default(cuid())
+  defaultCurrencyCode     String   @default("EUR")
+  defaultMachineHourlyRate Float   @default(50)
+  defaultOperatorHourlyRate Float  @default(30)
+  defaultSetupTime        Float    @default(30)
+  calculateAutomatically  Boolean  @default(true)
+  additionalSettings      Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  ownerId                 String   @unique
+  organizationId          String?  @unique
+
+  // Relazioni
+  owner                   User           @relation(fields: [ownerId], references: [id])
+  organization            Organization?  @relation(fields: [organizationId], references: [id])
+}
+
+
+model MCPServerConfig {
+  id          String    @id @default(cuid())
+  name        String
+  type        String    @default("sse")  // Only SSE for Vercel deployed apps
+  url         String
+  enabled     Boolean   @default(true)
+  userId      String?   // Optional user ID for user-specific configurations
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
 }

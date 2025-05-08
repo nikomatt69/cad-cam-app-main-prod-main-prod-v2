@@ -70,13 +70,23 @@ const jsonScalar = new GraphQLScalarType({
   },
 });
 
+// Placeholder for Upload scalar - Replace with actual implementation later
+const uploadScalar = new GraphQLScalarType({
+  name: 'Upload',
+  description: 'The `Upload` scalar type represents a file upload.',
+  parseValue: (value) => value, // Just pass through for now
+  parseLiteral: (ast) => { throw new Error('Upload scalar literal unsupported'); },
+  serialize: (value) => { throw new Error('Upload scalar serialization unsupported'); },
+});
+
 // Setup Prisma client
 const prisma = new PrismaClient();
 
 export const resolvers = {
   // Custom scalars
   Date: dateScalar,
-  JSON: jsonScalar,
+  Json: jsonScalar,
+  Upload: uploadScalar,
   
   // Type resolvers
   User: {
@@ -294,7 +304,10 @@ export const resolvers = {
     project: async (_: any, { id }: any) => {
       return fetchFromAPI(`/projects/${id}`);
     },
-    projects: async (_: any, { first, after, search, organizationId }: any) => {
+    projects: async (_: any, { first, after, search, organizationId }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error("Not authenticated");
+      }
       let url = '/projects';
       const queryParams = [];
       
@@ -834,6 +847,22 @@ export const resolvers = {
       await fetchFromAPI(`/subscriptions`, {
         method: 'DELETE',
       });
+      return true;
+    },
+    deleteApiKey: async (_: any, { keyId }: any, context: any) => {
+      if (!context.userId) {
+        throw new Error("Not authenticated");
+      }
+      const apiKeyToDelete = await context.prisma.apiKey.findUnique({
+        where: { id: keyId },
+        select: { userId: true }
+      });
+
+      if (!apiKeyToDelete || apiKeyToDelete.userId !== context.userId) {
+        throw new Error("API Key not found or permission denied");
+      }
+
+      await context.prisma.apiKey.delete({ where: { id: keyId } });
       return true;
     },
   },

@@ -28,6 +28,15 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
         return 'Remove Element';
       case 'groupCADElements':
         return 'Group Elements';
+      case 'autoQuoteCADElements':
+        return 'Auto Quote Elements';
+      case 'generate2DTechnicalDrawings':
+        return 'Generate 2D Technical Drawings';
+      case 'simulatePhysicalProperties':
+        return 'Simulate Physical Properties';  
+      case 'analyzeManufacturability':
+        return 'Analyze Manufacturability';
+        
       default:
         return type.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
     }

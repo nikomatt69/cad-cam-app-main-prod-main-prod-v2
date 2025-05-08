@@ -17,6 +17,7 @@ interface UserProfile {
   name: string | null;
   email: string | null;
   image: string | null;
+  description: string | null;
   bio: string | null;
   location: string | null;
   website: string | null;
@@ -211,7 +212,7 @@ export default function ProfilePage() {
       />
       <DynamicLayout>
         {/* Profile Header - Add rounded-xl */}
-        <div className="bg-[#F8FBFF] dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 rounded-xl mb-6">
+        <div className="bg-[#F8FBFF] dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl mb-6">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             <div className="md:flex md:items-center md:justify-between">
               <div className="flex items-center space-x-5">
@@ -265,6 +266,12 @@ export default function ProfilePage() {
                         </Link>
                       </div>
                     )}
+                     {profile.description && (
+                      <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400">
+                        <Mail className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400 dark:text-gray-500" />
+                        {profile.email}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -285,7 +292,7 @@ export default function ProfilePage() {
             )}
           </div>
           {/* Stats Section - Add rounded-xl */}
-          <div className="bg-gray-50 dark:bg-gray-900 border-t border-b border-gray-200 dark:border-gray-700 rounded-b-xl">
+          <div className="bg-gray-50 dark:bg-gray-900 border  border-gray-200 dark:border-gray-700 rounded-b-xl">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
               <div>
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Projects</p>

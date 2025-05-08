@@ -30,11 +30,12 @@ const WorkpieceSetup: React.FC = () => {
   
   // Stato del form per il pezzo grezzo
   const [formState, setFormState] = useState({
-    width: workpiece.width,
-    height: workpiece.height,
-    depth: workpiece.depth,
-    material: workpiece.material,
-    units: workpiece.units,
+    width: useCADStore?.getState()?.workpiece?.width || workpiece.width,
+    height: useCADStore?.getState()?.workpiece?.height || workpiece.height,
+    depth: useCADStore?.getState()?.workpiece?.depth || workpiece.depth,
+    radius: useCADStore?.getState()?.workpiece?.radius || workpiece.radius,
+    material: useCADStore?.getState()?.workpiece?.material || workpiece.material,
+
     positionX: 0,
     positionY: 0,
     positionZ: 0
@@ -84,8 +85,9 @@ const WorkpieceSetup: React.FC = () => {
         width: existingWorkpiece.width || workpiece.width,
         height: existingWorkpiece.height || workpiece.height,
         depth: existingWorkpiece.depth || workpiece.depth,
+        radius: existingWorkpiece.radius || workpiece.radius,
         material: existingWorkpiece.material || workpiece.material,
-        units: existingWorkpiece.units || workpiece.units,
+ 
         positionX: existingWorkpiece.x || 0,
         positionY: existingWorkpiece.y || 0,
         positionZ: existingWorkpiece.z || 0
@@ -133,11 +135,12 @@ const WorkpieceSetup: React.FC = () => {
   const handleApplyWorkpiece = () => {
     // Aggiorna lo store CAD
     setWorkpiece({
-      width: formState.width,
-      height: formState.height,
-      depth: formState.depth,
-      material: formState.material,
-      units: formState.units as 'mm' | 'inch'
+      width: useCADStore?.getState()?.workpiece?.width || formState.width,
+        height: useCADStore?.getState()?.workpiece?.height || formState.height,
+        depth: useCADStore?.getState()?.workpiece?.depth || formState.depth,
+        radius: useCADStore?.getState()?.workpiece?.radius || formState.radius,
+        material: useCADStore?.getState()?.workpiece?.material || formState.material,
+
     });
 
     // Ottieni il layer di default
@@ -158,7 +161,7 @@ const WorkpieceSetup: React.FC = () => {
       height: formState.height,
       depth: formState.depth,
       material: formState.material,
-      units: formState.units,
+
       color: '#808080',
       wireframe: true,
       layerId: defaultLayer.id // Assicurati che sia nel layer di default
@@ -206,7 +209,7 @@ const WorkpieceSetup: React.FC = () => {
               className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">{formState.units}</span>
+         
             </div>
           </div>
         </div>
@@ -223,7 +226,7 @@ const WorkpieceSetup: React.FC = () => {
               className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">{formState.units}</span>
+             
             </div>
           </div>
         </div>
@@ -241,7 +244,7 @@ const WorkpieceSetup: React.FC = () => {
               className="block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
             <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">{formState.units}</span>
+              
             </div>
           </div>
         </div>
@@ -310,20 +313,7 @@ const WorkpieceSetup: React.FC = () => {
             <option value="custom">Altro</option>
           </select>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Unità
-          </label>
-          <select
-            name="units"
-            value={formState.units}
-            onChange={handleInputChange}
-            className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          >
-            <option value="mm">Millimetri (mm)</option>
-            <option value="inch">Pollici (inch)</option>
-          </select>
-        </div>
+       
       </div>
       
       {/* Informazioni sulla macchina selezionata */}
@@ -353,8 +343,8 @@ const WorkpieceSetup: React.FC = () => {
               width: workpiece.width,
               height: workpiece.height,
               depth: workpiece.depth,
+              radius: workpiece.radius,
               material: workpiece.material,
-              units: workpiece.units,
               positionX: 0,
               positionY: 0,
               positionZ: 0

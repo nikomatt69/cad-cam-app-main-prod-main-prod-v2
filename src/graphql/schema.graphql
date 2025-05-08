@@ -1,6 +1,7 @@
-scalar DateTime
+scalar Date
 scalar Json
 scalar Upload
+scalar DateTime
 
 type Query {
   # User queries

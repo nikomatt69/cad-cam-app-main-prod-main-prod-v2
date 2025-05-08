@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import React, { useState } from 'react';
-import { useSubscription } from 'src/contexts/SubscriptionContext';
-import { SUBSCRIPTION_PLANS, PLAN_FEATURES } from 'src/lib/stripe';
+import React from 'react';
+import { useSubscription } from '@/src/contexts/SubscriptionContext';
+import { SUBSCRIPTION_PLANS } from '@/src/lib/lemonsqueezy';
 
 export default function SubscriptionSettings() {
   const { 
@@ -12,11 +12,7 @@ export default function SubscriptionSettings() {
     isLoading,
     features,
     createBillingPortalSession,
-    cancelSubscription 
   } = useSubscription();
-  
-  const [isCanceling, setIsCanceling] = useState(false);
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   
   // Format date for display
   const formattedPeriodEnd = periodEnd 
@@ -27,28 +23,17 @@ export default function SubscriptionSettings() {
       })
     : null;
   
-  // Check if user has a paid plan
-  const hasPaidPlan = plan !== SUBSCRIPTION_PLANS.FREE;
+  // New logic for button visibility
+  const isTrialing = status === 'trialing';
+  // User is on the actual free plan if their plan is FREE and they are not currently trialing a paid plan.
+  const isOnActualFreePlan = plan === SUBSCRIPTION_PLANS.FREE && !isTrialing;
+
+  const showUpgradeLink = isOnActualFreePlan || isTrialing;
+  const showManageBillingButton = plan !== SUBSCRIPTION_PLANS.FREE && !isTrialing;
   
   // Handle manage billing button click
   const handleManageBilling = async () => {
-    const portalUrl = await createBillingPortalSession();
-    if (portalUrl) {
-      window.location.href = portalUrl;
-    }
-  };
-  
-  // Handle cancel subscription button click
-  const handleCancelSubscription = async () => {
-    setIsCanceling(true);
-    try {
-      const success = await cancelSubscription();
-      if (success) {
-        setShowCancelConfirm(false);
-      }
-    } finally {
-      setIsCanceling(false);
-    }
+    await createBillingPortalSession();
   };
   
   if (isLoading) {
@@ -74,13 +59,13 @@ export default function SubscriptionSettings() {
           <dl className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2">
             <div className="sm:col-span-1">
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Plan</dt>
-              <dd className="mt-1 text-sm text-gray-900">{features.name}</dd>
+              <dd className="mt-1 text-sm text-gray-900 dark:text-white">{features?.name || 'Free'}</dd>
             </div>
             
             <div className="sm:col-span-1">
               <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
               <dd className="mt-1 text-sm text-gray-900 capitalize dark:text-gray-400">
-                {cancelAtPeriodEnd ? 'Canceled' : status}
+                {cancelAtPeriodEnd ? 'Cancelled' : status}
               </dd>
             </div>
             
@@ -93,22 +78,11 @@ export default function SubscriptionSettings() {
               </div>
             )}
             
-            {hasPaidPlan && (
-              <>
-                <div className="sm:col-span-1">
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {cancelAtPeriodEnd ? 'Access Until' : 'Next Billing Date'}
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-gray-400">
-                    {formattedPeriodEnd || 'N/A'}
-                  </dd>
-                </div>
-                
-                <div className="sm:col-span-1">
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Price</dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-gray-400">{features.price}/month</dd>
-                </div>
-              </>
+            {plan !== SUBSCRIPTION_PLANS.FREE && features?.price && (
+                  <div className="sm:col-span-1">
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Price</dt>
+                    <dd className="mt-1 text-sm text-gray-900 dark:text-gray-400">{features.price}/month</dd>
+                  </div>
             )}
             
             <div className="sm:col-span-2">
@@ -136,29 +110,17 @@ export default function SubscriptionSettings() {
         </div>
         
         <div className="mt-8 flex justify-end">
-          {hasPaidPlan && (
-            <>
-              <button
-                type="button"
-                onClick={handleManageBilling}
-                className="mr-4 inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Manage Billing
-              </button>
-              
-              {!cancelAtPeriodEnd && (
-                <button
-                  type="button"
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 dark:bg-red-700 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  Cancel Subscription
-                </button>
-              )}
-            </>   
+          {showManageBillingButton && (
+            <button
+              type="button"
+              onClick={handleManageBilling}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Manage Billing
+            </button>
           )}
               
-              {!hasPaidPlan && (
+          {showUpgradeLink && (
             <Link
               href="/pricing"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -168,57 +130,6 @@ export default function SubscriptionSettings() {
           )}
         </div>
       </div>
-      
-      {/* Cancel Confirmation Modal */}
-      {showCancelConfirm && (
-        <div className="fixed z-10 inset-0 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-            </div>
-            
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            
-            <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
-              <div>
-                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900">
-                  <svg className="h-6 w-6 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div className="mt-3 text-center sm:mt-5">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                    Cancel Subscription?
-                  </h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      You will lose access to premium features at the end of your billing period on {formattedPeriodEnd}.
-                      Your account will automatically downgrade to the free plan. Are you sure you want to cancel?
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense">
-                <button
-                  type="button"
-                  onClick={handleCancelSubscription}
-                  disabled={isCanceling}
-                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 dark:bg-red-700 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:col-start-2 sm:text-sm"
-                >
-                  {isCanceling ? 'Canceling...' : 'Yes, Cancel'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCancelConfirm(false)}
-                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-700 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:col-start-1 sm:text-sm"
-                >
-                  Keep Subscription
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

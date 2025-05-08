@@ -322,7 +322,7 @@ const ElementsListPanel: React.FC<ElementsListPanelProps> = ({
       </div>
       
       {/* Elements List */}
-      <div className="flex-grow overflow-y-auto p-2">
+      <div className="flex-grow overflow-y-auto p-2 min-h-0">
         <AnimatePresence>
           {groupByLayer 
             ? Object.entries(processedLayerGroups).map(([layerId, layerElements]) => {

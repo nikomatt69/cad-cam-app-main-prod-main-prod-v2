@@ -3,6 +3,8 @@ import { useElementsStore, Element } from './elementsStore';
 import { generateToolpathFromEntities } from 'src/lib/toolpathGenerator';
 import { generateGcode } from 'src/lib/gcodeGenerator';
 import { v4 as uuidv4 } from 'uuid';
+import { useCADStore } from './cadStore';
+import { generateFromSelectedElements } from '../lib/toolpath';
 
 type MachineStatus = 'disconnected' | 'connected' | 'running' | 'paused' | 'error';
 
@@ -58,6 +60,8 @@ interface CAMStoreState {
   isLatheSetup: boolean; // Indica se il setup corrente è per tornio (influenzato dalla macchina)
   isLoading: boolean; // Potrebbe essere già presente, se no aggiungilo
   error: string | null; // Potrebbe essere già presente, se no aggiungilo
+  workpieceElements: Element[]; // Nuova proprietà per mantenere gli elementi dal CAD
+  preserveGeometry: boolean; // Flag per indicare di preservare la geometria completa
 
   // Azioni esistenti
   generateToolpath: (params: any) => void;
@@ -83,13 +87,58 @@ interface CAMStoreState {
   setLoading: (loading: boolean) => void; // Assicurati sia definita
   setError: (error: string | null) => void; // Assicurati sia definita
   resetWorkpieceSelection: () => void; // Azione specifica per resettare la selezione workpiece
+  
+  // Nuove azioni per la sincronizzazione CAD-CAM
+  syncWorkpieceFromCAD: () => void;
+  setWorkpieceElements: (elements: Element[]) => void;
+  getWorkpieceGeometry: () => { dimensions: DerivedWorkpieceDimensions, elementId: string | null } | null;
 }
+
+// Helper per calcolare le dimensioni di un elemento
+const calculateElementDimensions = (element: Element): DerivedWorkpieceDimensions | null => {
+  if (!element) return null;
+  
+  // Gestione elementi di base
+  if (element.type === 'box' || element.type === 'cube') {
+    return {
+      width: element.width || 100,
+      height: element.height || 100,
+      depth: element.depth || 20
+    };
+  }
+  
+  // Gestione per elementi cilindrici
+  if (element.type === 'cylinder') {
+    const diameter = element.radius ? element.radius * 2 : 100;
+    return {
+      width: diameter,
+      height: diameter,
+      depth: element.height || 100
+    };
+  }
+  
+  // Per forme più complesse, cerca di estrarre le dimensioni o usa valori di default
+  if (element.boundingBox) {
+    return {
+      width: element.boundingBox.max.x - element.boundingBox.min.x,
+      height: element.boundingBox.max.y - element.boundingBox.min.y,
+      depth: element.boundingBox.max.z - element.boundingBox.min.z
+    };
+  }
+  
+  // Default per elementi senza dimensioni specifiche
+  return {
+    width: 100,
+    height: 100,
+    depth: 20
+  };
+};
 
 // Stato iniziale aggiornato
 const initialState: Pick<CAMStoreState, 
   'selectedWorkpieceElementId' | 'derivedWorkpieceDimensions' | 'stockAllowance' | 
   'isLatheSetup' | 'isLoading' | 'error' | 'toolpaths' | 'gcode' | 
-  'selectedEntities' | 'machineStatus' | 'machinePosition' | 'camItems'
+  'selectedEntities' | 'machineStatus' | 'machinePosition' | 'camItems' | 'workpieceElements' | 'preserveGeometry'
 > = {
   selectedWorkpieceElementId: null,
   derivedWorkpieceDimensions: null,
@@ -104,6 +153,8 @@ const initialState: Pick<CAMStoreState,
   machineStatus: 'disconnected',
   machinePosition: { x: 0, y: 0, z: 0 },
   camItems: [],
+  workpieceElements: [], // Inizializza la nuova proprietà
+  preserveGeometry: true, // Per default, preserva la geometria completa
 };
 
 // Creazione dello store Zustand aggiornato
@@ -111,12 +162,109 @@ export const useCAMStore = create<CAMStoreState>((set, get) => ({
   ...initialState,
 
   // Implementazione delle azioni nuove/modificate
-  setSelectedWorkpieceElementId: (id) => set({ selectedWorkpieceElementId: id, derivedWorkpieceDimensions: null }), // Resetta dimensioni quando cambia l'ID
+  setSelectedWorkpieceElementId: (id) => set({ 
+    selectedWorkpieceElementId: id,
+    // Se stiamo cancellando la selezione, non cancellare le dimensioni derivate
+    derivedWorkpieceDimensions: id ? get().derivedWorkpieceDimensions : null
+  }),
   setDerivedWorkpieceDimensions: (dimensions) => set({ derivedWorkpieceDimensions: dimensions }),
   setStockAllowance: (allowance) => set({ stockAllowance: allowance >= 0 ? allowance : 0 }),
   setIsLatheSetup: (isLathe) => set({ isLatheSetup: isLathe }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error: error }),
+
+  
+  // Nuova azione per sincronizzare il workpiece dal CAD
+  syncWorkpieceFromCAD: () => {
+    const { selectedElement } = useElementsStore.getState();
+    const { elements } = useElementsStore.getState();
+    const { workpiece } = useCADStore.getState();
+    
+    // Prima controlla se il workpiece nel CAD ha un elemento collegato
+    if (workpiece.elementId) {
+      const elementFromWorkpiece = elements.find(el => el.id === workpiece.elementId);
+      if (elementFromWorkpiece) {
+        // Il CAD ha un elemento collegato, usalo come workpiece nel CAM
+        set({ 
+          selectedWorkpieceElementId: elementFromWorkpiece.id,
+          derivedWorkpieceDimensions: calculateElementDimensions(elementFromWorkpiece),
+          workpieceElements: [elementFromWorkpiece],
+          preserveGeometry: true
+        });
+        console.log('CAM Workpiece sincronizzato dal workpiece CAD:', elementFromWorkpiece.id);
+        return; // Abbiamo già sincronizzato, usciamo
+      }
+    }
+    
+    // Se non c'è un elemento collegato nel workpiece CAD, ma c'è un elemento selezionato, usalo
+    if (selectedElement) {
+      // Preserva tutte le proprietà della geometria, inclusi mesh, buffer, vertici, ecc.
+      const threeJSElement = selectedElement.threeJSObject || generateFromSelectedElements(selectedElement, elements);
+      
+      // Calcola le dimensioni dell'elemento
+      const dimensions = calculateElementDimensions(selectedElement);
+      
+      // Aggiorna lo stato con l'elemento selezionato e le sue dimensioni
+      set({ 
+        selectedWorkpieceElementId: selectedElement.id,
+        derivedWorkpieceDimensions: dimensions,
+        workpieceElements: [threeJSElement], // Mantieni l'oggetto ThreeJS completo
+        preserveGeometry: true // Flag per indicare di preservare la geometria completa
+      });
+      
+      // Sincronizza anche con il CADStore per la coerenza
+      // Importante: imposta elementId per mantenere il riferimento all'elemento
+      useCADStore.getState().setWorkpiece({
+        width: dimensions?.width || workpiece.width,
+        height: dimensions?.height || workpiece.height,
+        depth: dimensions?.depth || workpiece.depth,
+        material: selectedElement.material || workpiece.material,
+        radius: selectedElement.radius || workpiece.radius,
+        elementId: selectedElement.id // Aggiungi il riferimento all'elemento
+      });
+      
+      console.log('CAM Workpiece sincronizzato dal CAD con geometria completa:', selectedElement.id);
+    } else {
+      // Se non ci sono elementi selezionati, aggiorna comunque la lista degli elementi disponibili
+      set({ 
+        workpieceElements: elements,
+        // Non resettare l'elemento workpiece selezionato se già presente
+        preserveGeometry: true // Mantieni l'impostazione di preservare la geometria
+      });
+    }
+  },
+  
+  // Nuova azione per impostare gli elementi del workpiece
+  setWorkpieceElements: (elements) => set({ workpieceElements: elements }),
+  
+  // Funzione per ottenere la geometria del workpiece corrente
+  getWorkpieceGeometry: () => {
+    const { selectedWorkpieceElementId, derivedWorkpieceDimensions } = get();
+    const { workpiece } = useCADStore.getState();
+    
+    // Se abbiamo un elemento selezionato e dimensioni derivate, usali
+    if (selectedWorkpieceElementId && derivedWorkpieceDimensions) {
+      return {
+        dimensions: derivedWorkpieceDimensions,
+        elementId: selectedWorkpieceElementId
+      };
+    }
+    
+    // Altrimenti, usa il workpiece dal CADStore
+    if (workpiece) {
+      return {
+        dimensions: {
+          width: workpiece.width,
+          height: workpiece.height,
+          depth: workpiece.depth
+        },
+        elementId: null // Nessun elemento specifico
+      };
+    }
+    
+    return null; // Nessuna geometria disponibile
+  },
+
   resetWorkpieceSelection: () => set({
     selectedWorkpieceElementId: initialState.selectedWorkpieceElementId,
     derivedWorkpieceDimensions: initialState.derivedWorkpieceDimensions,

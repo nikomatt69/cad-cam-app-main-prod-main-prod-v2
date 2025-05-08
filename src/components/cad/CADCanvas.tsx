@@ -840,41 +840,49 @@ const screenToWorld = useCallback((screenX: number, screenY: number) => {
         polygonCenter.userData.pointIndex = 0;
         polygonCenter.userData.controlFor = 'polygon';
         
-        const polygonPoints = [polygonCenter];
-        
-        // If it's a regular polygon with radius
-        if (element.radius) {
-          const radiusPoint = new THREE.Mesh(pointGeometry, pointMaterial);
-          radiusPoint.position.set(
-            element.x + element.radius,
-            element.y,
-            element.z || 0
-          );
-          radiusPoint.userData.isControlPoint = true;
-          radiusPoint.userData.elementId = element.id;
-          radiusPoint.userData.pointIndex = 1;
-          radiusPoint.userData.controlFor = 'polygon';
-          polygonPoints.push(radiusPoint);
+        const polygonShape = new THREE.Shape();
+
+        if (element.points && element.points.length > 0) {
+          // Create polygon from points
+          polygonShape.moveTo(element.points[0].x, element.points[0].y);
+          for (let i = 1; i < element.points.length; i++) {
+            polygonShape.lineTo(element.points[i].x, element.points[i].y);
+          }
+        } else if (element.sides && element.radius) {
+          // Create regular polygon
+          const sides = element.sides || 6;
+          const radius = element.radius || 1;
+
+          for (let i = 0; i < sides; i++) {
+            const angle = (i / sides) * Math.PI * 2;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+
+            if (i === 0) {
+              polygonShape.moveTo(x, y);
+            } else {
+              polygonShape.lineTo(x, y);
+            }
+          }
         }
+        // This is called even if neither 'if' nor 'else if' ran
+        polygonShape.closePath();
+
+        const polygonGeometry = new THREE.ShapeGeometry(polygonShape);
+        const polygonMaterial = new THREE.MeshBasicMaterial({
+          color: element.color || 0x795548,
+          wireframe: element.wireframe || true,
+          side: THREE.DoubleSide
+        });
         
-        // If it has custom points, add control points for each vertex
-        if (element.points && element.points.length >= 3) {
-          element.points.forEach((point: any, idx: number) => {
-            const vertexPoint = new THREE.Mesh(pointGeometry, pointMaterial);
-            vertexPoint.position.set(
-              point.x || 0,
-              point.y || 0,
-              point.z || element.z || 0
-            );
-            vertexPoint.userData.isControlPoint = true;
-            vertexPoint.userData.elementId = element.id;
-            vertexPoint.userData.pointIndex = idx + 2; // Offset for center and radius points
-            vertexPoint.userData.controlFor = 'polygon';
-            polygonPoints.push(vertexPoint);
-          });
-        }
+        const polygon = new THREE.Mesh(polygonGeometry, polygonMaterial);
+        polygon.position.set(
+          (element.x || 0) + originOffset.x,
+          (element.y || 0) + originOffset.y,
+          (element.z || 0) + originOffset.z
+        );
         
-        controlPoints.push(...polygonPoints);
+        controlPoints.push(polygonCenter, polygon);
         break;
         
       case 'extrusion':
@@ -2758,7 +2766,10 @@ const createThreeObject = (element: any): THREE.Object3D | null => {
         }
       }
       
-      polygonShape.closePath();
+      // Only close the path if curves have been added (i.e., moveTo/lineTo was called)
+      if (polygonShape.curves.length > 0) {
+        polygonShape.closePath();
+      }
       
       const polygonGeometry = new THREE.ShapeGeometry(polygonShape);
       const polygonMaterial = new THREE.MeshBasicMaterial({
@@ -5704,12 +5715,12 @@ useEffect(() => {
       <BoxSelection worldToScreen={worldToScreen} />
 
 {showElementsList && (
-  <div className="absolute top-16 right-4 bottom-16 z-10">
+  <div className="absolute top-16 cursor-pointer right-4 bottom-16 z-10">
     <ElementsListPanel onClose={() => setShowElementsList(false)} />
   </div>
 )}
       {selectedElementIds.length === 1 && showElementInfo && (
-  <div className="absolute top-16 right-4 z-10 w-80">
+  <div className="absolute cursor-pointer top-16 right-4 z-10 w-80">
     <ElementInfo 
       elementId={selectedElementIds[0]} 
       onClose={() => setShowElementInfo(false)}

@@ -355,17 +355,17 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className="fixed z-60 bottom-4 right-4 shadow-xl rounded-lg bg-white transition-all duration-200 dark:bg-gray-800 dark:border dark:border-gray-700"
+        className="fixed z-60 bottom-6 right-6 shadow-xl rounded-t-3xl rounded-b-3xl bg-white border-2 border-gray-200 transition-all duration-200 dark:bg-gray-800 dark:border-2 dark:border-gray-700"
         style={{ 
           width: isPanelExpanded ? '420px' : 'auto', 
           height: isPanelExpanded ? 'calc(100vh - 80px)': 'auto',
-          maxHeight: '90vh'
+          maxHeight: '80vh'
         }}
       >
         {isPanelExpanded ? (
-          <div className="flex flex-col rounded-lg h-full">
-            <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg dark:from-gray-700 dark:to-gray-800 dark:border-gray-600">
-              <div className="flex items-center">
+          <div className="flex flex-col rounded-t-3xl h-full">
+            <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-400 to-blue-700 text-white rounded-t-3xl dark:from-gray-700 dark:to-gray-800 dark:border-gray-600">
+              <div className="flex rounded-t-3xl items-center">
                 <Layers size={18} className="mr-2" />
                 <div>
                   <h3 className="font-medium">CAD Assistant</h3> 
@@ -409,7 +409,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                  exit={{ height: 0, opacity: 0 }}
                  className="border-b border-gray-200 overflow-hidden"
                >
-                 <div className="p-3 space-y-2 text-sm bg-gray-50">
+                 <div className="p-3 space-y-2 rounded-b-2xl text-sm bg-gray-50">
                    <button
                      onClick={clearMessages}
                      className="flex items-center text-xs text-red-600 hover:text-red-800"
@@ -474,11 +474,11 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                     />
                   </div>
                 )}
-                 <div className="p-2 border-t border-gray-200 dark:border-gray-700 shrink-0"> 
+                 <div className="p-2 border-t rounded-b-3xl border-gray-200 dark:border-gray-700 shrink-0"> 
                   <AIProcessingIndicator status={indicatorStatus} progress={progress} />
                 </div> 
                 
-                <div className="shrink-0">
+                <div className="shrink-0 rounded-b-3xl border-b border-gray-200 dark:border-gray-700">
                   <AIMessageInput
                     onSendMessage={handleSendMessage}
                     isProcessing={state.isProcessing}

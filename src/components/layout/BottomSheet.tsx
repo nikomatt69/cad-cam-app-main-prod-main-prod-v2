@@ -82,7 +82,7 @@ const BottomSheet: React.FC<BottomSheetProps> = ({
       {isOpen && (
         <motion.div
           ref={sheetRef}
-          className={`fixed bottom-0 left-1 right-1 z-50 bg-white rounded-t-2xl shadow-lg overflow-hidden ${className} md:left-10 md:right-10`}
+          className={`fixed bottom-0 left-1 right-1 z-50 bg-white rounded-t-2xl rounded-b-2xl shadow-lg overflow-hidden ${className} md:left-10 md:right-10`}
           style={{ height, touchAction: 'none' }}
           initial="hidden"
           animate="visible"

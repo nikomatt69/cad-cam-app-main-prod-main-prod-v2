@@ -28,6 +28,8 @@ import SnapSettings from '../cad/SnapSettings';
 
 import ToolMenus from '../cam/ToolMenus';
 import { BrainCircuitIcon, Puzzle } from 'lucide-react';
+import ToolsList from '../tools/ToolsList';
+import ToolsLibraryView from '../library/ToolsLibraryView';
 
 interface EnhancedSidebarProps {
   isOpen: boolean;
@@ -174,7 +176,21 @@ const EnhancedSidebarCam: React.FC<EnhancedSidebarProps> = ({
         name: 'AI', 
         href: '/ai', 
         icon: <Cpu size={20} />, 
-        current: router.pathname.startsWith('/ai')
+        current: router.pathname.startsWith('/ai'),
+        children: [
+          { 
+            name: 'Dashboard', 
+            href: '/ai', 
+            icon: <BarChart2 size={16} />, 
+            current: router.pathname === '/ai' 
+          },
+          { 
+            name: 'MCP', 
+            href: '/mcp/directory', 
+            icon: <BrainCircuitIcon size={16} />, 
+            current: router.pathname === '/mcp/directory' 
+          }
+        ]
       },
       {
         name: 'Analytics',
@@ -227,6 +243,12 @@ const EnhancedSidebarCam: React.FC<EnhancedSidebarProps> = ({
             href: '/profile', 
             icon: <User size={16} />, 
             current: router.pathname === '/profile'
+          },       
+          { 
+            name: 'Preferences', 
+            href: '/settings', 
+            icon: <Settings size={16} />, 
+            current: router.pathname === '/settings'
           },
           { 
             name: 'Subscription', 
@@ -235,10 +257,10 @@ const EnhancedSidebarCam: React.FC<EnhancedSidebarProps> = ({
             current: router.pathname === '/settings/subscription'
           },
           { 
-            name: 'Preferences', 
-            href: '/settings', 
-            icon: <Settings size={16} />, 
-            current: router.pathname === '/settings'
+            name: 'MCP', 
+            href: '/settings/mcp', 
+            icon: <BrainCircuitIcon size={16} />, 
+            current: router.pathname === '/settings/mcp'
           }
         ]
       }
@@ -376,11 +398,11 @@ const renderSidebarContent = () => {
 
   return (
     <div className="p-4 space-y-6">
-      {activeSidebarTab === 'tools' && <> <ToolMenus onSelectTool={(tool) => {
-            setSelectedLibraryTool(tool);
+      {activeSidebarTab === 'tools' && <> <ToolsLibraryView onSelectTool={(tool) => {
+            setSelectedLibraryTool(tool.id);
             // Se la prop onSelectTool esiste, chiamala
             if (onSelectTool) {
-              onSelectTool(tool);
+              onSelectTool(tool.id);
             }
           }} />
         </>}

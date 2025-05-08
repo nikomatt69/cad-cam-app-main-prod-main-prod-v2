@@ -4,11 +4,12 @@ import { SessionManager } from '@/src/server/mcp/sessionManager';   // Adjust pa
 import { validateContext } from '@/src/server/mcp/validators';     // Adjust path if needed
 import { logger } from '@/src/server/mcp/logger';                 // Adjust path if needed
 import { RawApplicationContext } from '@/src/server/mcp/types';      // Adjust path if needed
+import { sessionManager, contextProcessor } from '@/src/server/mcp/sharedInstances'; // Import shared instances
 
 // --- IMPORTANT: Manage Instances ---
-// Consider dependency injection or a singleton pattern suitable for Next.js.
-const contextProcessor = new ContextProcessor();
-const sessionManager = new SessionManager();
+// Use shared instances
+// const contextProcessor = new ContextProcessor(); // Remove this line
+// const sessionManager = new SessionManager(); // Remove this line
 // ----------------------------------
 
 export default async function handler(

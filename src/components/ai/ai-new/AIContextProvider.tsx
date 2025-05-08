@@ -669,7 +669,7 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
     const fileContextString = activeContextFiles.map(f => `--- File: ${f.name} ---\n${f.content}`).join('\n\n');
     const contextString = `${elementContextString}\n\n${fileContextString}\n\n${enhancedContext || ''}`.trim(); 
     
-    const assistantActions = ['generateCADElement', 'updateCADElement', 'removeCADElement', 'suggestOptimizations', 'chainOfThoughtAnalysis', 'thinkAloudMode', 'exportCADProjectAsZip']; 
+    const assistantActions = ['generateCADElement', 'updateCADElement', 'removeCADElement', 'suggestOptimizations', 'chainOfThoughtAnalysis', 'thinkAloudMode', 'exportCADProjectAsZip', 'generate2DTechnicalDrawings', 'simulatePhysicalProperties', 'autoQuoteCADElements', 'analyzeManufacturability']; 
     const assistantRole: AssistantRole = "CAD Assistant"; 
     const responseStyle: ResponseStyle = "detailed"; 
     const complexityLevel: ComplexityLevel = "moderate";
@@ -730,26 +730,26 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
             fromCache: response.fromCache
         };
 
-      } else {
+            } else {
         // --- Call Unified AI Service for general chat --- 
         console.log("[AIContextProvider] Calling unifiedAIService for general message.");
-        response = await unifiedAIService.getAssistantCompletion(
-          messagesToSend, 
-          contextString,
+      response = await unifiedAIService.getAssistantCompletion(
+        messagesToSend,
+        contextString,
           assistantActions,
-          responseStyle,
-          complexityLevel,
-          assistantRole,
+        responseStyle,
+        complexityLevel,
+        assistantRole,
           undefined, // No forceToolChoice for general chat
-          modelToUse,
+        modelToUse,
           structuredContext // Passa il contesto strutturato
-        );
+      );
         console.log("[AIContextProvider] Received response from getAssistantCompletion:", response);
       }
-      
+
       // --- 4. Process Response (Common logic for both services) --- 
       if (response.success && response.data) {
-        const assistantResponseContent = response.data.content || ""; 
+        const assistantResponseContent = response.data.content || "";
         let toolCalls = response.data.tool_calls; // This should now contain data from either service
 
         // --- START MODIFICATION: Populate missing fields --- 
@@ -792,15 +792,15 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
         if (toolCalls && toolCalls.length > 0) {
            console.log("[AIContextProvider] Creating tool_calls artifact:", toolCalls);
            artifacts.push({
-             id: uuidv4(),
-             type: 'tool_calls',
+                 id: uuidv4(),
+                 type: 'tool_calls', 
              content: toolCalls,
              title: 'Pending Actions' 
-           });
+            });
            dispatch({ type: 'SET_PENDING_ACTIONS', payload: toolCalls }); 
         } else {
              console.log("[AIContextProvider] Clearing pending actions as none were returned.");
-             dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
+            dispatch({ type: 'CLEAR_PENDING_ACTIONS' });
         }
 
         if (assistantResponseContent && assistantResponseContent !== "(No text content received)" || artifacts.length > 0) { 
@@ -821,7 +821,7 @@ export const AIContextProvider: React.FC<AIContextProviderProps> = ({ children, 
             };
             
             console.log("[AIContextProvider] Dispatching Assistant History Item:", JSON.stringify(assistantHistoryPayload, null, 2));
-             dispatch({ type: 'ADD_TO_HISTORY', payload: assistantHistoryPayload });
+            dispatch({ type: 'ADD_TO_HISTORY', payload: assistantHistoryPayload });
         }
       } else {
          // Error handling

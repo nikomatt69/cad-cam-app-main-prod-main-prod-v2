@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, FC } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { useCADStore } from 'src/store/cadStore';
+import { useCAMStore } from 'src/store/camStore';
 import { predefinedTools } from '@/src/lib/predefinedLibraries';
 import { useLOD } from 'src/hooks/canvas/useLod';
 import { useThreePerformanceVisualizer } from 'src/hooks/useThreePerformanceVisualizer';
@@ -2531,6 +2532,215 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     }
   }, [selectedTool, createToolMesh]);
   
+  // Helper per creare geometrie complesse da elementi CAD
+  const createElementFromCAD = (element: any): THREE.Object3D | null => {
+    if (!element) return null;
+    
+    // Log per debug
+    console.log('Creazione geometria da elemento CAD:', element.id, element.type);
+    
+    // Verifica se l'elemento ha una geometria ThreeJS diretta
+    if (element.geometry instanceof THREE.BufferGeometry) {
+      console.log('Usando geometria BufferGeometry esistente');
+      const material = new THREE.MeshStandardMaterial({
+        color: element.color || 0xAAAAAA,
+        transparent: true,
+        opacity: element.opacity !== undefined ? element.opacity : 0.7,
+        side: THREE.DoubleSide,
+        wireframe: element.wireframe || false
+      });
+      
+      const mesh = new THREE.Mesh(element.geometry.clone(), material);
+      return mesh;
+    }
+    
+    // Verifica se l'elemento ha una mesh ThreeJS diretta
+    if (element.mesh instanceof THREE.Mesh) {
+      console.log('Usando Mesh ThreeJS esistente');
+      const clonedMesh = element.mesh.clone();
+      
+      // Aggiorna il materiale per la visualizzazione CAM
+      if (clonedMesh.material) {
+        clonedMesh.material = new THREE.MeshStandardMaterial({
+          color: element.color || 0xAAAAAA,
+          transparent: true,
+          opacity: element.opacity !== undefined ? element.opacity : 0.7,
+          side: THREE.DoubleSide,
+          wireframe: element.wireframe || false
+        });
+      }
+      
+      return clonedMesh;
+    }
+    
+    // Verifica se l'elemento ha una rappresentazione ThreeJS diretta
+    if (element.threeJSObject instanceof THREE.Object3D) {
+      console.log('Usando Object3D ThreeJS esistente');
+      return element.threeJSObject.clone();
+    }
+    
+    // Gestione in base al tipo di elemento
+    switch (element.type) {
+      case 'box':
+      case 'cube': {
+        const geometry = new THREE.BoxGeometry(
+          element.width || 100,
+          element.height || 100,
+          element.depth || 20
+        );
+        
+        const material = new THREE.MeshStandardMaterial({
+          color: element.color || 0xAAAAAA,
+          transparent: true,
+          opacity: element.opacity !== undefined ? element.opacity : 0.7,
+          side: THREE.DoubleSide,
+          wireframe: element.wireframe || false
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        return mesh;
+      }
+      
+      case 'cylinder': {
+        const geometry = new THREE.CylinderGeometry(
+          element.radius || 50,
+          element.radius || 50,
+          element.height || 100,
+          32
+        );
+        
+        const material = new THREE.MeshStandardMaterial({
+          color: element.color || 0xAAAAAA,
+          transparent: true,
+          opacity: element.opacity !== undefined ? element.opacity : 0.7,
+          side: THREE.DoubleSide,
+          wireframe: element.wireframe || false
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        return mesh;
+      }
+      
+      case 'sphere': {
+        const geometry = new THREE.SphereGeometry(
+          element.radius || 50,
+          32,
+          32
+        );
+        
+        const material = new THREE.MeshStandardMaterial({
+          color: element.color || 0xAAAAAA,
+          transparent: true,
+          opacity: element.opacity !== undefined ? element.opacity : 0.7,
+          side: THREE.DoubleSide,
+          wireframe: element.wireframe || false
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        return mesh;
+      }
+      
+      case 'compound': {
+        // Crea un gruppo per elementi composti
+        const group = new THREE.Group();
+        
+        // Aggiungi l'elemento base se presente
+        if (element.baseGeometry) {
+          const baseMesh = createElementFromCAD({
+            ...element.baseGeometry,
+            color: element.color,
+            opacity: element.opacity
+          });
+          
+          if (baseMesh) {
+            group.add(baseMesh);
+          }
+        }
+        
+        // Aggiungi tutti i sotto-elementi se presenti
+        if (Array.isArray(element.children)) {
+          element.children.forEach((child: any) => {
+            const childMesh = createElementFromCAD(child);
+            
+            if (childMesh) {
+              // Posiziona il sotto-elemento correttamente
+              if (child.position) {
+                childMesh.position.set(
+                  child.position.x || 0,
+                  child.position.y || 0,
+                  child.position.z || 0
+                );
+              }
+              
+              // Applica la rotazione se presente
+              if (child.rotation) {
+                childMesh.rotation.set(
+                  child.rotation.x || 0,
+                  child.rotation.y || 0,
+                  child.rotation.z || 0
+                );
+              }
+              
+              group.add(childMesh);
+            }
+          });
+        }
+        
+        return group;
+      }
+      
+      // Supporto per geometrie complesse con vertici e facce definiti esplicitamente
+      case 'custom': {
+        if (element.vertices && element.faces) {
+          const geometry = new THREE.BufferGeometry();
+          
+          // Converti i vertici in un array Float32
+          const vertices = new Float32Array(element.vertices.flat());
+          geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+          
+          // Aggiungi le facce (indici)
+          if (element.faces) {
+            const indices = new Uint16Array(element.faces.flat());
+            geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+          }
+          
+          // Calcola le normali per l'illuminazione corretta
+          geometry.computeVertexNormals();
+          
+          const material = new THREE.MeshStandardMaterial({
+            color: element.color || 0xAAAAAA,
+            transparent: true,
+            opacity: element.opacity !== undefined ? element.opacity : 0.7,
+            side: THREE.DoubleSide,
+            wireframe: element.wireframe || false
+          });
+          
+          const mesh = new THREE.Mesh(geometry, material);
+          return mesh;
+        }
+        break;
+      }
+      
+      default: {
+        // Per elementi non riconosciuti, crea un cubo di default
+        console.log('Tipo di elemento non riconosciuto:', element.type);
+        const geometry = new THREE.BoxGeometry(100, 100, 20);
+        
+        const material = new THREE.MeshStandardMaterial({
+          color: element.color || 0xAAAAAA,
+          transparent: true,
+          opacity: 0.7,
+          side: THREE.DoubleSide
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        return mesh;
+      }
+    }
+    
+    return null;
+  };
+  
   // Create/update workpiece when workpiece visibility changes
   useEffect(() => {
     if (!sceneRef.current || !workpiece) return;
@@ -2543,6 +2753,96 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
     
     // Create workpiece if visible
     if (isWorkpieceVisible) {
+      // Ottieni lo store CAM per controllare se c'è un elemento selezionato
+      const camStore = useCAMStore.getState();
+      const { selectedWorkpieceElementId, workpieceElements, preserveGeometry } = camStore;
+      
+      // Controlla se abbiamo un elemento selezionato come workpiece
+      const selectedElementWorkpiece = selectedWorkpieceElementId && 
+        workpieceElements.find(el => el.id === selectedWorkpieceElementId);
+      
+      if (selectedElementWorkpiece) {
+        // Crea un workpiece basato sull'elemento selezionato dal CAD
+        console.log('Creazione workpiece dal CAD elemento:', selectedElementWorkpiece.id, selectedElementWorkpiece.type);
+        
+        // Verifica se dobbiamo preservare la geometria completa
+        if (preserveGeometry) {
+          // Crea l'elemento utilizzando la funzione helper
+          const elementObject = createElementFromCAD(selectedElementWorkpiece);
+          
+          if (elementObject) {
+            // Se c'è una posizione definita nell'elemento, usala
+            if (selectedElementWorkpiece.x !== undefined && 
+                selectedElementWorkpiece.y !== undefined && 
+                selectedElementWorkpiece.z !== undefined) {
+              elementObject.position.set(
+                selectedElementWorkpiece.x,
+                selectedElementWorkpiece.y,
+                selectedElementWorkpiece.z
+              );
+            } else {
+              // Altrimenti, usa l'offset origine
+              const { originOffset } = useCADStore.getState();
+              elementObject.position.set(
+                originOffset.x,
+                originOffset.y,
+                originOffset.z
+              );
+            }
+            
+            // Applica la rotazione se presente
+            if (selectedElementWorkpiece.rotation) {
+              elementObject.rotation.set(
+                selectedElementWorkpiece.rotation.x || 0,
+                selectedElementWorkpiece.rotation.y || 0,
+                selectedElementWorkpiece.rotation.z || 0
+              );
+            }
+            
+            // Gestione per elementi composti o con figli
+            if (selectedElementWorkpiece.children && selectedElementWorkpiece.children.length > 0) {
+              console.log('Elemento con figli trovato, aggiungendo sottoelementi');
+              
+              // Se l'elemento restituito non è già un gruppo, creane uno
+              let parentGroup = elementObject;
+              if (!(elementObject instanceof THREE.Group)) {
+                parentGroup = new THREE.Group();
+                parentGroup.add(elementObject);
+              }
+              
+              // Aggiungi tutti i figli
+              selectedElementWorkpiece.children.forEach((child: any) => {
+                const childObject = createElementFromCAD(child);
+                if (childObject) {
+                  parentGroup.add(childObject);
+                }
+              });
+              
+              // Aggiungi alla scena
+              sceneRef.current.add(parentGroup);
+              workpieceRef.current = parentGroup as THREE.Mesh;
+            } else {
+              // Aggiungi l'elemento semplice alla scena
+              sceneRef.current.add(elementObject);
+              workpieceRef.current = elementObject as THREE.Mesh;
+            }
+          } else {
+            console.warn('Impossibile creare geometria per l\'elemento selezionato:', selectedElementWorkpiece.id);
+            // Fallback a un cubo semplice
+            createDefaultWorkpiece();
+          }
+        } else {
+          // Crea un cubo semplice basato sulle dimensioni dell'elemento
+          createBasicWorkpieceFromElement(selectedElementWorkpiece);
+        }
+      } else {
+        // Usa il workpiece standard dal CADStore se non c'è un elemento selezionato
+        createDefaultWorkpiece();
+      }
+    }
+    
+    // Funzione helper per creare un workpiece di default
+    function createDefaultWorkpiece() {
       // Determine material color based on workpiece material type
       let materialColor = 0xAAAAAA; // Default color
       
@@ -2601,7 +2901,114 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
       );
       
       // Add to scene
-      sceneRef.current.add(mesh);
+      sceneRef?.current?.add(mesh);
+      workpieceRef.current = mesh;
+    }
+    
+    // Funzione helper per creare un workpiece semplice basato su un elemento
+    function createBasicWorkpieceFromElement(element: any) {
+      // Determina il colore in base al materiale
+      let materialColor = element.color || 0xAAAAAA;
+      
+      if (!element.color && element.material) {
+        // Usa il materiale dell'elemento se disponibile
+        switch (element.material.toLowerCase()) {
+          case 'aluminum':
+            materialColor = 0xD4D4D4;
+            break;
+          case 'steel':
+            materialColor = 0x888888;
+            break;
+          case 'wood':
+            materialColor = 0xA0522D;
+            break;
+          case 'plastic':
+            materialColor = 0x1E90FF;
+            break;
+          case 'brass':
+            materialColor = 0xDAA520;
+            break;
+        }
+      }
+      
+      // Crea geometria in base al tipo di elemento
+      let geometry: THREE.BufferGeometry;
+      
+      if (element.type === 'box' || element.type === 'cube') {
+        geometry = new THREE.BoxGeometry(
+          element.width || 100,
+          element.height || 100,
+          element.depth || 20
+        );
+      } else if (element.type === 'cylinder') {
+        const radius = element.radius || 50;
+        const height = element.height || 100;
+        geometry = new THREE.CylinderGeometry(radius, radius, height, 32);
+      } else if (element.type === 'sphere') {
+        const radius = element.radius || 50;
+        geometry = new THREE.SphereGeometry(radius, 32, 32);
+      } else {
+        // Usa un box di default per tipi non riconosciuti
+        geometry = new THREE.BoxGeometry(
+          workpiece.width || 100,
+          workpiece.height || 100,
+          workpiece.depth || 20
+        );  
+      }
+      
+      // Crea il materiale
+      const material = new THREE.MeshStandardMaterial({
+        color: materialColor,
+        transparent: element.opacity !== undefined,
+        opacity: element.opacity !== undefined ? 
+                 element.opacity : 0.7,
+        side: THREE.DoubleSide,
+        wireframe: element.wireframe || false
+      });
+      
+      // Crea la mesh
+      const mesh = new THREE.Mesh(geometry, material);
+      
+      // Aggiungi wireframe outline
+      const edges = new THREE.EdgesGeometry(geometry);
+      const lineMaterial = new THREE.LineBasicMaterial({ 
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.4
+      });
+      const wireframe = new THREE.LineSegments(edges, lineMaterial);
+      mesh.add(wireframe);
+      
+      // Imposta la posizione e la rotazione
+      if (element.x !== undefined && 
+          element.y !== undefined && 
+          element.z !== undefined) {
+        mesh.position.set(
+          element.x,
+          element.y,
+          element.z
+        );
+      } else {
+        // Usa l'offset origine se le coordinate non sono disponibili
+        const { originOffset } = useCADStore.getState();
+        mesh.position.set(
+          originOffset.x,
+          originOffset.y,
+          originOffset.z
+        );
+      }
+      
+      // Imposta la rotazione se disponibile
+      if (element.rotation) {
+        mesh.rotation.set(
+          element.rotation.x || 0,
+          element.rotation.y || 0,
+          element.rotation.z || 0
+        );
+      }
+      
+      // Aggiungi alla scena
+      sceneRef?.current?.add(mesh);
       workpieceRef.current = mesh;
     }
   }, [isWorkpieceVisible, workpiece]);
@@ -3670,7 +4077,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
                       <div className="flex justify-between">
                         <span className="text-gray-300">Dimensions:</span>
                         <span className="font-medium">
-                          {workpiece.width} × {workpiece.height} × {workpiece.depth} {workpiece.units}
+                          {workpiece.width} × {workpiece.height} × {workpiece.depth} mm
                         </span>
                       </div>
                     </div>

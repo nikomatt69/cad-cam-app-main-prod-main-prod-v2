@@ -1,5 +1,6 @@
 // src/store/cadStore.ts
 import { create } from 'zustand';
+import { useElementsStore } from './elementsStore';
 
 type ViewMode = '2d' | '3d';
 type OriginPreset = 'center' | 'bottomLeft' | 'topRight' | 'bottomRight' | 'topLeft';
@@ -23,8 +24,10 @@ interface Workpiece {
   width: number;
   height: number;
   depth: number;
+  radius: number;
   material: string;
-  units: 'mm' | 'inch';
+
+  elementId?: string; // Riferimento all'elemento collegato
 }
 
 interface OriginOffset {
@@ -80,11 +83,12 @@ export const useCADStore = create<CADState>((set, get) => ({
   gridVisible: true,
   axisVisible: true,
   workpiece: {
-    width: 100,
-    height: 200,
-    depth: 20,
-    material: 'aluminum',
-    units: 'mm'
+    width: useElementsStore?.getState()?.elements[0]?.width || 100,
+    height: useElementsStore?.getState()?.elements[0]?.height || 200,
+    depth: useElementsStore?.getState()?.elements[0]?.depth || 20,
+    radius: useElementsStore?.getState()?.elements[0]?.radius || 0,
+    material: useElementsStore?.getState()?.elements[0]?.material || 'aluminum',
+ 
   },
   selectedMachine: null,
   originOffset: { x: 0, y: 0, z: 0 },
@@ -107,8 +111,25 @@ export const useCADStore = create<CADState>((set, get) => ({
   setActiveTool: (tool) => set({ activeTool: tool }),
   toggleGrid: () => set((state) => ({ gridVisible: !state.gridVisible })),
   toggleAxis: () => set((state) => ({ axisVisible: !state.axisVisible })),
-  setWorkpiece: (workpiece) => set({ workpiece }),
-  setSelectedMachine: (machine) => set({ selectedMachine: machine }),
+  setWorkpiece: (workpiece: Workpiece) => set({ workpiece }),
+  setSelectedMachine: (machine: MachineConfig | null) => set({ selectedMachine: machine }),
+  
+  // New action to set workpiece from selected element
+  setWorkpieceFromElement: (elementId: string) => {
+    const element = useElementsStore.getState().elements.find(el => el.id === elementId);
+    if (!element) return;
+    
+    set(state => ({
+      workpiece: {
+        ...state.workpiece,
+        width: element.width || state.workpiece.width,
+        height: element.height || state.workpiece.height,
+        depth: element.depth || state.workpiece.depth,
+        material: element.material || state.workpiece.material,
+        elementId: element.id
+      }
+    }));
+  },
   
   setOriginOffset: (offset) => set({ originOffset: offset }),
   
