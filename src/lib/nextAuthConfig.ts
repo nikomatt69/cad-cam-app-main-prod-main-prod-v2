@@ -1,5 +1,5 @@
 // src/lib/nextAuthConfig.ts
-import { NextAuthOptions } from 'next-auth';
+import { NextAuthOptions, UserRole } from 'next-auth';
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
@@ -81,6 +81,7 @@ export const nextAuthConfig: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.roles = user.roles;
+        
       }
       
       // Do NOT include the token itself in the JWT - this causes bloat

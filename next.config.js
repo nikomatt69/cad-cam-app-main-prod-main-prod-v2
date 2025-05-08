@@ -1,5 +1,3 @@
-
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -38,6 +36,20 @@ const nextConfig = {
       layers: true,
     };
 
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: require.resolve('crypto-browserify'),
+        stream: require.resolve('stream-browserify'),
+        buffer: require.resolve('buffer'),
+        util: require.resolve('util'),
+        fs: false,
+        path: false,
+        http: false,
+        https: false,
+        child_process: false,
+      };
+    }
     // Fix for specific WASM issues if they arise later (keep commented for now)
     // config.output.webassemblyModuleFilename = (
     //   isServer ? '../' : ''

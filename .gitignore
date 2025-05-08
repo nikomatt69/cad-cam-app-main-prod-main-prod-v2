@@ -24,7 +24,7 @@ plugins-data
 .cursor/rules
 cad-optimizer-wasm
 server-control-cnc
-
+cadcam-sdk
 
 
 

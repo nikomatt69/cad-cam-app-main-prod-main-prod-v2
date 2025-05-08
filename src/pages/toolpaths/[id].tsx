@@ -426,28 +426,32 @@ export default function ToolpathDetail() {
   ogImage="/og-image.png" title={toolpath?.name || 'Toolpath Details'} />
       
       <Layout>
-        <div className="p-4 md:p-6">
+        <div className="p-4 ">
           {/* Top navigation bar */}
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center">
+          <motion.div 
+          className="bg-white  items-center dark:bg-gray-900 border m-3 border-gray-200 dark:border-gray-800 rounded-xl px-4 py-4 md:px-6"
+          initial={{ y: 0, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+           <div className="relative left-3 top-3 items-center">
               <button
                 onClick={() => router.push('/toolpaths')}
-                className="mr-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800"
+                className="mr-2 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800"
               >
                 <ArrowLeft size={20} />
               </button>
-              
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate max-w-lg">
-                {isLoading ? <Loading/> : toolpath?.name || 'Toolpath Details'}
+         </div>
+         <div className="flex flex-col items-center p-3 gap-3">
+            <h1 className="text-xl font-semibold  justify-center text-gray-900 dark:text-white truncate max-w-lg">
+                { toolpath?.name}
               </h1>
-            </div>
-            
-            <div className="flex space-x-2">
+            <div className="flex flex-col p-3 gap-3">
               {!isEditing ? (
                 <>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center shadow-sm"
                     disabled={isLoading}
                   >
                     <Edit size={16} className="mr-2" />
@@ -455,7 +459,7 @@ export default function ToolpathDetail() {
                   </button>
                   <button
                     onClick={handleDownloadGcode}
-                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center"
+                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 justify-center focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center shadow-sm"
                     disabled={isLoading || !toolpath?.gcode}
                   >
                     <Download size={16} className="mr-2" />
@@ -463,7 +467,7 @@ export default function ToolpathDetail() {
                   </button>
                   <button
                     onClick={handleSendToCAM}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center"
+                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 justify-center focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center shadow-sm"
                     disabled={isLoading}
                   >
                     <Cpu size={16} className="mr-2" />
@@ -471,7 +475,7 @@ export default function ToolpathDetail() {
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center"
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 justify-center focus:outline-none focus:ring-2 focus:ring-red-500 flex items-center shadow-sm"
                     disabled={isLoading}
                   >
                     <Trash2 size={16} className="mr-2" />
@@ -529,7 +533,7 @@ export default function ToolpathDetail() {
           ) : (
             <>
               {/* Tabs */}
-              <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="mb-6 border-b  items-center border-gray-200 dark:border-gray-700">
                 <nav className="flex space-x-8">
                   <button
                     onClick={() => handleTabChange('details')}
@@ -857,7 +861,7 @@ export default function ToolpathDetail() {
                       ref={gcodeRef}
                       value={formData.gcode}
                       onChange={handleGcodeChange}
-                      className="w-full h-[60vh] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                      className="flex h-[60vh] px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                       placeholder="; Enter G-code here"
                     ></textarea>
                   ) : (
@@ -1015,6 +1019,7 @@ export default function ToolpathDetail() {
               )}
             </>
           )}
+          </motion.div>
         </div>
       </Layout>
     </>

@@ -17,6 +17,7 @@ import useUserProfileStore from '@/src/store/userProfileStore';
 import ImageService from '@/src/lib/imageService';
 import toast from 'react-hot-toast';
 import Layout from '@/src/components/layout/Layout';
+import ApiKeyManager from '@/src/components/settings/ApiKeyManager';
 
 interface ProfileSettingsForm {
   name: string;
@@ -242,12 +243,12 @@ export default function ProfileSettingsPage() {
   return (
     <>
       <MetaTags
-  ogImage="/og-image.png" 
+        ogImage="/og-image.png" 
         title="Profile Settings" 
       />
      <Layout>
-        <div className="p-6 max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">Profile Settings</h1>
+        <div className="p-6 max-w-4xl mx-auto space-y-8">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Profile Settings</h1>
           
           {/* Message Banner */}
           {message && (
@@ -271,157 +272,149 @@ export default function ProfileSettingsPage() {
           
           <form onSubmit={handleUpdateProfile} className="space-y-6">
             {/* Profile Image */}
-            <div className="col-span-full">
-              <label htmlFor="photo" className="block text-sm font-medium text-gray-700">
-                Profile Photo
-              </label>
-              <div className="mt-1 flex flex-col sm:flex-row items-start sm:items-center">
-                <div className="relative group">
-                  <span className="h-24 w-24 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                    {isUploading ? (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                      </div>
-                    ) : null}
-                    {profileImage ? (
-                      <img 
-                        src={profileImage} 
-                        alt="Profile" 
-                        className="h-20 w-20 rounded-full object-cover"
-                      />
-                    ) : (
-                      <svg className="h-20 w-20 rounded-full text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" />
-                      </svg>
-                    )}
-                  </span>
-                  {/* Overlay on hover */}
-                  <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer"
-                       onClick={() => fileInputRef.current?.click()}>
-                    <div className="text-white text-xs font-medium">Change photo</div>
-                  </div>
-                </div>
-                
-                <div className="mt-4 sm:mt-0 sm:ml-5 flex flex-col space-y-2">
-                  <input
-                    type="file"
-                    id="photo-upload"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageUpload}
+            <div className="flex items-center space-x-4">
+              <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                {profileImage ? (
+                  <img 
+                    src={profileImage} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
                   />
+                ) : (
+                  <User className="w-10 h-10 text-gray-400" />
+                )}
+              </div>
+              <div className="flex flex-col space-y-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
+                  disabled={isUploading}
+                >
+                  {isUploading ? 'Uploading...' : 'Change Photo'}
+                </button>
+                {profileImage && (
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-white py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 w-full sm:w-auto"
+                    onClick={handleRemoveImage}
+                    className="px-4 py-2 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 disabled:opacity-50"
+                    disabled={isUploading}
                   >
-                    Upload new photo
+                    Remove Photo
                   </button>
-                  {profileImage && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm leading-4 font-medium text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 w-full sm:w-auto"
-                    >
-                      Remove photo
-                    </button>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    JPG, PNG or GIF. Max 2MB.
-                  </p>
-                </div>
+                )}
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
               </div>
             </div>
             
             {/* Personal Information */}
             <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
               <div className="sm:col-span-3">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Full Name
                 </label>
-                <div className="mt-1">
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                  </div>
                   <input
                     type="text"
                     name="name"
                     id="name"
+                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     value={formData.name}
                     onChange={handleChange}
-                    required
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    disabled={isLoading}
                   />
                 </div>
               </div>
               
               <div className="sm:col-span-3">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email Address
                 </label>
-                <div className="mt-1">
+                <div className="mt-1 relative rounded-md shadow-sm">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                  </div>
                   <input
                     type="email"
                     name="email"
                     id="email"
+                    className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                     value={formData.email}
                     onChange={handleChange}
-                    required
-                    className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    disabled
                   />
                 </div>
               </div>
             </div>
             
             {/* Security Section */}
-            <div className="border-t border-gray-200 pt-6">
-              
-              <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
-                <div className="sm:col-span-3">
-                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700">
+            <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Change Password</h2>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Leave these fields blank if you don&apos;t want to change your password.</p>
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Current Password
                   </label>
-                  <div className="mt-1">
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </div>
                     <input
                       type="password"
                       name="currentPassword"
                       id="currentPassword"
+                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       value={formData.currentPassword}
                       onChange={handleChange}
-                      placeholder="Enter current password to make changes"
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
-                
-                <div className="sm:col-span-3">
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                <div>
+                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     New Password
                   </label>
-                  <div className="mt-1">
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </div>
                     <input
                       type="password"
                       name="newPassword"
                       id="newPassword"
+                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       value={formData.newPassword}
                       onChange={handleChange}
-                      placeholder="Leave blank if no change"
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
-                
-                <div className="sm:col-span-3">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Confirm New Password
                   </label>
-                  <div className="mt-1">
+                  <div className="mt-1 relative rounded-md shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                    </div>
                     <input
                       type="password"
                       name="confirmPassword"
                       id="confirmPassword"
+                      className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      placeholder="Confirm new password"
-                      className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -429,19 +422,33 @@ export default function ProfileSettingsPage() {
             </div>
             
             {/* Submit Button */}
-            <div className="pt-6">
+            <div className="flex justify-between items-center pt-4">
               <button
                 type="submit"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 disabled={isLoading}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                <Save className="mr-2 h-4 w-4" />
-                {isLoading ? 'Saving...' : 'Save Changes'}
+                {isLoading ? (
+                  <>
+                    <Save className="animate-spin -ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" /> Save Changes
+                  </>
+                )}
               </button>
             </div>
           </form>
+          
+          {/* Divider */}
+          <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+          {/* API Key Manager Section */}
+          <ApiKeyManager />
+
         </div>
-        </Layout>
+      </Layout>
     </>
   );
 }

@@ -47,7 +47,7 @@ export const AIAssistantOpenai: React.FC = () => {
     return (
       <button
         onClick={toggleAssistant}
-        className="fixed bottom-4 right-4 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors z-50 flex items-center space-x-1"
+        className="fixed bottom-20 right-3.5 p-2.5 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors z-40 flex items-center space-x-1"
         aria-label="Open AI Assistant"
       >
         <MessageCircle size={20} />
@@ -62,16 +62,16 @@ export const AIAssistantOpenai: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 20 }}
-        className={`fixed z-50 bottom-4 right-4 shadow-xl rounded-lg bg-white transition-all duration-200 ${
+        className={`fixed z-50 bottom-4 right-4 shadow-xl rounded-3xl bg-white transition-all duration-200 ${
           isPanelExpanded 
             ? 'w-96 h-[500px]' 
             : 'w-auto h-auto'
         }`}
       >
         {isPanelExpanded ? (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col rounded-3xl h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-lg">
+            <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-3xl">
               <div className="flex items-center">
                 <Cpu size={18} className="mr-2" />
                 <div>

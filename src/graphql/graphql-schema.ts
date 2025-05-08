@@ -4,46 +4,120 @@ import { gql } from 'apollo-server-micro';
 export const typeDefs = gql`
  scalar DateTime
 scalar Json
-scalar Upload
+scalar Upload # Uncommented - Placeholder resolver will be added
+scalar Date
+
+# Add PageInfo type for Connections
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Connection type for Project
+type ProjectEdge {
+  node: Project!
+  cursor: String!
+}
+type ProjectConnection {
+  edges: [ProjectEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# Connection type for Drawing
+type DrawingEdge {
+  node: Drawing!
+  cursor: String!
+}
+type DrawingConnection {
+  edges: [DrawingEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# Connection type for Component
+type ComponentEdge {
+  node: Component!
+  cursor: String!
+}
+type ComponentConnection {
+  edges: [ComponentEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# Connection type for Toolpath
+type ToolpathEdge {
+  node: Toolpath!
+  cursor: String!
+}
+type ToolpathConnection {
+  edges: [ToolpathEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# Custom type for Organization Member data
+type OrganizationMember {
+  id: ID!
+  name: String
+  email: String
+  image: String
+  role: UserRole!
+  joinedAt: DateTime!
+}
 
 type Query {
   # User queries
   me: User
   user(id: ID!): User
   users(skip: Int, take: Int): [User!]!
+  userProjects: [Project!]! # Added from resolver
+  userComponents: [Component!]! # Added from resolver
+  userToolpaths: [Toolpath!]! # Added from resolver
+  userOrganizations: [Organization!]! # Added from resolver
   
   # Organization queries
   organization(id: ID!): Organization
   organizations(skip: Int, take: Int): [Organization!]!
   myOrganizations: [Organization!]!
+  organizationMembers(organizationId: ID!): [OrganizationMember!]! # Added from resolver
+  organizationProjects(organizationId: ID!): [Project!]! # Added from resolver
   
   # Project queries
   project(id: ID!): Project
-  projects(skip: Int, take: Int, organizationId: ID): [Project!]!
+  # Use ProjectConnection to match resolver
+  projects(first: Int, after: String, search: String, organizationId: ID): ProjectConnection!
   myProjects: [Project!]!
   
   # Drawing queries
   drawing(id: ID!): Drawing
-  drawings(projectId: ID!, skip: Int, take: Int): [Drawing!]!
+  # Use DrawingConnection to match resolver
+  drawings(projectId: ID!, first: Int, after: String, search: String): DrawingConnection!
   
   # Component queries
   component(id: ID!): Component
-  components(projectId: ID!, skip: Int, take: Int): [Component!]!
+  # Use ComponentConnection to match resolver
+  components(projectId: ID!, first: Int, after: String, search: String, type: String): ComponentConnection!
   publicComponents(skip: Int, take: Int): [Component!]!
+  componentVersions(componentId: ID!): [ComponentVersion!]! # Added from resolver
+  componentComments(componentId: ID!): [ComponentComment!]! # Added from resolver
   
   # Material queries
   material(id: ID!): Material
-  materials(skip: Int, take: Int, organizationId: ID): [Material!]!
+  materials(skip: Int, take: Int, organizationId: ID): [Material!]! # Note: Resolver for materials might use connection pattern, schema uses list
   publicMaterials(skip: Int, take: Int): [Material!]!
   
   # Tool queries
   tool(id: ID!): Tool
-  tools(skip: Int, take: Int, organizationId: ID): [Tool!]!
+  tools(skip: Int, take: Int, organizationId: ID): [Tool!]! # Note: Resolver for tools might use connection pattern, schema uses list
   publicTools(skip: Int, take: Int): [Tool!]!
   
   # MachineConfig queries
   machineConfig(id: ID!): MachineConfig
-  machineConfigs(skip: Int, take: Int): [MachineConfig!]!
+  machineConfigs(skip: Int, take: Int): [MachineConfig!]! # Note: Resolver for machineConfigs might use connection pattern, schema uses list
   publicMachineConfigs(skip: Int, take: Int): [MachineConfig!]!
   
   # Library queries
@@ -61,10 +135,14 @@ type Query {
   
   # Toolpath queries
   toolpath(id: ID!): Toolpath
-  toolpaths(projectId: ID!, skip: Int, take: Int): [Toolpath!]!
+  # Use ToolpathConnection to match resolver
+  toolpaths(projectId: ID, drawingId: ID, first: Int, after: String, search: String, type: String, operationType: String): ToolpathConnection!
+  toolpathVersions(toolpathId: ID!): [ToolpathVersion!]! # Added from resolver
+  toolpathComments(toolpathId: ID!): [ToolpathComment!]! # Added from resolver
   
   # Subscription query
-  subscription: Subscription
+  subscription: Subscription # Refers to real-time Subscription type
+  currentSubscription: BillingSubscription # Refers to BillingSubscription type
 }
 
 type Mutation {
@@ -72,6 +150,7 @@ type Mutation {
   updateUser(input: UpdateUserInput!): User!
   updatePassword(currentPassword: String!, newPassword: String!): Boolean!
   deleteUser: Boolean!
+  updateProfile(name: String, email: String): User! # Added from resolver
   
   # Organization mutations
   createOrganization(input: CreateOrganizationInput!): Organization!
@@ -81,6 +160,8 @@ type Mutation {
   joinOrganization(token: String!): UserOrganization!
   updateUserRole(organizationId: ID!, userId: ID!, role: UserRole!): UserOrganization!
   removeUserFromOrganization(organizationId: ID!, userId: ID!): Boolean!
+  updateOrganizationMember(organizationId: ID!, memberId: ID!, role: UserRole!): Boolean! # Added from resolver
+  removeOrganizationMember(organizationId: ID!, memberId: ID!): Boolean! # Added from resolver
   
   # Project mutations
   createProject(input: CreateProjectInput!): Project!
@@ -96,9 +177,11 @@ type Mutation {
   # Component mutations
   createComponent(input: CreateComponentInput!): Component!
   updateComponent(id: ID!, input: UpdateComponentInput!): Component!
-  createComponentVersion(componentId: ID!, data: Json!, changeMessage: String): ComponentVersion!
   addComponentComment(componentId: ID!, content: String!): ComponentComment!
   deleteComponent(id: ID!): Boolean!
+  addComponentVersion(componentId: ID!, data: Json!, changeMessage: String): ComponentVersion!
+  updateComponentComment(id: ID!, content: String!): ComponentComment!
+  deleteComponentComment(id: ID!): Boolean!
   
   # Material mutations
   createMaterial(input: CreateMaterialInput!): Material!
@@ -114,6 +197,7 @@ type Mutation {
   createMachineConfig(input: CreateMachineConfigInput!): MachineConfig!
   updateMachineConfig(id: ID!, input: UpdateMachineConfigInput!): MachineConfig!
   deleteMachineConfig(id: ID!): Boolean!
+  cloneMachineConfig(id: ID!, name: String): MachineConfig! # Added from resolver
   
   # Library mutations
   createLibraryItem(input: CreateLibraryItemInput!): LibraryItem!
@@ -121,7 +205,7 @@ type Mutation {
   deleteLibraryItem(id: ID!): Boolean!
   
   # File mutations
-  uploadFile(file: Upload!, objectId: ID, objectType: String): FileUpload!
+  uploadFile(file: Upload!, objectId: ID, objectType: String): FileUpload! # Changed back to Upload! - Note: Scalar Upload is commented out above
   deleteFile(id: ID!): Boolean!
   
   # Conversation mutations
@@ -136,8 +220,9 @@ type Mutation {
   markAllNotificationsAsRead: Boolean!
   
   # Subscription mutations
-  updateSubscription(plan: String!): Subscription!
+  updateSubscription(plan: String!): BillingSubscription! 
   cancelSubscription: Boolean!
+  createCheckoutSession(priceId: String!, successUrl: String!, cancelUrl: String!): String!
   
   # Push subscription
   subscribeToPushNotifications(endpoint: String!, p256dh: String!, auth: String!): PushSubscription!
@@ -146,12 +231,18 @@ type Mutation {
   # Toolpath mutations
   createToolpath(input: CreateToolpathInput!): Toolpath!
   updateToolpath(id: ID!, input: UpdateToolpathInput!): Toolpath!
-  createToolpathVersion(toolpathId: ID!, data: Json!, gcode: String, changeMessage: String): ToolpathVersion!
   addToolpathComment(toolpathId: ID!, content: String!): ToolpathComment!
   deleteToolpath(id: ID!): Boolean!
+  addToolpathVersion(toolpathId: ID!, data: Json, gcode: String, changeMessage: String): ToolpathVersion!
+  restoreToolpathVersion(toolpathId: ID!, versionId: ID!): Toolpath!
+  updateToolpathComment(id: ID!, content: String!): ToolpathComment!
+  deleteToolpathComment(id: ID!): Boolean!
+  
+  # User account deletion
+  deleteAccount: Boolean! # Added from resolver
 }
 
-type Subscription {
+type Subscription { # Type for real-time updates
   notificationAdded: Notification!
   messageAdded(conversationId: ID!): Message!
 }
@@ -168,17 +259,20 @@ type User {
   
   organizations: [UserOrganization!]!
   projects: [Project!]!
+  components: [Component!]!
+  toolpaths: [Toolpath!]!
   materials: [Material!]!
   tools: [Tool!]!
   machineConfigs: [MachineConfig!]!
   libraryItems: [LibraryItem!]!
-  subscription: Subscription
+  subscription: BillingSubscription # Changed to BillingSubscription
   conversations: [ConversationParticipant!]!
   notifications: [Notification!]!
   pushSubscriptions: [PushSubscription!]!
 }
 
-type Subscription {
+# Renamed from Subscription to avoid conflict
+type BillingSubscription { 
   id: ID!
   userId: ID!
   plan: String!
@@ -206,6 +300,7 @@ type Organization {
   updatedAt: DateTime!
   
   users: [UserOrganization!]!
+  members: [OrganizationMember!]! # Added from resolver
   projects: [Project!]!
   invitations: [OrganizationInvitation!]!
   materials: [Material!]!
@@ -253,6 +348,8 @@ type Project {
   ownerId: ID!
   organizationId: ID
   isPublic: Boolean!
+  drawingCount: Int!
+  componentCount: Int!
   
   owner: User!
   organization: Organization
@@ -433,6 +530,7 @@ type MachineConfig {
   ownerId: ID!
   
   owner: User!
+  organization: Organization # Added this field
   toolpaths: [Toolpath!]!
 }
 

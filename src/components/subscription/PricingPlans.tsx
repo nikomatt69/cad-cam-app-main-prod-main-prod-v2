@@ -1,24 +1,22 @@
 import React from 'react';
 import { useSession } from 'next-auth/react';
-import { useSubscription } from 'src/contexts/SubscriptionContext';
-import { SUBSCRIPTION_PLANS, PLAN_FEATURES } from 'src/lib/stripe';
+import { useSubscription } from '@/src/contexts/SubscriptionContext';
+import { SUBSCRIPTION_PLANS, PLAN_FEATURES } from '@/src/lib/lemonsqueezy';
 
 export default function PricingPlans() {
   const { data: session } = useSession();
   const { plan: currentPlan, createCheckoutSession, isLoading } = useSubscription();
   
   // Handle subscription button click
-  const handleSubscribe = async (priceId: string) => {
+  const handleSubscribe = async (variantId: string) => {
     if (!session) {
       // Redirect to login page if not logged in
       window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(window.location.href)}`;
       return;
     }
     
-    const checkoutUrl = await createCheckoutSession(priceId);
-    if (checkoutUrl) {
-      window.location.href = checkoutUrl;
-    }
+    // Call the updated function - it will handle redirection or errors internally
+    await createCheckoutSession(variantId);
   };
   
   // Get plan keys excluding FREE
@@ -38,15 +36,15 @@ export default function PricingPlans() {
           {/* Free plan */}
           <div className="relative p-8 bg-white border dark:border-blue-400 dark:bg-gray-800 border-gray-200 rounded-2xl shadow-sm flex flex-col">
             <div className="flex-1">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].name}</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE]?.name}</h3>
               <p className="mt-4 flex items-baseline text-gray-900 dark:text-white">
-                <span className="text-5xl font-extrabold tracking-tight">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].price}</span>
+                <span className="text-5xl font-extrabold tracking-tight">{PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE]?.price}</span>
                 <span className="ml-1 text-xl font-semibold">/month</span>
               </p>
               <p className="mt-6 text-gray-500 dark:text-gray-400">Get started with basic CAD functionality for free</p>
               
               <ul className="mt-6 space-y-4">
-                {PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE].features.map((feature) => (
+                {PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE]?.features.map((feature: string) => (
                   <li key={feature} className="flex">
                     <svg className="flex-shrink-0 h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
@@ -71,7 +69,7 @@ export default function PricingPlans() {
             const planFeatures = PLAN_FEATURES[planId as keyof typeof PLAN_FEATURES];
             const isCurrentPlan = currentPlan === planId;
             
-            if (!planFeatures) return null;
+            if (!planFeatures || !planId) return null;
             
             return (
               <div 

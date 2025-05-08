@@ -74,7 +74,7 @@ export const CADAssistantBridge: React.FC<CADAssistantBridgeProps> = ({
   if (!isVisible) return null;
   
   return (
-    <div className="cad-assistant-container rounded-lg">
+    <div className="cad-assistant-container rounded-3xl">
       {/* Pass props from the hook to the UI component */}
       <CADAssistantOpenai 
         isProcessing={isProcessing}

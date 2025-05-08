@@ -1,11 +1,11 @@
 // src/components/ai/AIMessageInput.tsx
-import { LightbulbIcon } from 'lucide-react';
+import { Brain, Hammer, LightbulbIcon, Ruler } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type, Edit3, Trash, ExternalLink, Plus } from 'react-feather';
+import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type, Edit3, Trash, ExternalLink, Plus, Tool, BookOpen } from 'react-feather';
 import toast from 'react-hot-toast';
 
 // Define and export tool types for clarity
-export type ToolName = 'generateCADElement' | 'chainOfThoughtAnalysis' | 'suggestOptimizations' | 'textToCAD' | 'updateCADElement' | 'removeCADElement' | 'exportCADProjectAsZip' | 'thinkAloudMode';
+export type ToolName = 'generateCADElement' | 'chainOfThoughtAnalysis' | 'suggestOptimizations' | 'textToCAD' | 'updateCADElement' | 'removeCADElement' | 'exportCADProjectAsZip' | 'thinkAloudMode' | 'autoQuoteCADElements' | 'analyzeManufacturability' | 'generate2DTechnicalDrawings' | 'simulatePhysicalProperties';
 
 // Structure to hold selected file data (text or image)
 export interface SelectedFileData {
@@ -32,6 +32,22 @@ const DEFAULT_MAX_SIZE_MB = 5; // Increased default max size for images
 const DEFAULT_ACCEPTED_TEXT_TYPES = ['.txt', '.md', '.json', '.js', '.ts', 'text/plain', 'text/markdown', 'application/json', 'text/javascript', 'application/typescript'];
 const DEFAULT_ACCEPTED_IMAGE_TYPES = ['.png', '.jpg', '.jpeg', '.webp', '.gif', 'image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const TYPING_TIMEOUT_MS = 1500; // 1.5 seconds delay for showing typing indicator
+
+// Define tool descriptions
+const toolDescriptions: Record<ToolName, string> = {
+  textToCAD: 'Force direct text-to-CAD conversion. Use for specific geometry creation from text.',
+  generateCADElement: 'Generate a new CAD element based on your description.',
+  updateCADElement: 'Modify existing CAD element(s) based on your instructions.',
+  removeCADElement: 'Delete specified CAD element(s) from the design.',
+  chainOfThoughtAnalysis: 'Show the AI step-by-step reasoning process for the query.',
+  suggestOptimizations: 'Get suggestions to optimize the current CAD design or workflow.',
+  exportCADProjectAsZip: 'Export the entire current CAD project as a ZIP file.',
+  autoQuoteCADElements: 'Automatically generate a price quote for designed CAD elements.',
+  analyzeManufacturability: 'Analyze the design for potential manufacturing issues or complexities.',
+  generate2DTechnicalDrawings: 'Create 2D technical drawings (e.g., blueprints) from the 3D model.',
+  simulatePhysicalProperties: 'Simulate physical properties (e.g., stress, heat) on the model.',
+  thinkAloudMode: 'Toggle AI thinking process visibility.'
+};
 
 export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   onSendMessage,
@@ -187,15 +203,9 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   }, []);
   
   return (
-    <div className="p-3 border-t rounded-b-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
+    <div className="p-3 border-t bg-gradient-to-br from-gray-50 to-gray-200 rounded-b-3xl  dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-800 dark:border-gray-600">
       {/* User typing indicator */}
-      <div className="h-6 mb-2 p-0.5"> {/* Reserve space for indicator */}
-        {isTyping && (
-          <span className="text-xs p-5 m-0.5 text-gray-500 dark:text-gray-400 italic animate-pulse">
-            Typing...
-          </span>
-        )}
-      </div>
+      
       {fileError && (
         <div className="mb-2 text-xs text-red-600 flex items-center">
           <AlertCircle size={14} className="mr-1" /> {fileError}
@@ -223,90 +233,164 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
         </div>
       )}
       
-      <div className="flex space-x-1 mb-2">
-        <button
-          onClick={() => handleToolButtonClick('textToCAD')}
-          title="Force Text-to-CAD"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'textToCAD' 
-            ? 'bg-purple-100 border-purple-400 text-purple-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <Type size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('generateCADElement')}
-          title="Force Text-to-CAD"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'generateCADElement' 
-            ? 'bg-purple-100 border-purple-400 text-purple-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <Plus size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('updateCADElement')}
-          title="Force Update Element(s)"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'updateCADElement' 
-            ? 'bg-yellow-100 border-yellow-400 text-yellow-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <Edit3 size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('removeCADElement')}
-          title="Force Remove Element(s)"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'removeCADElement' 
-            ? 'bg-red-100 border-red-400 text-red-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <Trash size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('chainOfThoughtAnalysis')}
-          title="Force Chain-of-Thought Analysis"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'chainOfThoughtAnalysis' 
-            ? 'bg-blue-100 border-blue-400 text-blue-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <List size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('suggestOptimizations')}
-          title="Force Suggest Optimizations"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'suggestOptimizations' 
-            ? 'bg-blue-100 border-blue-400 text-blue-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <Zap size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('exportCADProjectAsZip')}
-          title="Force Export CAD Project"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'exportCADProjectAsZip' 
-            ? 'bg-blue-100 border-blue-400 text-blue-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <ExternalLink size={14} />
-        </button>
-        <button
-          onClick={() => handleToolButtonClick('thinkAloudMode')}
-          title="Force Think Aloud Mode"
-          disabled={isProcessing}
-          className={`p-1.5 rounded border text-xs ${activeTool === 'thinkAloudMode' 
-            ? 'bg-blue-100 border-blue-400 text-blue-700' 
-            : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100'}`}
-        >
-          <LightbulbIcon size={14} />
-        </button>
+      <div className="flex space-x-1 mb-2  flex-wrap">
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('textToCAD')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'textToCAD' 
+              ? 'bg-purple-100 border-purple-400 text-purple-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Type size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.textToCAD}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('generateCADElement')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'generateCADElement' 
+              ? 'bg-blue-100 border-blue-400 text-blue-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Plus size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.generateCADElement}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('updateCADElement')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'updateCADElement' 
+              ? 'bg-yellow-100 border-yellow-400 text-yellow-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Edit3 size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.updateCADElement}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('removeCADElement')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'removeCADElement' 
+              ? 'bg-red-100 border-red-400 text-red-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Trash size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.removeCADElement}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('chainOfThoughtAnalysis')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'chainOfThoughtAnalysis' 
+              ? 'bg-pink-100 border-pink-400 text-pink-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Brain size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.chainOfThoughtAnalysis}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('suggestOptimizations')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'suggestOptimizations' 
+              ? 'bg-orange-100 border-orange-400 text-orange-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <List size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.suggestOptimizations}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('exportCADProjectAsZip')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'exportCADProjectAsZip' 
+              ? 'bg-fuchsia-100 border-fuchsia-400 text-fuchsia-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <ExternalLink size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.exportCADProjectAsZip}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('autoQuoteCADElements')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'autoQuoteCADElements' 
+              ? 'bg-green-100 border-green-400 text-green-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Ruler size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.autoQuoteCADElements}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('analyzeManufacturability')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'analyzeManufacturability' 
+              ? 'bg-emerald-100 border-emerald-400 text-emerald-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Tool size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.analyzeManufacturability}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('generate2DTechnicalDrawings')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'generate2DTechnicalDrawings' 
+              ? 'bg-cyan-100 border-cyan-400 text-cyan-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <BookOpen size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.generate2DTechnicalDrawings}
+          </span>
+        </div>
+        <div className="relative group">
+          <button
+            onClick={() => handleToolButtonClick('simulatePhysicalProperties')}
+            disabled={isProcessing}
+            className={`p-1.5 rounded border text-xs ${activeTool === 'simulatePhysicalProperties' 
+              ? 'bg-amber-100 border-amber-400 text-amber-700' 
+              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'}`}
+          >
+            <Hammer size={14} />
+          </button>
+          <span className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-xs rounded py-1 px-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 max-w-xs text-center">
+            {toolDescriptions.simulatePhysicalProperties}
+          </span>
+        </div>
       </div>
       
-      <div className="flex rounded-lg items-end space-x-2">
+      <div className="flex rounded-b-3xl items-end space-x-2">
         <button
           onClick={handleAttachClick}
           className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 self-end mb-1"
@@ -331,7 +415,7 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={activeTool ? `Input for ${activeTool}...` : placeholder}
           className="flex-1 border border-gray-300 rounded-md p-2 text-sm resize-none overflow-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
-          rows={1}
+          rows={2}
           style={{ maxHeight: '80px' }}
           disabled={isProcessing}
         />

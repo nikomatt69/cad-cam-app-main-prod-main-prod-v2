@@ -465,6 +465,142 @@ export class OpenAIService {
         }
         }
       },
+      autoQuoteCADElements: {
+        type: "function",
+        function: {
+          name: "autoQuoteCADElements",
+          description: "Automatically adds dimension lines and measurements to CAD elements using the predefined dimension types: linear-dimension, angular-dimension, radius-dimension, and diameter-dimension.",
+          parameters: {
+            type: 'object',
+            properties: {
+              elementIds: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'IDs of elements to add quotation to. If empty, all elements will be quoted.'
+              },
+              style: {
+                type: 'string',
+                enum: ['architectural', 'engineering', 'manufacturing', 'minimal'],
+                description: 'Style of dimension lines and quotation markers',
+                default: 'engineering'
+              },
+              units: {
+                type: 'string',
+                enum: ['mm', 'cm', 'in', 'ft'],
+                description: 'Units to display in measurements',
+                default: 'mm'
+              },
+              dimensionTypes: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['linear-dimension', 'angular-dimension', 'radius-dimension', 'diameter-dimension']
+                },
+                description: 'Types of dimensions to apply',
+                default: ['linear-dimension', 'diameter-dimension']
+              },
+              layout: {
+                type: 'string',
+                enum: ['aligned', 'orthogonal', 'baseline', 'ordinate'],
+                description: 'Layout style for dimension lines',
+                default: 'aligned'
+              },
+              placement: {
+                type: 'string',
+                enum: ['auto', 'inside', 'outside'],
+                description: 'Placement strategy for dimension text',
+                default: 'auto'
+              }
+            },
+            required: []
+          }
+        }
+      },
+      analyzeManufacturability: {
+        type: "function",
+        function: {
+          name: "analyzeManufacturability",
+          description: "Analyzes CAD design for manufacturability, providing feedback on potential issues, manufacturing methods, and cost estimates.",
+          parameters: {
+            type: 'object',
+            properties: {
+              manufacturingMethod: {
+                type: 'string',
+                enum: ['3d_printing', 'cnc_machining', 'injection_molding', 'sheet_metal', 'casting'],
+                description: 'Manufacturing method to analyze for'
+              },
+              material: {
+                type: 'string',
+                description: 'Material to consider for manufacturing (e.g., ABS, PLA, aluminum, steel)'
+              },
+              tolerance: {
+                type: 'string',
+                enum: ['low', 'medium', 'high', 'precision'],
+                description: 'Required manufacturing tolerance'
+              }
+            },
+            required: ['manufacturingMethod']
+          }
+        }
+      },
+      
+      generate2DTechnicalDrawings: {
+        type: "function",
+        function: {
+          name: "generate2DTechnicalDrawings",
+          description: "Generates 2D technical drawings from the 3D CAD model, including multiple views, section views, and detailed dimensions.",
+          parameters: {
+            type: 'object',
+            properties: {
+              standard: {
+                type: 'string',
+                enum: ['ANSI', 'ISO', 'DIN', 'JIS'],
+                description: 'Technical drawing standard to follow'
+              },
+              views: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['front', 'top', 'side', 'isometric', 'section_a', 'section_b', 'detail']
+                },
+                description: 'Views to include in the drawing'
+              },
+              paperSize: {
+                type: 'string',
+                enum: ['A0', 'A1', 'A2', 'A3', 'A4', 'ANSI_A', 'ANSI_B', 'ANSI_C', 'ANSI_D', 'ANSI_E'],
+                description: 'Paper size for the drawing'
+              }
+            },
+            required: ['standard', 'views']
+          }
+        }
+      },
+      
+      simulatePhysicalProperties: {
+        type: "function",
+        function: {
+          name: "simulatePhysicalProperties",
+          description: "Simulates physical properties of the CAD model, such as weight, center of gravity, and basic stress analysis.",
+          parameters: {
+            type: 'object',
+            properties: {
+              material: {
+                type: 'string',
+                description: 'Material for simulation (e.g., aluminum, steel, plastic)'
+              },
+              properties: {
+                type: 'array',
+                items: {
+                  type: 'string',
+                  enum: ['weight', 'center_of_gravity', 'moment_of_inertia', 'stress', 'thermal']
+                },
+                description: 'Physical properties to simulate'
+              }
+            },
+            required: ['material', 'properties']
+          }
+        }
+      },
       chainOfThoughtAnalysis: {
         type: "function",
         function: {

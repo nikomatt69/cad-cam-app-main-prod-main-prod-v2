@@ -2,12 +2,13 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { hash } from 'bcrypt';
-import { prisma } from '@/src/lib/prisma';
+import { prisma } from '@/src/lib/prisma'; // Use shared prisma instance
 import { sendErrorResponse, sendSuccessResponse, handleApiError } from '@/src/lib/api/auth';
-import { PrismaClient } from '@prisma/client';
-import { SUBSCRIPTION_PLANS } from 'src/lib/stripe'; // Assicurati che il percorso sia corretto
+// Removed PrismaClient import as we use the shared one
+// Corrected import for Lemon Squeezy plans
+import { SUBSCRIPTION_PLANS } from '@/src/lib/lemonsqueezy';
 
-const prismaClient = new PrismaClient();
+// Removed local prismaClient instance
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -38,32 +39,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Hash the password
     const hashedPassword = await hash(password, 12);
     
-    // Create the user
+    // Create the user using shared prisma instance
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        // Remove explicit createdAt/updatedAt, Prisma handles defaults
       }
     });
     
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
     
+    // --- Create Trial Subscription --- 
     const trialEnds = new Date();
     trialEnds.setDate(trialEnds.getDate() + 7);
 
-    await prismaClient.subscription.create({
-      data: {
-        userId: user.id, // ID dell'utente appena creato
-        plan: SUBSCRIPTION_PLANS.PRO, // O un piano specifico per la prova, ex. PRO se vuoi dare accesso a funzioni PRO durante la prova
-        status: 'trialing', // Imposta lo stato a trialing
-        // trialEndsAt: trialEnds, // Field removed - Rely on middleware logic using user.createdAt
-        // Altri campi come stripeSubscriptionId, stripeCustomerId potrebbero essere null inizialmente
-      }
-    });
+    // Ensure PRO plan variant ID exists before creating trial
+    if (SUBSCRIPTION_PLANS.PRO) {
+        await prisma.subscription.create({ // Use shared prisma instance
+          data: {
+            userId: user.id,
+            plan: SUBSCRIPTION_PLANS.PRO, // Use PRO variant ID from LS plans
+            status: 'trialing', 
+            trialEndsAt: trialEnds, // *** Uncommented/Added this line ***
+            // Other LS/Stripe fields default to null
+          }
+        });
+        console.log(`Trial subscription created for user ${user.id}`);
+    } else {
+        console.warn('PRO plan variant ID not found in environment variables. Skipping trial creation.');
+    }
 
     return sendSuccessResponse(res, 
       { user: userWithoutPassword }, 

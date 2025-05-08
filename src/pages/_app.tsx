@@ -34,6 +34,7 @@ import MetaTags from '../components/layout/Metatags';
 import { useElementsStore } from 'src/store/elementsStore';
 import { ThemeProvider } from '../contexts/ThemeProvider';
 import { ConstraintProvider } from '../contexts/ConstraintContext';
+import { MCPProvider } from '../contexts/MCPContext';
 
 
 
@@ -117,6 +118,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
                         <PageViewTracker />
                         <AnalyticsProvider>
                           <CursorProvider>
+                          <MCPProvider>
                             <ConstraintProvider>
                             <AIContextProvider addElementsToCanvas={addElements}>
                               <style jsx global>{`
@@ -130,6 +132,7 @@ export default function App({ Component, pageProps: { session, ...pageProps }, r
                               </PluginClientProvider>
                             </AIContextProvider>
                            </ConstraintProvider>
+                           </MCPProvider>
                           </CursorProvider>
                         </AnalyticsProvider>
                         <PWAInstallPrompt />

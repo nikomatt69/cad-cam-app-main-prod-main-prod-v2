@@ -73,7 +73,7 @@ const AIProcessingIndicator: React.FC<AIProcessingIndicatorProps> = ({
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className={`p-3 flex items-start border rounded-md ${color} ${className}`}
+      className={`p-3 flex items-start border rounded-xl ${color} ${className}`}
     >
       <div className="mr-3 flex-shrink-0 mt-0.5">{icon}</div>
       <div className="flex-1">

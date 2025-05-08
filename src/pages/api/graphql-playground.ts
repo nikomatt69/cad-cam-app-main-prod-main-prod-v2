@@ -1,12 +1,23 @@
 // pages/api/graphql-playground.ts
 import { NextApiRequest, NextApiResponse } from 'next';
 import { renderPlaygroundPage, RenderPageOptions } from 'graphql-playground-html';
+import { requireAuth } from '@/src/lib/api/auth';
 
 // Define CursorShape type if not directly exported (adjust based on actual library export)
 type CursorShape = 'line' | 'block' | 'underline';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const userId = await requireAuth(req, res); 
+  if (!userId) {
+    // If requireAuth returns falsy, it means auth failed and it already sent a response.
+    return; 
+  }
+
+
+
   const playgroundOptions: RenderPageOptions = {
+
+    
     endpoint: '/api/graphql',
     settings: {
       'schema.polling.enable': false,
@@ -101,13 +112,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       name
     }
     drawings {
-      id
-      name
+      edges {
+        node {
+          id
+          name
+        }
+      }
     }
     components {
-      id
-      name
-      type
+      edges {
+        node {
+          id
+          name
+          type
+        }
+      }
     }
   }
 }
@@ -333,6 +352,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]
   };
   
-  res.setHeader('Content-Type', 'text/html');
+  res.setHeader('Content-Type', 'text/html',);
   res.status(200).send(renderPlaygroundPage(playgroundOptions));
 }

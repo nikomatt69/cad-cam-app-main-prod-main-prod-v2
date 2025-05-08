@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useSession } from 'next-auth/react';
-import { PLAN_FEATURES, SUBSCRIPTION_PLANS } from 'src/lib/stripe';
+import { PLAN_FEATURES, SUBSCRIPTION_PLANS, getPlanByVariantId, hasAccess } from '@/src/lib/lemonsqueezy';
 import axios from 'axios';
 
 interface SubscriptionContextType {
@@ -20,10 +20,9 @@ interface SubscriptionContextType {
       maxStorage: number;
     };
   };
-  canAccess: (featureLevel: string) => boolean;
-  createCheckoutSession: (priceId: string) => Promise<string | null>;
-  createBillingPortalSession: () => Promise<string | null>;
-  cancelSubscription: () => Promise<boolean>;
+  canAccess: (featureLevelVariantId: string) => boolean;
+  createCheckoutSession: (variantId: string) => Promise<void>;
+  createBillingPortalSession: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -60,15 +59,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
       try {
         setIsLoading(true);
+        setError(null);
         const { data } = await axios.get('/api/subscriptions');
         setPlan(data.plan);
         setStatus(data.status);
         setPeriodEnd(data.periodEnd ? new Date(data.periodEnd) : null);
         setCancelAtPeriodEnd(data.cancelAtPeriodEnd);
       } catch (err: any) {
-        setError(err.message || 'Failed to load subscription data');
-        // Default to free plan on error
+        console.error("Failed to load subscription data:", err);
+        setError(err.response?.data?.message || err.message || 'Failed to load subscription data');
         setPlan(SUBSCRIPTION_PLANS.FREE);
+        setStatus('active');
       } finally {
         setIsLoading(false);
       }
@@ -78,95 +79,53 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [session, sessionStatus]);
 
   // Check if user can access a feature based on their plan
-  const canAccess = (featureLevel: string) => {
-    const plans = Object.keys(SUBSCRIPTION_PLANS);
-    const userPlanIndex = plans.indexOf(plan);
-    const featurePlanIndex = plans.indexOf(featureLevel);
-    
-    return userPlanIndex >= featurePlanIndex;
+  const canAccess = (featureLevelVariantId: string) => {
+    return hasAccess(plan, featureLevelVariantId);
   };
 
   // Create a checkout session
-  const createCheckoutSession = async (priceId: string): Promise<string | null> => {
-    // --- DEBUGGING --- 
-    console.log('Creating checkout for priceId:', priceId);
-    // --- END DEBUGGING ---
+  const createCheckoutSession = async (variantId: string): Promise<void> => {
+    console.log('Creating Lemon Squeezy checkout for variantId:', variantId);
+    setIsLoading(true);
+    setError(null);
     try {
-      // Construct success and cancel URLs based on current location
-      const successUrl = `${window.location.origin}/settings/subscription?session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = window.location.href; // Redirect back to the current page on cancel
-
       const response = await fetch('/api/subscriptions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        // Send all required fields
-        body: JSON.stringify({ 
-          priceId, 
-          successUrl, 
-          cancelUrl 
-        }),
+        body: JSON.stringify({ variantId }),
       });
-      
+
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+         const errorData = await response.json();
+         throw new Error(errorData.message || 'Failed to create checkout session');
       }
-      
+
       const data = await response.json();
-      
-      return data.url;
-    } catch (err) {
-      setError('Failed to create checkout session');
-      return null;
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+         throw new Error('No checkout URL received');
+      }
+    } catch (err: any) {
+      console.error("Checkout session creation failed:", err);
+      setError(err.message || 'Failed to initiate checkout');
+      setIsLoading(false);
     }
   };
 
   // Create a billing portal session
-  const createBillingPortalSession = async (): Promise<string | null> => {
-    try {
-      const response = await fetch('/api/subscriptions/portal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ returnUrl: `${window.location.origin}/settings/subscription` }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to create billing portal session');
-      }
-      
-      const data = await response.json();
-      
-      return data.url;
-    } catch (err) {
-      setError('Failed to create billing portal session');
-      return null;
-    }
-  };
-
-  // Cancel subscription
-  const cancelSubscription = async (): Promise<boolean> => {
-    try {
-      const response = await fetch('/api/subscriptions', {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to cancel subscription');
-      }
-      setStatus('canceled');    
-      setCancelAtPeriodEnd(true);
-      return true;
-    } catch (err) {
-      setError('Failed to cancel subscription');
-      return false;
-    }
+  const createBillingPortalSession = async (): Promise<void> => {
+    const portalUrl = `https://${process.env.LEMONSQUEEZY_STORE_DOMAIN || 'cadcamfun.lemonsqueezy.com'}/billing`;
+    console.log('Redirecting to Lemon Squeezy billing portal:', portalUrl);
+    window.location.href = portalUrl;
+    return Promise.resolve();
   };
 
   // Get features for current plan
-  const features = PLAN_FEATURES[plan] || PLAN_FEATURES[SUBSCRIPTION_PLANS.FREE];
+  const features = getPlanByVariantId(plan);
 
   return (
     <SubscriptionContext.Provider
@@ -181,7 +140,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         canAccess,
         createCheckoutSession,
         createBillingPortalSession,
-        cancelSubscription,
       }}
     >
       {children}

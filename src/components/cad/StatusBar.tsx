@@ -50,11 +50,11 @@ const StatusBar: React.FC = () => {
         </motion.div>
         <motion.div variants={statusItemVariants}>
           <span className="text-gray-400 mr-2">Units:</span>
-          <span className="font-medium">{workpiece.units}</span>
+          <span className="font-medium">mm</span>
         </motion.div>
         <motion.div variants={statusItemVariants}>
           <span className="text-gray-400 mr-2">Material:</span>
-          <span className="font-medium capitalize">{workpiece.material}</span>
+          <span className="font-medium capitalize">{workpiece?.material}</span>
         </motion.div>
         <motion.div variants={statusItemVariants}>
           <span className="text-gray-400 mr-2">Elements:</span>

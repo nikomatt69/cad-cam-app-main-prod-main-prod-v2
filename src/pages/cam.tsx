@@ -13,6 +13,8 @@ import MachineCycles from 'src/components/cam/MachineCycles';
 import LocalCamLibraryView from 'src/components/library/LocalCamLibraryView';
 import UnifiedLibraryModal from '../components/library/UnifiedLibraryModal';
 import { MaterialLibraryItem, ToolLibraryItem } from '@/src/hooks/useUnifiedLibrary';
+import ProductionCostsManager from '@/src/components/production-costs/ProductionCostsManager';
+import ToolpathCostPanel from '@/src/components/production-costs/ToolpathCostPanel';
 
 import { 
   Save, 
@@ -30,7 +32,8 @@ import {
   Settings,
   Box,
   Folder,
-  X
+  X,
+  DollarSign
 } from 'react-feather';
 import EnhancedSidebarCam from '../components/cam/EnanchedSidebarCam';
 
@@ -56,6 +59,7 @@ import FanucMachineControl from '../components/cam/FanucMachineController';
 import CNCControlPage from '../components/cam/FanucCncControl';
 import ToolpathGenerator3DPrintIntegration from '../components/cam/ToolpathGenerator3DPrintIntegration';
 import render3DPrinterSection from '../components/cam/render3DPrinterSection';
+import { useCAMStore } from '@/src/store/camStore';
 
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
@@ -77,6 +81,13 @@ export const DynamicPostProcessors = {
 export default function CAMPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { toolpaths, syncWorkpieceFromCAD } = useCAMStore();
+  
+  // Sincronizza il workpiece dal CAD quando si carica la pagina CAM
+  useEffect(() => {
+    console.log('CAM Page mounted - sincronizzazione workpiece dal CAD');
+    syncWorkpieceFromCAD();
+  }, [syncWorkpieceFromCAD]);
   
   // Stati per il CAM editor
   const [activeTab, setActiveTab] = useState<'preview' | 'editor' | 'visualizer' | 'post-processor'>('preview');
@@ -87,13 +98,16 @@ export default function CAMPage() {
   const [processedGcode, setProcessedGcode] = useState<string>('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [selectedPostProcessor, setSelectedPostProcessor] = useState<PostProcessorType>('fanuc');
-  const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control'>('generator');
+  const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control' | 'costs'>('generator');
   const [selectedLibraryTool, setSelectedLibraryTool] = useState<string | null>(null);
+  const [selectedToolpathId, setSelectedToolpathId] = useState<string | null>(null);
   
   // Nuovo stato per la libreria CAM
   const [showLibrary, setShowLibrary] = useState(false);
   // Add state for the unified library modal
   const [showUnifiedLibrary, setShowUnifiedLibrary] = useState(false);
+  // Add state for production costs manager modal
+  const [showCostsManager, setShowCostsManager] = useState(false);
   
   // Add useEffect to load toolpath from localStorage when URL contains loadToolpath parameter
   useEffect(() => {
@@ -138,6 +152,9 @@ export default function CAMPage() {
             });
           }, 1500);
         }
+        
+        // Set selected toolpath ID for cost panel
+        setSelectedToolpathId(toolpathData.id);
         
         toast.success(`Toolpath '${toolpathData.name}' loaded successfully`);
         
@@ -301,6 +318,13 @@ export default function CAMPage() {
     // Qui andrà implementata la logica per caricare il progetto
     // usando useLocalLibrary hook o simili
   };
+  
+  // Gestore per la selezione del toolpath per il pannello dei costi
+  const handleToolpathSelect = (toolpathId: string) => {
+    setSelectedToolpathId(toolpathId);
+    // Passa automaticamente alla tab di costi
+    setActiveRightPanel('costs');
+  };
 
   if (status === 'loading') {
     return (
@@ -390,6 +414,15 @@ export default function CAMPage() {
                 <Folder size={16} className="mr-1" />
                 Library
               </button>
+              {/* Production Costs Manager button */}
+              <button
+                onClick={() => setShowCostsManager(true)}
+                className="btn btn-sm btn-outline dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 flex items-center"
+                title="Gestione Costi di Produzione"
+              >
+                <DollarSign size={16} className="mr-1" />
+                Costi
+              </button>
             </div>
           </div>
           
@@ -475,25 +508,25 @@ export default function CAMPage() {
             )}
             
             {activeTab === 'visualizer' && (
-  <div className="h-full">
-    <OptimizedToolpathVisualizer 
-      width="100%" 
-      height="100%" 
-      gcode={gcode}
-      isSimulating={isSimulating}
-      selectedTool={selectedLibraryTool}
-      showWorkpiece={true}
-      onSimulationComplete={() => {
-        // Handle simulation complete
-        setIsSimulating(false);
-      }}
-      onSimulationProgress={(progress) => {
-        // Update progress if needed
-        console.log(`Simulation progress: ${progress}%`);
-      }}
-    />
-  </div>
-)}
+              <div className="h-full">
+                <OptimizedToolpathVisualizer 
+                  width="100%" 
+                  height="100%" 
+                  gcode={gcode}
+                  isSimulating={isSimulating}
+                  selectedTool={selectedLibraryTool}
+                  showWorkpiece={true}
+                  onSimulationComplete={() => {
+                    // Handle simulation complete
+                    setIsSimulating(false);
+                  }}
+                  onSimulationProgress={(progress) => {
+                    // Update progress if needed
+                    console.log(`Simulation progress: ${progress}%`);
+                  }}
+                />
+              </div>
+            )}
             
             {activeTab === 'post-processor' && (
               <div className="h-full rounded-xl overflow-y-auto">
@@ -581,6 +614,17 @@ export default function CAMPage() {
                   Fixed Cycles
                 </button>
                 <button
+                  onClick={() => setActiveRightPanel('costs')}
+                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                    activeRightPanel === 'costs'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                  }`}
+                >
+                  <DollarSign size={16} className="mr-1" />
+                  Costi
+                </button>
+                <button
                   onClick={() => setActiveRightPanel('control')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
                     activeRightPanel === 'control'
@@ -614,6 +658,43 @@ export default function CAMPage() {
                 <>
                <></>
                </>
+              )}
+              
+              {activeRightPanel === 'costs' && (
+                <div className="flex flex-col space-y-4">
+                  <div className="bg-white p-4 rounded-lg shadow">
+                    <h3 className="text-lg font-medium mb-3">Seleziona Toolpath</h3>
+                    {toolpaths.length > 0 ? (
+                      <select
+                        className="w-full border border-gray-300 rounded-md p-2"
+                        value={selectedToolpathId || ''}
+                        onChange={(e) => handleToolpathSelect(e.target.value)}
+                      >
+                        <option value="">Seleziona un toolpath</option>
+                        {toolpaths.map((tp) => (
+                          <option key={tp.id} value={tp.id}>
+                            {tp.name || `Toolpath #${tp.id.substring(0, 6)}`}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-gray-500">
+                        Nessun toolpath disponibile. Genera un toolpath per calcolare i costi.
+                      </p>
+                    )}
+                  </div>
+                  
+                  {selectedToolpathId && (
+                    <ToolpathCostPanel toolpathId={selectedToolpathId} />
+                  )}
+                  
+                  <button
+                    onClick={() => setShowCostsManager(true)}
+                    className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                  >
+                    Gestione Completa Costi
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -663,6 +744,26 @@ export default function CAMPage() {
         onSelectMaterial={handleMaterialSelection}
         defaultTab="tools"
       />
+      
+      {/* Production Costs Manager Modal */}
+      {showCostsManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+          <div className="w-full max-w-7xl max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+              <h2 className="text-xl font-bold dark:text-white">Gestione Costi di Produzione</h2>
+              <button 
+                onClick={() => setShowCostsManager(false)}
+                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X size={20} className="dark:text-gray-300" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <ProductionCostsManager />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

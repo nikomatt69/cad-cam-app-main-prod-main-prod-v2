@@ -199,7 +199,21 @@ const EnhancedSidebarCad: React.FC<EnhancedSidebarProps> = ({
         name: 'AI', 
         href: '/ai',  
         icon: <Cpu size={20} />, 
-        current: router.pathname.startsWith('/ai')
+        current: router.pathname.startsWith('/ai'),
+        children: [
+          { 
+            name: 'Dashboard', 
+            href: '/ai', 
+            icon: <BarChart2 size={16} />, 
+            current: router.pathname === '/ai' 
+          },
+          { 
+            name: 'MCP', 
+            href: '/mcp/directory', 
+            icon: <BrainCircuitIcon size={16} />, 
+            current: router.pathname === '/mcp/directory' 
+          }
+        ]
       },
       {
         name: 'Analytics',
@@ -253,6 +267,13 @@ const EnhancedSidebarCad: React.FC<EnhancedSidebarProps> = ({
             icon: <User size={16} />, 
             current: router.pathname === '/profile'
           },
+         
+          { 
+            name: 'Preferences', 
+            href: '/settings', 
+            icon: <Settings size={16} />, 
+            current: router.pathname === '/settings'
+          },
           { 
             name: 'Subscription', 
             href: '/settings/subscription', 
@@ -260,10 +281,10 @@ const EnhancedSidebarCad: React.FC<EnhancedSidebarProps> = ({
             current: router.pathname === '/settings/subscription'
           },
           { 
-            name: 'Preferences', 
-            href: '/settings', 
-            icon: <Settings size={16} />, 
-            current: router.pathname === '/settings'
+            name: 'MCP', 
+            href: '/settings/mcp', 
+            icon: <BrainCircuitIcon size={16} />, 
+            current: router.pathname === '/settings/mcp'
           }
         ]
       }
