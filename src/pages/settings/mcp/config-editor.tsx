@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useMCP } from '../../../contexts/MCPContext';
 import Layout from '@/src/components/layout/Layout';
-
+import { useSession } from 'next-auth/react';
 export default function MCPConfigEditorPage() {
   const router = useRouter();
   const { servers, refreshServers } = useMCP();
@@ -13,7 +13,7 @@ export default function MCPConfigEditorPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
+  const { status } = useSession();
   // Carica la configurazione attuale
   useEffect(() => {
     const loadConfig = async () => {
@@ -87,6 +87,11 @@ export default function MCPConfigEditorPage() {
       setError('Il formato JSON non è valido. Correggi gli errori prima di formattare.');
     }
   };
+
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
 
   return (
     <Layout>

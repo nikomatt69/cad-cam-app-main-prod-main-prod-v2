@@ -65,10 +65,10 @@ export const AIAssistantOpenai: React.FC = () => {
         className={`fixed z-50 bottom-4 right-4 shadow-xl rounded-3xl bg-white transition-all duration-200 ${
           isPanelExpanded 
             ? 'w-96 h-[500px]' 
-            : 'w-auto h-auto'
+            : 'w-96 h-[500px]'
         }`}
       >
-        {isPanelExpanded ? (
+        
           <div className="flex flex-col rounded-3xl h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-3xl">
@@ -184,26 +184,8 @@ export const AIAssistantOpenai: React.FC = () => {
          
             />
           </div>
-        ) : (
-          // Minimized version
-          <div className="flex items-center p-2 space-x-2">
-            <button
-              onClick={() => setIsPanelExpanded(true)}
-              className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700"
-              title="Expand Assistant"
-            >
-              <Maximize2 size={16} />
-            </button>
-            <span className="text-sm font-medium">AI Assistant</span>
-            <button
-              onClick={toggleAssistant}
-              className="p-1 text-gray-500 hover:text-gray-700 rounded-full"
-              title="Close"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        )}
+        
+      
       </motion.div>
     </AnimatePresence>
   );

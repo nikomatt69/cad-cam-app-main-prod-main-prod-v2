@@ -48,7 +48,15 @@ export default function MCPResourceBrowser() {
         }
         
         const data = await response.json();
-        setResources(data.resources || []);
+        const fetchedResources = data.resources;
+        if (Array.isArray(fetchedResources)) {
+          setResources(fetchedResources);
+        } else if (typeof fetchedResources === 'object' && fetchedResources !== null) {
+          // Convert object of resources to an array of its values
+          setResources(Object.values(fetchedResources));
+        } else {
+          setResources([]);
+        }
       } catch (err: any) {
         setError(err.message || 'An error occurred');
       } finally {

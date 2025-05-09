@@ -64,6 +64,10 @@ export async function requireAuth(
       success: false, 
       message: 'Authentication required' 
     });
+    // Wait for the response to be sent
+    await new Promise<void>((resolve) => {
+      res.on('finish', () => resolve());
+    });
     return null;
   }
   

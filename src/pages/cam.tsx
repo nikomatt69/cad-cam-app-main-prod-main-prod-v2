@@ -60,7 +60,7 @@ import CNCControlPage from '../components/cam/FanucCncControl';
 import ToolpathGenerator3DPrintIntegration from '../components/cam/ToolpathGenerator3DPrintIntegration';
 import render3DPrinterSection from '../components/cam/render3DPrinterSection';
 import { useCAMStore } from '@/src/store/camStore';
-
+import ChatPanel from '../components/layout/ChatPanel';
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
 export const DynamicToolpathGenerator = dynamic(() => import('src/components/cam/ToolpathGenerator'), {
@@ -101,7 +101,7 @@ export default function CAMPage() {
   const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control' | 'costs'>('generator');
   const [selectedLibraryTool, setSelectedLibraryTool] = useState<string | null>(null);
   const [selectedToolpathId, setSelectedToolpathId] = useState<string | null>(null);
-  
+  const [showChatPanel, setShowChatPanel] = useState(false);
   // Nuovo stato per la libreria CAM
   const [showLibrary, setShowLibrary] = useState(false);
   // Add state for the unified library modal
@@ -353,7 +353,7 @@ export default function CAMPage() {
      
       <div className="flex flex-col rounded-xl h-full w-full">
         {/* Top toolbar */}
-        <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border-b rounded-xl w-full px-4 py-2 flex items-center justify-between">
+        <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border-b rounded-xl w-full px-4 py-1 flex items-center justify-between">
           <div className="flex rounded-xl w-max items-center">
             <button
               className="mr-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
@@ -361,22 +361,7 @@ export default function CAMPage() {
             >
               <Menu size={20} className="text-gray-600 dark:text-gray-400" />
             </button>
-            {isMobile ? (
-  <Link href="/" className="">
-    <div className=""></div>
-  </Link>
-) : (
-  <Link href="/" className="flex items-center">
-    <div className="flex-shrink-0 flex items-center">
-      <img
-        className="h-14 w-auto"
-        src="/logo.png"
-        alt="CAD/CAM FUN"
-       
-      />
-    </div>
-  </Link>
-)}
+            
             <div className="ml-6 flex items-center space-x-2">
               <button
                 onClick={handleSaveGcode}
@@ -622,19 +607,9 @@ export default function CAMPage() {
                   }`}
                 >
                   <DollarSign size={16} className="mr-1" />
-                  Costi
+                  Costs
                 </button>
-                <button
-                  onClick={() => setActiveRightPanel('control')}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeRightPanel === 'control'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                  }`}
-                >
-                  <Settings size={16} className="mr-1" />
-                  Control
-                </button>
+                
               </div>
             </div>
 
@@ -654,23 +629,18 @@ export default function CAMPage() {
                 </>
               )}
               
-              {activeRightPanel === 'control' && (
-                <>
-               <></>
-               </>
-              )}
-              
+             
               {activeRightPanel === 'costs' && (
                 <div className="flex flex-col space-y-4">
                   <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-medium mb-3">Seleziona Toolpath</h3>
+                    <h3 className="text-lg font-medium mb-3">Select Toolpath</h3>
                     {toolpaths.length > 0 ? (
                       <select
                         className="w-full border border-gray-300 rounded-md p-2"
                         value={selectedToolpathId || ''}
                         onChange={(e) => handleToolpathSelect(e.target.value)}
                       >
-                        <option value="">Seleziona un toolpath</option>
+                        <option value="">Select a toolpath</option>
                         {toolpaths.map((tp) => (
                           <option key={tp.id} value={tp.id}>
                             {tp.name || `Toolpath #${tp.id.substring(0, 6)}`}
@@ -679,7 +649,7 @@ export default function CAMPage() {
                       </select>
                     ) : (
                       <p className="text-gray-500">
-                        Nessun toolpath disponibile. Genera un toolpath per calcolare i costi.
+                        No toolpaths available. Generate a toolpath to calculate costs.
                       </p>
                     )}
                   </div>
@@ -692,7 +662,7 @@ export default function CAMPage() {
                     onClick={() => setShowCostsManager(true)}
                     className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
                   >
-                    Gestione Completa Costi
+                    Full Costs Management
                   </button>
                 </div>
               )}

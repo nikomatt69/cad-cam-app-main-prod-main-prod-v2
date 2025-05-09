@@ -1,18 +1,19 @@
 // src/pages/api/mcp/config-file.ts
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '@/src/lib/prisma';
-import { MCPServerConfig } from '@/src/lib/mcp/client';
+import { MCPServerConfig, MCPSseConfig, MCPStdioServerConfig } from '@/src/lib/mcp/client';
+import { requireAuth } from '@/src/lib/api/auth'; // Make sure requireAuth is imported
 
 type ConfigFileFormat = {
-  mcpServers: MCPServerConfig[];
+  mcpServers: (MCPServerConfig & { type: 'sse' | 'stdio' })[];
 };
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Verifica l'autenticazione (da implementare in base al tuo sistema)
-  // ...
+  const userId = await requireAuth(req, res);
+    if (!userId) return;
   
   try {
     switch (req.method) {
@@ -21,46 +22,88 @@ export default async function handler(
         const servers = await prisma.mCPServerConfig.findMany();
         
         const configData: ConfigFileFormat = {
-          mcpServers: servers.map(server => ({
-            id: server.id,
-            name: server.name,
-            type: server.type as 'sse',
-            url: server.url,
-            enabled: server.enabled,
-          }))
+          mcpServers: servers.map(server => {
+            if (server.type === 'sse') {
+              return {
+                id: server.id,
+                name: server.name,
+                type: 'sse',
+                url: server.url as string,
+                enabled: server.enabled,
+              } as MCPSseConfig;
+            } else if (server.type === 'stdio') {
+              return {
+                id: server.id,
+                name: server.name,
+                type: 'stdio',
+                command: server.command as string,
+                args: (server.args as string[] | undefined) || [],
+                workingDirectory: server.workingDirectory as string | undefined,
+                enabled: server.enabled,
+              } as MCPStdioServerConfig;
+            }
+            throw new Error(`Invalid server type in GET: ${server.type}`);
+          })
         };
         
         return res.status(200).json(configData);
         
       case 'POST':
-        // Salva le configurazioni nel database
         const configFile: ConfigFileFormat = req.body;
         
         if (!configFile || !Array.isArray(configFile.mcpServers)) {
           return res.status(400).json({ error: 'Formato di configurazione non valido' });
         }
         
-        // Transazione per aggiornare le configurazioni
         await prisma.$transaction(async (tx) => {
-          // Elimina tutte le configurazioni esistenti
           await tx.mCPServerConfig.deleteMany({});
           
-          // Inserisci le nuove configurazioni
           for (const server of configFile.mcpServers) {
-            // Verifica i campi richiesti
-            if (!server.id || !server.name || !server.type || server.type !== 'sse') {
-              throw new Error('Campo richiesto mancante in una configurazione server');
+            const currentServer = server as (MCPSseConfig | MCPStdioServerConfig) & { type: 'sse' | 'stdio' };
+
+            if (!currentServer.id || !currentServer.name || !currentServer.type) {
+              throw new Error('ID server, nome e tipo sono obbligatori.');
             }
-            
-            await tx.mCPServerConfig.create({
-              data: {
-                id: server.id,
-                name: server.name,
-                type: server.type,
-                url: server.url,
-                enabled: server.enabled ?? false,
+
+            const commonData = {
+              id: currentServer.id,
+              name: currentServer.name,
+              type: currentServer.type,
+              enabled: currentServer.enabled ?? false,
+              userId: userId, 
+            };
+
+            let dataToCreate;
+
+            if (currentServer.type === 'sse') {
+              const sseServer = currentServer as MCPSseConfig;
+              if (typeof sseServer.url !== 'string' || !sseServer.url.trim()) {
+                throw new Error('URL è obbligatorio per i server SSE e deve essere una stringa non vuota.');
               }
-            });
+              dataToCreate = {
+                ...commonData,
+                url: sseServer.url,
+              };
+            } else if (currentServer.type === 'stdio') {
+              const stdioServer = currentServer as MCPStdioServerConfig;
+              if (typeof stdioServer.command !== 'string' || !stdioServer.command.trim()) {
+                throw new Error('Comando è obbligatorio per i server STDIO e deve essere una stringa non vuota.');
+              }
+              const args = Array.isArray(stdioServer.args) ? stdioServer.args : [];
+              dataToCreate = {
+                ...commonData,
+                command: stdioServer.command,
+                args: args,
+                workingDirectory: stdioServer.workingDirectory || null,
+              };
+            } else {
+              // This path should ideally not be reached if server types are validated upstream
+              // or if currentServer.type is strictly 'sse' | 'stdio'.
+              // To satisfy linter that might see currentServer.type as 'never' here:
+              console.error('Invalid server type encountered in POST:', currentServer);
+              throw new Error('Tipo di server non valido o non gestito rilevato.');
+            }
+            await tx.mCPServerConfig.create({ data: dataToCreate });
           }
         });
         

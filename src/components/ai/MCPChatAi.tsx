@@ -1,18 +1,18 @@
-// MCP examples page
 
-// src/pages/examples/mcp.tsx
 import { useState } from 'react';
 import MCPResourceBrowser from '../../components/MCPResourceBrowser';
 import MCPToolExplorer from '../../components/MCPToolExplorer';
 import AIChatWithMCP from '@/src/components/AIChatWithMCP';
 import Layout from '@/src/components/layout/Layout';
-export default function MCPExamplesPage() {
+import MCPServerWithStatus from '@/src/components/MCPServerWithStatus';
+export default function MCPChatAi() {
   const [activeTab, setActiveTab] = useState('resources');
   
   return (  
     <Layout>
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">MCP Examples</h1>
+      <MCPServerWithStatus />
       <AIChatWithMCP />
       <div className="mb-4">
         <div className="flex border-b">

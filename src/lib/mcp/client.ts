@@ -66,16 +66,51 @@ export class MCPClientManager {
           console.error(`SSE server configuration for ${config.name} is missing a URL.`);
           return null;
         }
-
+        
+        // Create and configure SSE transport
+       
+        
+        // Create and store client
+        const client = createMCPClient(config.url as any);
+        this.servers.set(config.id, client);
+        return client;
       } else if (config.type === 'stdio') {
-        console.log(`Configuration for stdio server ${config.name} stored. Connection/process management is separate.`);
-        return null; 
+        if (!config.command) {
+          console.error(`Stdio server configuration for ${config.name} is missing a command.`);
+          return null;
+        }
+        
+        // For browser environments, stdio connections are handled by a server-side proxy
+        // The actual connection happens through API endpoints
+        console.log(`Configuration for stdio server ${config.name} stored. Connection managed through server proxy.`);
+        
+        // Create a dummy client for the stdio server that will route through API endpoints
+        // This is a placeholder until connected to the backend proxy
+        try {
+          // Make a request to check if the proxy is available and the server is accessible
+          const response = await fetch('/api/mcp/stdio-server-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ serverId: config.id }),
+          });
+          
+          if (!response.ok) {
+            console.warn(`Stdio server ${config.name} may not be properly connected through the proxy.`);
+          } else {
+            console.log(`Stdio server ${config.name} is available through the proxy.`);
+          }
+        } catch (proxyError) {
+          console.warn(`Could not verify stdio server proxy for ${config.name}:`, proxyError);
+        }
+        
+        return null; // No direct client object for stdio servers in browser environment
       }
-      // If config.type is neither 'sse' nor 'stdio', it's an unhandled case based on current MCPServerConfig definition.
-      // TypeScript might infer 'config' as 'never' here if MCPServerConfig is strictly MCPSseConfig | MCPStdioServerConfig.
-      // If other types could exist and reach here, a specific error or handling would be needed.
-      // For now, implicitly returns undefined if no condition met, or null if type is stdio.
-      return null; // Explicitly return null for unhandled types to satisfy Promise<MCPServer | null>
+      
+      // If config.type is neither 'sse' nor 'stdio', log error
+      console.error(`Unknown server type: ${(config as any).type}`);
+      return null;
     } catch (error) {
       console.error(`Failed to connect to MCP server ${config.name}:`, error);
       return null;
@@ -162,6 +197,15 @@ export class MCPClientManager {
         this.servers.get(id)?.close();
         this.servers.delete(id);
       }
+    }
+  }
+  
+  // Disconnect from a specific server
+  public async disconnectServer(id: string): Promise<void> {
+    const server = this.servers.get(id);
+    if (server) {
+      await server.close();
+      this.servers.delete(id);
     }
   }
   

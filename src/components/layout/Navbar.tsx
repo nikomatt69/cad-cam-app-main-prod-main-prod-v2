@@ -17,7 +17,7 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { plan, isLoading } = useSubscription(); // Use the hook to get plan and loading state
-
+  const [showChatPanel, setShowChatPanel] = useState(false);
   // Close any open dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -128,7 +128,13 @@ const Navbar = () => {
             >
               {isDarkMode ? <Sun className="h-5 w-5 sm:h-6 sm:w-6" /> : <Moon className="h-5 w-5 sm:h-6 sm:w-6" />}
             </button>
-           
+            <button
+              onClick={() => setShowChatPanel(!showChatPanel)}
+              className="inline-flex items-center justify-center p-1 sm:p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+              aria-label={showChatPanel ? "Close Chat Panel" : "Open Chat Panel"}
+            >
+              {showChatPanel ? "Close Chat" : "Chat"}
+            </button>
          
             {/* Notifications - hide on smallest screens */}
             <div className="sm:inline-flex items-center justify-center">

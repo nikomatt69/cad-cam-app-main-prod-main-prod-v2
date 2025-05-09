@@ -6,7 +6,8 @@ import { useRouter } from 'next/router';
 import { MCPApiClient } from '../../../lib/mcp/api-client';
 import Link from 'next/link';
 import Layout from '@/src/components/layout/Layout';
-
+import { useSession } from 'next-auth/react'; 
+import Loading from '@/src/components/ui/Loading';
 export default function MCPServerDetailsPage() {
   const router = useRouter();
   const { id } = router.query;
@@ -16,7 +17,7 @@ export default function MCPServerDetailsPage() {
   const [selectedTab, setSelectedTab] = useState<'resources' | 'tools'>('resources');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const { status } = useSession();
   useEffect(() => {
     const fetchServerDetails = async () => {
       if (!id || Array.isArray(id)) return;
@@ -80,9 +81,17 @@ export default function MCPServerDetailsPage() {
   if (loading) {
     return (
       <div className="container mx-auto p-4">
-        <div className="text-center p-8">Loading server details...</div>
+        <div className="text-center p-8"><Loading/></div>
       </div>
     );
+  }
+
+
+
+  
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
   }
   
   if (!server) {
@@ -132,7 +141,39 @@ export default function MCPServerDetailsPage() {
             </span>
           </div>
           
-          <div className="text-gray-600 mb-4">{server.url}</div>
+          <div className="flex items-center mb-4">
+            <span className="mr-2 text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+              {server.type === 'sse' ? 'Server-Sent Events (SSE)' : 'Standard I/O (stdio)'}
+            </span>
+            
+            {server.type === 'sse' ? (
+              <div className="text-gray-600">{server.url}</div>
+            ) : (
+              <div className="text-gray-600 font-mono text-sm">{(server as any).command}</div>
+            )}
+          </div>
+          
+          {server.type === 'stdio' && (
+            <div className="mb-4 p-3 bg-gray-50 rounded border text-sm">
+              {(server as any).args && (server as any).args.length > 0 && (
+                <div className="mb-2">
+                  <span className="font-medium">Arguments:</span>{' '}
+                  <span className="font-mono">
+                    {Array.isArray((server as any).args) 
+                      ? (server as any).args.join(' ') 
+                      : JSON.stringify((server as any).args)}
+                  </span>
+                </div>
+              )}
+              
+              {(server as any).workingDirectory && (
+                <div>
+                  <span className="font-medium">Working Directory:</span>{' '}
+                  <span className="font-mono">{(server as any).workingDirectory}</span>
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="flex space-x-2">
             <button

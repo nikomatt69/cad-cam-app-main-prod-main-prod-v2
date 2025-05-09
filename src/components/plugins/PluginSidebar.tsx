@@ -6,6 +6,7 @@ import { usePluginClient } from '../../context/PluginClientContext'; // Import c
 import { PluginRegistryEntry } from 'src/plugins/core/registry'; // Import type
 import PluginHostContainer from './PluginHostContainer'; 
 import { motion, AnimatePresence } from 'framer-motion'; // Import motion and AnimatePresence
+import { PuzzleIcon } from 'lucide-react';
 
 interface PluginSidebarProps {
   isOpen: boolean;
@@ -72,15 +73,15 @@ const PluginSidebar: React.FC<PluginSidebarProps> = ({
       exit="exit"
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       // Conditionally apply classes for height and layout
-      className={`fixed right-0 top-14 z-40 overflow-hidden rounded-l-xl bg-white dark:bg-gray-900 shadow-lg border-l border-gray-200 dark:border-gray-700 ${
+      className={`fixed right-0 top-24 z-40 overflow-hidden rounded-l-xl bg-white dark:bg-gray-900 shadow-lg border-l border-gray-200 dark:border-gray-700 ${
         isContentVisible ? 'flex flex-col bottom-0' : '' // Add flex layout and bottom constraint only when content is visible
       }`}
       style={{ width: currentWidth }} 
     >
       {/* Header (sempre visibile) */} 
-      <div className="h-14 flex-shrink-0 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100">Plugins</h2>
-        <div className="flex space-x-2">
+      <div className="h-10 flex-shrink-0 flex items-center justify-between px-2 border-b border-gray-200 dark:border-gray-700">
+        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-100"><PuzzleIcon/></h2>
+        <div className="flex space-x-1">
           {/* Pulsante Mostra/Nascondi Contenuto */} 
            <button
             onClick={() => setIsContentVisible(!isContentVisible)}

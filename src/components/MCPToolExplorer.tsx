@@ -49,7 +49,15 @@ export default function MCPToolExplorer() {
         }
         
         const data = await response.json();
-        setTools(data.tools || []);
+        const fetchedTools = data.tools;
+        if (Array.isArray(fetchedTools)) {
+          setTools(fetchedTools);
+        } else if (typeof fetchedTools === 'object' && fetchedTools !== null) {
+          // Convert object of tools to an array of its values
+          setTools(Object.values(fetchedTools));
+        } else {
+          setTools([]);
+        }
       } catch (err: any) {
         setError(err.message || 'An error occurred');
       } finally {

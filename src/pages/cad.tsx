@@ -528,7 +528,9 @@ export default function CADPage() {
               
               
               {activeRightPanel === 'constraints' && (
+           
                 <>
+                
                 <AssemblyBrowser 
                     selectedNodeId={selectedAssemblyNodeId}
                     onNodeSelect={handleAssemblyNodeSelect} 

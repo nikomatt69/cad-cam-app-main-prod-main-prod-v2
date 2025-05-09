@@ -100,7 +100,7 @@ export default function AIChatWithMCP() {
               value={mcpReference}
               onChange={(e) => setMcpReference(e.target.value)}
               placeholder="e.g., resource://users or create_user"
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border truncate flex rounded"
               disabled={!selectedServerId}
             />
           </div>
