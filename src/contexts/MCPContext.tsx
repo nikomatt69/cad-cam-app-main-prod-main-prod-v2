@@ -17,7 +17,7 @@ const MCPContext = createContext<MCPContextType>({
   isLoading: false,
   error: null,
   refreshServers: async () => {},
-  addServer: async () => ({ id: '', name: '', type: 'sse', url: '', enabled: true }),
+  addServer: async () => ({ id: '', name: '', type: 'stdio' , command:'', enabled: true }),
   updateServer: async () => {},
   deleteServer: async () => {},
 });
