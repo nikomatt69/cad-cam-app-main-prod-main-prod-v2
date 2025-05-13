@@ -128,7 +128,7 @@ export interface MCPResponse<T = any> {
 
 // === EVENTI ANALYTICS AI ===
 export interface AIAnalyticsEvent {
-  eventType: 'request' | 'response' | 'error' | 'feedback' | 'mcp';
+  eventType: 'request' | 'response' | 'error' | 'feedback' | 'mcp' | 'cam_gcode' | 'toolpath_analysis' | 'cam_cost' | 'cam_action' | 'cam_optimizer' | 'cam_analyzer' | 'cam_text_to_gcode';
   eventName: string;
   timestamp: number;
   duration?: number;

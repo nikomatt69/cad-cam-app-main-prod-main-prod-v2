@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useSession, signOut } from 'next-auth/react';
-import { Sun, Moon, Bell, Settings, User, LogOut, Menu, X, Users, Globe, BookOpen, ToggleLeft, Star, Zap } from 'react-feather';
+import { Sun, Moon, Bell, Settings, User, LogOut, Menu, X, Users, Globe, BookOpen, ToggleLeft, Star, Zap, Code } from 'react-feather';
 import useUserProfileStore from 'src/store/userProfileStore';
 import NotificationCenter from '../notifications/NotificationCenter';
 import { useSubscription } from '../../contexts/SubscriptionContext';
@@ -296,6 +296,20 @@ const Navbar = () => {
               onClick={() => setMobileMenuOpen(false)}
             >
               CAM Editor
+            </Link>
+            <Link
+              href="/gcode-ide"
+              className={`block px-3 py-2 rounded-md text-base font-medium ${
+                router.pathname === '/gcode-ide' 
+                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-300' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+              }`}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <span className="flex items-center">
+                <Code size={16} className="mr-2" />
+                GCode IDE
+              </span>
             </Link>
             <Link
               href="/components"

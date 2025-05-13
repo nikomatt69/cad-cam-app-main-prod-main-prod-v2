@@ -39,6 +39,9 @@ import { usePluginClient } from '@/src/context/PluginClientContext';
 import PluginToolbarButton from '../plugins/PluginToolbarButton';
 import { useCADStore } from 'src/store/cadStore';
 import { ComponentLibraryItem, ToolLibraryItem, MaterialLibraryItem } from '@/src/hooks/useUnifiedLibrary';
+import ChatPanel from '../layout/ChatPanel';
+import { PanelRightInactiveIcon } from 'lucide-react';
+import { PanelRightIcon } from 'lucide-react';
 
 interface EnhancedToolbarProps {
   sidebarOpen: boolean;
@@ -78,6 +81,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
   const pluginsMenuRef = useRef<HTMLDivElement>(null);
   const [showPluginSidebar, setShowPluginSidebar] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     // Implement dark/light theme
@@ -273,7 +277,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
             >
               {isDarkMode ? <Sun className="h-3 w-3 sm:h-4 sm:w-4" /> : <Moon className="h-3 w-3 sm:h-4 sm:w-4" />}
             </button>
-          
+           
           {/* Plugin manager button */}
           
           {/* --- End Example --- */}

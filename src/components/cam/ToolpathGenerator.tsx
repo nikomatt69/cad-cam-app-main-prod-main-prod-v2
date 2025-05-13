@@ -29,7 +29,7 @@ import { use3DPrinterSettings } from './3DPrinterIntegration';
 import PrinterOperations from './Printe3DOperations';
 // Import the new 3D printer toolpath functions
 import { generate3DPrinterGCodeForElement, generateCompositeElement3D } from 'src/lib/toolpath/3dprinterToolpaths';
-
+import { integrateEditorInToolpathGenerator } from './integrateEditorInToolpathGenerator';
 interface ToolpathGeneratorProps {
   onGCodeGenerated: (gcode: string) => void;
   onToolSelected?: (tool: any) => void; // Added for tool selection
@@ -206,7 +206,7 @@ const ToolpathGenerator: React.FC<ToolpathGeneratorProps> = ({ onGCodeGenerated,
   // References to selected CAD elements
   const { elements, selectedElement } = useElementsStore();
   const { workpiece } = useCADStore();
-
+  const [showEditor, setShowEditor] = useState<boolean>(true);
   // Timer reference for success messages
   const successTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -706,6 +706,7 @@ const ToolpathGenerator: React.FC<ToolpathGeneratorProps> = ({ onGCodeGenerated,
     
     // Genera nuovamente il G-code completo e invialo al componente padre
     if (onGCodeGenerated) {
+      setShowEditor(true);
       onGCodeGenerated(currentGCode);
     }
   };

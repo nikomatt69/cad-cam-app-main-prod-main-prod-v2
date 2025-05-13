@@ -11,6 +11,7 @@ import { prisma } from '@/src/lib/prisma';
 import { OpenAI } from 'openai';
 import { config as loadEnv } from 'dotenv';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat';
+import { requireAuth } from '@/src/lib/api/auth';
 
 loadEnv();
 
@@ -22,6 +23,12 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+
+  const userId = await requireAuth(req, res);
+  if (!userId) return;
+
+
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -97,7 +104,7 @@ export default async function handler(
     
     // Call AI provider
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o-mini',
       messages: aiMessages,
       max_tokens: 1000,
     });

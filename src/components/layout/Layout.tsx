@@ -175,13 +175,10 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
 
   return (
     <>
-    <div className="h-screen rounded-xl bg-gray dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
-      {/* Electron-specific title bar for macOS */}
-         
-      
+     <div className="h-screen rounded-xl bg-gray dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
       {!hideNav && 
         <Navbar />
-      }
+     }
       
       {/* Container root for plugin iframes */}
       <div id="plugin-container-root" style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden' }}></div>
@@ -191,11 +188,9 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
           <EnhancedSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
         )}
         
-        <div className={`flex flex-1 flex-col transition-all duration-300 ease-in-out ${!hideSidebar && sidebarOpen ? 'md:ml-64' : !hideSidebar ? 'md:ml-16' : ''} ${showChatPanel ? 'mr-0' : 'mr-0'}`}>
-          { !hideNav && 
-            <Navbar />
-          }
-          
+        <div className={`flex-1 flex flex-col transition-all duration-300 ${
+          !hideSidebar && sidebarOpen ? 'md:ml-64' : !hideSidebar ? 'md:ml-16' : ''
+        }`}>
           {/* Maintenance Mode Alert */}
           {maintenanceMode && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 p-3 sm:p-4 flex-shrink-0">

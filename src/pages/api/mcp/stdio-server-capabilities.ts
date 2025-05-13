@@ -30,10 +30,10 @@ export default async function handler(
   let serverIdForLogging: string | undefined = undefined;
 
   try {
-    if (process.env.SKIP_AUTH !== 'true') {
+    
       const userId = await requireAuth(req, res);
       if (!userId) return;
-    }
+    
     
     if (req.method !== 'POST') {
       return res.status(405).json({ error: 'Method not allowed' });
@@ -66,7 +66,7 @@ export default async function handler(
       
       const isFilesystemServer = (
         typeof serverConfig.command === 'string' && 
-        serverConfig.command.includes('modelcontextprotocol/server-filesystem')
+        serverConfig.command.includes('@modelcontextprotocol/server-filesystem')
       );
       
       if (isFilesystemServer) {

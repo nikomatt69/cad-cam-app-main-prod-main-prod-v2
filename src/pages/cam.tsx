@@ -35,6 +35,7 @@ import {
   X,
   DollarSign
 } from 'react-feather';
+import { PanelRightIcon, PanelRightInactiveIcon } from 'lucide-react';
 import EnhancedSidebarCam from '../components/cam/EnanchedSidebarCam';
 
 import AIToolpathOptimizer from '../components/ai/AIToolpathOptimizer';
@@ -61,6 +62,9 @@ import ToolpathGenerator3DPrintIntegration from '../components/cam/ToolpathGener
 import render3DPrinterSection from '../components/cam/render3DPrinterSection';
 import { useCAMStore } from '@/src/store/camStore';
 import ChatPanel from '../components/layout/ChatPanel';
+import ChatPanelCam from '../components/layout/ChatPanelCam';
+import ToolpathAnalysisPanel from '../components/ai/CAMAssistant/ToolpathAnalysisPanel';
+import GCodeAIAgent from '../components/ai/GCodeAIAgent/GCodeAIAgent';
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
 export const DynamicToolpathGenerator = dynamic(() => import('src/components/cam/ToolpathGenerator'), {
@@ -98,10 +102,10 @@ export default function CAMPage() {
   const [processedGcode, setProcessedGcode] = useState<string>('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [selectedPostProcessor, setSelectedPostProcessor] = useState<PostProcessorType>('fanuc');
-  const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control' | 'costs'>('generator');
+  const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control' | 'analysis'>('generator');
   const [selectedLibraryTool, setSelectedLibraryTool] = useState<string | null>(null);
   const [selectedToolpathId, setSelectedToolpathId] = useState<string | null>(null);
-  const [showChatPanel, setShowChatPanel] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(true);
   // Nuovo stato per la libreria CAM
   const [showLibrary, setShowLibrary] = useState(false);
   // Add state for the unified library modal
@@ -323,7 +327,7 @@ export default function CAMPage() {
   const handleToolpathSelect = (toolpathId: string) => {
     setSelectedToolpathId(toolpathId);
     // Passa automaticamente alla tab di costi
-    setActiveRightPanel('costs');
+    setActiveRightPanel('analysis');
   };
 
   if (status === 'loading') {
@@ -456,6 +460,13 @@ export default function CAMPage() {
             >
               <Settings size={16} className="mr-1" />
               Post-Processor
+            </button>
+            <button
+              onClick={() => setShowChatPanel(!showChatPanel)}
+              className="flex items-center px-1  text-sm font-medium bg-blue-400 hover:bg-blue-600 text-white  rounded-md shadow-lg z-50"
+              aria-label={showChatPanel ? "Close Chat Panel" : "Open Chat Panel"}
+            >
+              {showChatPanel ? <PanelRightIcon size={16}/> : <PanelRightInactiveIcon size={16}/>}
             </button>
           </div>
         </div>
@@ -599,9 +610,9 @@ export default function CAMPage() {
                   Fixed Cycles
                 </button>
                 <button
-                  onClick={() => setActiveRightPanel('costs')}
+                  onClick={() => setActiveRightPanel('analysis')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeRightPanel === 'costs'
+                    activeRightPanel === 'analysis'
                       ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
                       : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
@@ -630,45 +641,13 @@ export default function CAMPage() {
               )}
               
              
-              {activeRightPanel === 'costs' && (
-                <div className="flex flex-col space-y-4">
-                  <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-medium mb-3">Select Toolpath</h3>
-                    {toolpaths.length > 0 ? (
-                      <select
-                        className="w-full border border-gray-300 rounded-md p-2"
-                        value={selectedToolpathId || ''}
-                        onChange={(e) => handleToolpathSelect(e.target.value)}
-                      >
-                        <option value="">Select a toolpath</option>
-                        {toolpaths.map((tp) => (
-                          <option key={tp.id} value={tp.id}>
-                            {tp.name || `Toolpath #${tp.id.substring(0, 6)}`}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <p className="text-gray-500">
-                        No toolpaths available. Generate a toolpath to calculate costs.
-                      </p>
-                    )}
-                  </div>
-                  
-                  {selectedToolpathId && (
-                    <ToolpathCostPanel toolpathId={selectedToolpathId} />
-                  )}
-                  
-                  <button
-                    onClick={() => setShowCostsManager(true)}
-                    className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-                  >
-                    Full Costs Management
-                  </button>
-                </div>
+              {activeRightPanel === 'analysis' && (
+               <ToolpathAnalysisPanel/>
               )}
             </div>
+           
           </div>
-          
+         
           {/* Toggle right sidebar button */}
           <button
             className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white p-2 rounded-l-md shadow-md"
@@ -676,6 +655,7 @@ export default function CAMPage() {
           >
             {rightSidebarOpen ? <ChevronRight size={20} className="text-gray-600" /> : <ChevronLeft size={20} className="text-gray-600" />}
           </button>
+          
         </div>
         
         {/* Status bar */}
@@ -712,6 +692,7 @@ export default function CAMPage() {
         onClose={() => setShowUnifiedLibrary(false)}
         onSelectTool={handleToolSelection}
         onSelectMaterial={handleMaterialSelection}
+        onSelectComponent={(component) => { /* Placeholder if needed */ }}
         defaultTab="tools"
       />
       
@@ -734,6 +715,12 @@ export default function CAMPage() {
           </div>
         </div>
       )}
+
+      {/* Chat Panel Toggle Button */}
+     
+
+      {/* Chat Panel */}
+     
     </div>
   );
 }

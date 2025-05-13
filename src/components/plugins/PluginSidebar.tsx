@@ -17,7 +17,7 @@ interface PluginSidebarProps {
 const PluginSidebar: React.FC<PluginSidebarProps> = ({ 
   isOpen, 
   onClose, 
-  width = 320 
+  width = 280 
 }) => {
   // const { plugins, registry } = usePluginRegistry(); // Remove
   const { plugins } = usePluginClient(); // Use client context hook
@@ -73,7 +73,7 @@ const PluginSidebar: React.FC<PluginSidebarProps> = ({
       exit="exit"
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
       // Conditionally apply classes for height and layout
-      className={`fixed right-0 top-24 z-40 overflow-hidden rounded-l-xl bg-white dark:bg-gray-900 shadow-lg border-l border-gray-200 dark:border-gray-700 ${
+      className={`fixed right-0 top-20 mt-1 z-40 overflow-hidden rounded-l-xl bg-white dark:bg-gray-900 shadow-lg border-l border-gray-200 dark:border-gray-700 ${
         isContentVisible ? 'flex flex-col bottom-0' : '' // Add flex layout and bottom constraint only when content is visible
       }`}
       style={{ width: currentWidth }} 

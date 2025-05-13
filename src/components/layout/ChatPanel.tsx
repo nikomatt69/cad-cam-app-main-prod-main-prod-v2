@@ -22,6 +22,7 @@ import { useElementsStore } from '@/src/store/elementsStore';
 import { useLayerStore } from '@/src/store/layerStore';
 import { useSelectionStore } from '@/src/store/selectorStore';
 import { ChevronDownSquare } from 'lucide-react';
+import AISettingsPanel from '../ai/ai-new/AISettingsPanel';
 
 interface ChatPanelProps {
   isOpen: boolean;
@@ -96,7 +97,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose }) => {
   }, [messages]);
   return (
     <div
-      className={`h-full bg-gray-100 rounded-xl border border-gray-200 dark:bg-gray-800 shadow-lg p-1 transition-all duration-300 ease-in-out flex flex-col ${isOpen ? 'w-80' : 'w-10'}`}
+      className={`h-full bg-gray-100 rounded-xl border border-gray-200 dark:bg-gray-800 shadow-lg p-1 transition-all duration-300 ease-in-out flex flex-col ${isOpen ? 'w-90 sm:w-90' : 'w-10 sm:hidden xs:hidden'}`}
       style={{ overflow: 'hidden' }} // Per evitare che il contenuto appaia durante la transizione della larghezza a 0
     >
       {isOpen && (
@@ -104,9 +105,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose }) => {
           <div className="flex justify-between items-center mb-6 flex-shrink-0">
             <button
               onClick={onClose}
-              className="text-gray-600 p-2 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+              className="text-gray-600 mt-1.5 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
             >
-             
+             <img src="/icon.png" className="mr-2 w-8 h-8" />
             </button>
           </div>
           <div className="flex-grow bg-gray-100 rounded-xl border border-gray-200 dark:bg-gray-800 shadow-lg overflow-y-auto">
@@ -133,58 +134,34 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ isOpen, onClose }) => {
                 >
                   <Settings size={16} />
                 </button>
-                <button
-                  onClick={() => setIsPanelExpanded(false)}
-                  className="p-1.5 rounded-full hover:bg-blue-500 transition-colors"
-                  title="Minimize"
-                >
-                  <Minimize2 size={16} />
-                </button>
-                <button
-                  onClick={toggleAssistant}
-                  className="p-1.5 rounded-full hover:bg-blue-500 transition-colors"
-                  title="Close"
-                >
-                  <X size={16} />
-                </button>
+                
+               
               </div>
             </div>
             
             {/* Settings Panel */}
             <AnimatePresence>
               {showSettings && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="border-b border-gray-200 overflow-hidden"
-                >
-                  <div className="p-3 space-y-2 text-sm bg-gray-50">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Context
-                      </label>
-                      <select
-                        value={context}
-                        onChange={(e) => setContext(e.target.value)}
-                        className="w-full p-1.5 border border-gray-300 rounded-md shadow-sm text-sm"
-                      >
-                        <option value="default">Default</option>
-                        <option value="cad">CAD Design</option>
-                        <option value="cam">CAM Programming</option>
-                        <option value="general">General Assistance</option>
-                      </select>
-                    </div>
-                    
-                    <button
-                      onClick={clearMessages}
-                      className="flex items-center text-xs text-red-600 hover:text-red-800"
-                    >
-                      <X size={12} className="mr-1" />
-                      Clear Conversation
-                    </button>
-                  </div>
-                </motion.div>
+                <div className="overflow-y-auto max-h-[80%] border-b border-gray-200 dark:border-gray-700">
+                  <AISettingsPanel /> 
+                 <motion.div
+                 initial={{ height: 0, opacity: 0 }}
+                 animate={{ height: 'auto', opacity: 1 }}
+                 exit={{ height: 0, opacity: 0 }}
+                 className="overflow-hidden"
+               >
+                 <div className="p-3 space-y-2 rounded-b-2xl text-sm bg-gray-50">
+                   <button
+                     onClick={clearMessages}
+                     className="flex items-center text-xs text-red-600 hover:text-red-800"
+                   >
+                     <X size={12} className="mr-1" />
+                     Clear Conversation
+                   </button>
+                 </div>
+               </motion.div>
+             
+                </div>
               )}
             </AnimatePresence>
             
