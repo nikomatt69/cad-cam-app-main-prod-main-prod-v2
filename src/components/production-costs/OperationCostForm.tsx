@@ -157,15 +157,15 @@ function OperationCostForm({
   // const internalEditCost = (cost: OperationCost) => { ... };
   
   return (
-    <div className="bg-gray-50 p-4 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-700">
-        {isEditing ? 'Modifica Costo Operazione' : 'Aggiungi Nuovo Costo Operazione'}
+    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">
+        {isEditing ? 'Modify Operation Cost' : 'Add New Operation Cost'}
       </h3>
       
       <form onSubmit={handleSubmit} className="space-y-4 mb-6">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Nome Operazione
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Operation Name
           </label>
           <input
             id="name"
@@ -174,15 +174,15 @@ function OperationCostForm({
             value={formData.name}
             onChange={handleChange}
             className="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            placeholder="es. Fresatura CNC, Setup Iniziale"
+            placeholder="es. CNC Milling, Initial Setup"
             required
             disabled={isEditing} // Name might be non-editable for existing operations or editable - depends on policy
           />
         </div>
         
         <div>
-          <label htmlFor="machineHourlyRate" className="block text-sm font-medium text-gray-700 mb-1">
-            Tariffa Oraria Macchina
+          <label htmlFor="machineHourlyRate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Machine Hourly Rate
           </label>
           <div className="flex items-center">
             <input
@@ -212,8 +212,8 @@ function OperationCostForm({
         </div>
         
         <div>
-          <label htmlFor="operatorHourlyRate" className="block text-sm font-medium text-gray-700 mb-1">
-            Tariffa Oraria Operatore ({formData.currencyCode}/h)
+          <label htmlFor="operatorHourlyRate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Operator Hourly Rate ({formData.currencyCode}/h)
           </label>
           <input
             id="operatorHourlyRate"
@@ -223,14 +223,14 @@ function OperationCostForm({
             onChange={handleChange}
             min="0"
             step="0.01"
-            className="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              className="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             required
           />
         </div>
         
         <div>
-          <label htmlFor="setupTime" className="block text-sm font-medium text-gray-700 mb-1">
-            Tempo di Setup (minuti)
+          <label htmlFor="setupTime" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Setup Time (minutes)
           </label>
           <input
             id="setupTime"
@@ -245,63 +245,63 @@ function OperationCostForm({
           />
         </div>
         
-        <div className="flex items-center justify-end space-x-3 pt-2">
+        <div className="flex items-center justify-end space-x-3 pt-2"> 
           {(isEditing || formData.name) && (
             <button
               type="button"
               onClick={() => {
                 resetForm(); // This will also call onActionDone, effectively cancelling edit
               }}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Annulla{isEditing ? ' Modifiche' : '/Pulisci'}
+              Cancel{isEditing ? ' Changes' : '/Clear'}
             </button>
           )}
           <button
             type="submit"
             disabled={isSubmittingCost || !formData.name}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 dark:bg-indigo-700 dark:hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
           >
-            {isSubmittingCost ? 'Salvataggio...' : (isEditing ? 'Salva Modifiche' : 'Aggiungi Operazione')}
+            {isSubmittingCost ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Operation')}
           </button>
         </div>
       </form>
       
       {/* Lista dei costi operazione esistenti */} 
       {operationCosts.length > 0 && (
-        <div className="mt-8 pt-6 border-t border-gray-200">
-          <h4 className="text-md font-semibold mb-3 text-gray-700">Operazioni Registrate</h4>
+        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <h4 className="text-md font-semibold mb-3 text-gray-700 dark:text-gray-200">Registered Operations</h4>
           <div className="space-y-3">
             {operationCosts.map(cost => (
               <div
                 key={cost.id}
-                className="bg-white border border-gray-200 p-3 rounded-md shadow-sm flex justify-between items-center hover:shadow-md transition-shadow duration-150"
+                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-md shadow-sm flex justify-between items-center hover:shadow-md transition-shadow duration-150"
               >
                 <div className="flex-grow">
-                  <p className="font-medium text-gray-800">{cost.name}</p>
-                  <p className="text-sm text-gray-600">
-                    Tariffa Macchina: {cost.machineHourlyRate} {cost.currencyCode}/h
+                  <p className="font-medium text-gray-800 dark:text-gray-200">{cost.name}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Machine Rate: {cost.machineHourlyRate} {cost.currencyCode}/h
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Tariffa Operatore: {cost.operatorHourlyRate} {cost.currencyCode}/h
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Operator Rate: {cost.operatorHourlyRate} {cost.currencyCode}/h
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Tempo Setup: {cost.setupTime} min
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Setup Time: {cost.setupTime} min
                   </p>
                 </div>
                 <div className="flex flex-col space-y-2 ml-2">
                   <button
                     onClick={() => onActionDone && onActionDone('edit', cost.id)} // Parent should set costToEditId
-                    className="text-xs px-3 py-1 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition-colors"
+                          className="text-xs px-3 py-1 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition-colors" 
                   >
-                    Modifica
+                    Modify
                   </button>
                   <button
                     onClick={() => handleDelete(cost.id)}
                     className="text-xs px-3 py-1 border border-red-500 text-red-500 rounded-md hover:bg-red-50 transition-colors disabled:opacity-50"
                     disabled={isSubmittingCost}
                   >
-                    Elimina
+                    Delete
                   </button>
                 </div>
               </div>

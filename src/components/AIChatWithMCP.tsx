@@ -18,8 +18,6 @@ export default function AIChatWithMCP() {
   const [useMcpData, setUseMcpData] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { servers } = useMCP();
-  
   // Auto-scroll to bottom of messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

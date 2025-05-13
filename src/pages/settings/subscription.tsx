@@ -44,7 +44,7 @@ export default function SubscriptionSettingsPage() {
           <meta name="description" content="Manage your subscription settings" />
         </Head>
         
-        <main className="flex-grow py-10">
+        
           <Layout>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="md:flex md:items-center md:justify-between md:space-x-5">
@@ -95,7 +95,7 @@ export default function SubscriptionSettingsPage() {
               </div>
             </div>
           </Layout>
-        </main>
+     
       </div>
     </SubscriptionProvider>
   );

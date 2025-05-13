@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { GCodeAutocompletion } from '@/src/hooks/useGCodeAutoComplete';
 
 // Definizione del tipo per il contesto del GCode Editor
 export interface GCodeEditorContextType {
@@ -13,8 +14,8 @@ export interface GCodeEditorContextType {
   // Autocompletamento
   showAutoComplete: boolean;
   setShowAutoComplete: (show: boolean) => void;
-  autoCompleteOptions: string[];
-  setAutoCompleteOptions: (options: string[]) => void;
+  autoCompleteOptions: GCodeAutocompletion[];
+  setAutoCompleteOptions: (options: GCodeAutocompletion[]) => void;
   autoCompletePosition: { top: number; left: number } | null;
   setAutoCompletePosition: (position: { top: number; left: number } | null) => void;
   
@@ -86,7 +87,7 @@ export const GCodeEditorProvider: React.FC<GCodeEditorProviderProps> = ({
   
   // State per l'autocompletamento
   const [showAutoComplete, setShowAutoComplete] = useState<boolean>(false);
-  const [autoCompleteOptions, setAutoCompleteOptions] = useState<string[]>([]);
+  const [autoCompleteOptions, setAutoCompleteOptions] = useState<GCodeAutocompletion[]>([]);
   const [autoCompletePosition, setAutoCompletePosition] = useState<{ top: number; left: number } | null>(null);
   
   // State per il QuickEdit

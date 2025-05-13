@@ -66,15 +66,15 @@ const CostSettingsForm: React.FC = () => {
   };
   
   return (
-    <div className="bg-gray-50 p-6 rounded-lg shadow-md"> {/* Increased padding */}
-      <h3 className="text-lg font-semibold mb-6 text-gray-700"> {/* Styled header */}
-        Impostazioni Predefinite Costi
+    <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-md"> {/* Increased padding */}
+      <h3 className="text-lg font-semibold mb-6 text-gray-700 dark:text-gray-300"> {/* Styled header */}
+        Default Cost Settings
       </h3>
       
       <form onSubmit={handleSubmit} className="space-y-6"> {/* Increased spacing */}
         <div>
-          <label htmlFor="defaultCurrencyCode" className="block text-sm font-medium text-gray-700 mb-1">
-            Valuta Predefinita
+          <label htmlFor="defaultCurrencyCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Default Currency
           </label>
           <select
             id="defaultCurrencyCode"
@@ -93,8 +93,8 @@ const CostSettingsForm: React.FC = () => {
         </div>
         
         <div>
-          <label htmlFor="defaultMachineHourlyRate" className="block text-sm font-medium text-gray-700 mb-1">
-            Tariffa Oraria Macchina Predefinita ({formData.defaultCurrencyCode}/h)
+          <label htmlFor="defaultMachineHourlyRate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Default Machine Hourly Rate ({formData.defaultCurrencyCode}/h)
           </label>
           <input
             id="defaultMachineHourlyRate"
@@ -111,8 +111,8 @@ const CostSettingsForm: React.FC = () => {
         </div>
         
         <div>
-          <label htmlFor="defaultOperatorHourlyRate" className="block text-sm font-medium text-gray-700 mb-1">
-            Tariffa Oraria Operatore Predefinita ({formData.defaultCurrencyCode}/h)
+          <label htmlFor="defaultOperatorHourlyRate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Default Operator Hourly Rate ({formData.defaultCurrencyCode}/h)
           </label>
           <input
             id="defaultOperatorHourlyRate"
@@ -129,8 +129,8 @@ const CostSettingsForm: React.FC = () => {
         </div>
         
         <div>
-          <label htmlFor="defaultSetupTime" className="block text-sm font-medium text-gray-700 mb-1">
-            Tempo di Setup Predefinito (minuti)
+          <label htmlFor="defaultSetupTime" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Default Setup Time (minutes)
           </label>
           <input
             id="defaultSetupTime"
@@ -157,7 +157,7 @@ const CostSettingsForm: React.FC = () => {
             disabled={isSubmitting}
           />
           <label htmlFor="calculateAutomatically" className="ml-2 block text-sm text-gray-900">
-            Calcola automaticamente le stime dei costi
+            Calculate automatically the cost estimates
           </label>
         </div>
         
@@ -165,9 +165,9 @@ const CostSettingsForm: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
+            className="w-full px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium dark:text-gray-300 text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
           >
-            {isSubmitting ? 'Salvataggio...' : 'Salva Impostazioni'}
+            {isSubmitting ? 'Saving...' : 'Save Settings'}
           </button>
         </div>
       </form>

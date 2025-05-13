@@ -45,6 +45,7 @@ interface CADCanvasProps {
   previewComponent?: string | null;
   onComponentPlaced?: (component: string, position: {x: number, y: number, z: number}) => void;
   allowDragDrop?: boolean; // Nuova prop per abilitare il drag & drop
+  onElementsChange?: (elements: any[]) => void; // New prop to notify when elements change
 }
 
 interface CommandHistory {
@@ -68,7 +69,8 @@ const CADCanvas: React.FC<CADCanvasProps> = ({
   height = '100%',
   previewComponent = null,
   onComponentPlaced,
-  allowDragDrop = true 
+  allowDragDrop = true,
+  onElementsChange
 }) => {
   const canvasRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -148,6 +150,12 @@ useCADShortcuts();
 
 
 const { getConstraintsForEntity } = useConstraints();
+
+// Effect to notify parent of element changes
+useEffect(() => {
+  const elements = useElementsStore.getState().elements;
+  onElementsChange?.(elements);
+}, [useElementsStore.getState().elements, onElementsChange]);
   
 // Find the existing object selection handler in your code
 // For example, modify the existing selection handler:
@@ -5691,6 +5699,7 @@ useEffect(() => {
       onDragOver={handleComponentDragOver}
       onDrop={handleComponentDrop}
       onDragLeave={handleComponentDragLeave}
+      
     >
       <SnapIndicator 
         x={snapIndicator.x} 

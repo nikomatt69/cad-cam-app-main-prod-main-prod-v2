@@ -188,7 +188,7 @@ export default function Settings() {
     <EnhancedLayout>
       <MetaTags
   ogImage="/og-image.png" 
-        title="CAD/CAM FUN SETTINGS" 
+        title="Settings" 
       />
 
       <div className="px-4 sm:px-0 mb-6">
@@ -568,7 +568,7 @@ export default function Settings() {
                         />
                       </div>
                       <div className="ml-3 text-sm">
-                        <label htmlFor="comments" className="font-medium text-gray-700 dark:text-gray-300">Commenti</label>
+                        <label htmlFor="comments" className="font-medium text-gray-700 dark:text-gray-300">Comments</label>
                         <p className="text-gray-500 dark:text-gray-400">Get notified when someone comments on your posts.</p>
                       </div>
                     </div>
@@ -583,7 +583,7 @@ export default function Settings() {
                         />
                       </div>
                       <div className="ml-3 text-sm">
-                        <label htmlFor="mentions" className="font-medium text-gray-700 dark:text-gray-300">Menzioni</label>
+                        <label htmlFor="mentions" className="font-medium text-gray-700 dark:text-gray-300">Mentions</label>
                         <p className="text-gray-500 dark:text-gray-400">Get notified when someone mentions you.</p>
                       </div>
                     </div>
@@ -607,7 +607,7 @@ export default function Settings() {
                         />
                       </div>
                       <div className="ml-3 text-sm">
-                        <label htmlFor="push-everything" className="font-medium text-gray-700 dark:text-gray-300">Tutte le notifiche</label>
+                        <label htmlFor="push-everything" className="font-medium text-gray-700 dark:text-gray-300">All notifications</label>
                         <p className="text-gray-500 dark:text-gray-400">Receive all push notifications.</p>
                       </div>
                     </div>
@@ -621,7 +621,7 @@ export default function Settings() {
                         />
                       </div>
                       <div className="ml-3 text-sm">
-                        <label htmlFor="push-email" className="font-medium text-gray-700 dark:text-gray-300">Solo email</label>
+                        <label htmlFor="push-email" className="font-medium text-gray-700 dark:text-gray-300">Only email</label>
                         <p className="text-gray-500 dark:text-gray-400">Only receive notifications via email.</p>
                       </div>
                     </div>
@@ -635,7 +635,7 @@ export default function Settings() {
                         />
                       </div>
                       <div className="ml-3 text-sm">
-                        <label htmlFor="push-nothing" className="font-medium text-gray-700 dark:text-gray-300">Nessuna notifica</label>
+                        <label htmlFor="push-nothing" className="font-medium text-gray-700 dark:text-gray-300">No notifications</label>
                         <p className="text-gray-500 dark:text-gray-400">Do not receive push notifications.</p>
                       </div>
                     </div>
@@ -693,19 +693,7 @@ export default function Settings() {
           
 
           {/* Tab placeholder per le altre sezioni */}
-          {['billing'].includes(activeTab) && (
-            <div className="text-center py-8 sm:py-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-800/30 text-blue-600 dark:text-blue-400 mb-4">
-                {tabs.find(tab => tab.id === activeTab)?.icon}
-              </div>
-              <h3 className="mt-2 text-lg font-medium text-gray-900 dark:text-white">
-                {tabs.find(tab => tab.id === activeTab)?.name} Settings
-              </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                This section is under development. Check back soon!
-              </p>
-            </div>
-          )}
+          
         </div>
       </div>
     </EnhancedLayout>

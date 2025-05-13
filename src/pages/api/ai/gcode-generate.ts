@@ -15,8 +15,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error("OpenAI API key is missing");
-    return res.status(500).json({ error: 'OpenAI API key is missing' });
+    // Throw error only in development/build time, avoid crashing production server if env var is momentarily unavailable.
+    // Consider more robust error handling or logging here for production.
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error("Openai API key is not defined");
+    }
+    console.error("Openai API key is not defined.");
   }
   try {
     const { 

@@ -70,7 +70,8 @@ export function useGCodeAutoComplete(options: GCodeCompletionOptions = {}) {
     autoCompletePosition,
     setAutoCompletePosition,
     insertTextAtSelection,
-    getLineAtPosition
+    getLineAtPosition,
+    editorRef
   } = useGCodeEditor();
   
   const [isLoading, setIsLoading] = useState(false);
@@ -152,10 +153,19 @@ export function useGCodeAutoComplete(options: GCodeCompletionOptions = {}) {
       } else {
         setAutoCompleteOptions(results);
         
-        // Calcola posizione del popup (semplificato)
-        // In un'implementazione reale useremmo posizione esatta del cursore
-        if (!autoCompletePosition) {
-          setAutoCompletePosition({ top: 20, left: 20 });
+        // Calculate exact cursor position for popup
+        if (editorRef.current) {
+          const selection = window.getSelection();
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            const editorRect = editorRef.current.getBoundingClientRect();
+            
+            setAutoCompletePosition({
+              top: rect.bottom - editorRect.top,
+              left: rect.left - editorRect.left
+            });
+          }
         }
         
         setShowAutoComplete(true);

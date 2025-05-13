@@ -62,15 +62,15 @@ const CostEstimateCard: React.FC<CostEstimateCardProps> = ({
   };
   
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
       <div 
-        className="bg-gray-50 p-4 flex justify-between items-center cursor-pointer"
+        className="bg-gray-50 dark:bg-gray-700 p-4 flex justify-between items-center cursor-pointer"
         onClick={() => setExpanded(!expanded)}
       >
         <div>
           <h3 className="font-medium">{toolpathName}</h3>
-          <p className="text-sm text-gray-600">
-            Creato il {formatDate(estimate.createdAt)}
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Created on {formatDate(estimate.createdAt)}
           </p>
         </div>
         <div className="flex flex-col items-end">
@@ -78,84 +78,84 @@ const CostEstimateCard: React.FC<CostEstimateCardProps> = ({
             {formatCurrency(estimate.totalCost, estimate.currencyCode)}
           </span>
           <button className="text-blue-600 text-sm">
-            {expanded ? 'Nascondi dettagli' : 'Mostra dettagli'}
+            {expanded ? 'Hide details' : 'Show details'}
           </button>
         </div>
       </div>
       
       {expanded && (
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200  ">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <h4 className="font-medium mb-2">Dettagli Costi</h4>
+              <h4 className="font-medium mb-2">Cost Details</h4>
               <ul className="space-y-1 text-sm">
                 <li className="flex justify-between">
-                  <span>Costo Materiale:</span>
+                  <span>Material Cost:</span>
                   <span>{formatCurrency(estimate.materialCost, estimate.currencyCode)}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span>Costo Usura Utensile:</span>
+                  <span>Tool Wear Cost:</span>
                   <span>{formatCurrency(estimate.toolWearCost, estimate.currencyCode)}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span>Tempo Macchina:</span>
+                  <span>Machine Time:</span>
                   <span>{formatTime(estimate.machineTime)}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span>Costo Tempo Macchina:</span>
+                  <span>Machine Time Cost:</span>
                   <span>{formatCurrency(estimate.machineTimeCost, estimate.currencyCode)}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span>Costo Operatore:</span>
+                  <span>Operator Time Cost:</span>
                   <span>{formatCurrency(estimate.operatorTimeCost, estimate.currencyCode)}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span>Costo Setup:</span>
+                  <span>Setup Cost:</span>
                   <span>{formatCurrency(estimate.setupCost, estimate.currencyCode)}</span>
                 </li>
                 <li className="flex justify-between font-bold border-t border-gray-200 pt-1 mt-1">
-                  <span>TOTALE:</span>
+                  <span>TOTAL:</span>
                   <span>{formatCurrency(estimate.totalCost, estimate.currencyCode)}</span>
                 </li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-medium mb-2">Dettagli Lavorazione</h4>
+              <h4 className="font-medium mb-2">Processing Details</h4>
               <ul className="space-y-1 text-sm">
                 {estimate.details.materialId && (
                   <li className="flex justify-between">
-                    <span>Materiale:</span>
+                    <span>Material:</span>
                     <span>{getMaterialName(estimate.details.materialId)}</span>
                   </li>
                 )}
                 {estimate.details.toolId && (
                   <li className="flex justify-between">
-                    <span>Utensile:</span>
+                    <span>Tool:</span>
                     <span>{getToolName(estimate.details.toolId)}</span>
                   </li>
                 )}
                 {estimate.details.materialVolume && (
                   <li className="flex justify-between">
-                    <span>Volume Materiale:</span>
+                    <span>Material Volume:</span>
                     <span>{formatVolume(estimate.details.materialVolume)}</span>
                   </li>
                 )}
                 {estimate.details.toolPathLength && (
                   <li className="flex justify-between">
-                    <span>Lunghezza Percorso:</span>
+                    <span>Tool Path Length:</span>
                     <span>{formatDimension(estimate.details.toolPathLength)}</span>
                   </li>
                 )}
                 {estimate.details.toolWearPercentage !== undefined && (
                   <li className="flex justify-between">
-                    <span>Usura Utensile:</span>
+                    <span>Tool Wear Percentage:</span>
                     <span>{formatPercentage(estimate.details.toolWearPercentage)}</span>
                   </li>
                 )}
                 {estimate.details.feedRate && (
                   <li className="flex justify-between">
-                    <span>Velocità Avanzamento:</span>
+                    <span>Feed Rate:</span>
                     <span>{estimate.details.feedRate} mm/min</span>
                   </li>
                 )}
@@ -163,26 +163,26 @@ const CostEstimateCard: React.FC<CostEstimateCardProps> = ({
             </div>
           </div>
           
-          <div className="flex justify-end space-x-2 mt-4">
+          <div className="flex justify-end space-x-2 mt-4"> 
             <button
-              className="text-red-600 hover:text-red-800"
+              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-600"
               onClick={(e) => {
                 e.stopPropagation();
-                if (confirm('Sei sicuro di voler eliminare questa stima?')) {
+                if (confirm('Are you sure you want to delete this estimate?')) {
                   onDelete(estimate.id);
                 }
               }}
             >
-              Elimina
+              Delete
             </button>
             <button 
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-600"
               onClick={(e) => {
                 e.stopPropagation();
                 copyReport();
               }}
             >
-              Copia Report
+              Copy Report
             </button>
           </div>
         </div>

@@ -181,10 +181,10 @@ const EnhancedGCodeEditor: React.FC<EnhancedGCodeEditorProps> = ({
     <GCodeEditorProvider initialContent={initialContent}>
       <div className="flex flex-col h-full border border-gray-700 rounded-lg overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 bg-blue-100  border-b border-gray-700">
+        <div className="flex items-center justify-between px-4 py-2 bg-blue-700 border-b border-gray-700">
           <div className="flex items-center">
             <Code className="w-4 h-4 mr-2 text-green-400" />
-            <span>{filename}</span>
+            <span className='text-white' contentEditable={true} autoSave='true'>{filename}</span>
           </div>
           <div className="flex space-x-2">
             {/* Header buttons qui */}

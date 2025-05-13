@@ -33,7 +33,9 @@ import {
   Box,
   Folder,
   X,
-  DollarSign
+  DollarSign,
+  Sun,
+  Moon
 } from 'react-feather';
 import { PanelRightIcon, PanelRightInactiveIcon } from 'lucide-react';
 import EnhancedSidebarCam from '../components/cam/EnanchedSidebarCam';
@@ -112,7 +114,7 @@ export default function CAMPage() {
   const [showUnifiedLibrary, setShowUnifiedLibrary] = useState(false);
   // Add state for production costs manager modal
   const [showCostsManager, setShowCostsManager] = useState(false);
-  
+  const [cadElements, setCadElements] = useState<any[]>([]);
   // Add useEffect to load toolpath from localStorage when URL contains loadToolpath parameter
   useEffect(() => {
     const loadToolpathFromStorage = async () => {
@@ -330,6 +332,20 @@ export default function CAMPage() {
     setActiveRightPanel('analysis');
   };
 
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // Implement dark/light theme
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  };
+
   if (status === 'loading') {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -412,6 +428,17 @@ export default function CAMPage() {
                 <DollarSign size={16} className="mr-1" />
                 Costi
               </button>
+              <button
+              onClick={toggleDarkMode}
+              className={`p-1.5 border shadow-sm rounded-md flex items-center ${
+                isDarkMode 
+                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+              aria-label="Toggle dark mode"
+            >
+              {isDarkMode ? <Sun className="h-3 w-3 sm:h-4 sm:w-4" /> : <Moon className="h-3 w-3 sm:h-4 sm:w-4" />}
+            </button>
             </div>
           </div>
           
@@ -512,6 +539,7 @@ export default function CAMPage() {
                   isSimulating={isSimulating}
                   selectedTool={selectedLibraryTool}
                   showWorkpiece={true}
+                  cadElements={cadElements}
                   onSimulationComplete={() => {
                     // Handle simulation complete
                     setIsSimulating(false);
@@ -698,10 +726,10 @@ export default function CAMPage() {
       
       {/* Production Costs Manager Modal */}
       {showCostsManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-          <div className="w-full max-w-7xl max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <div className="fixed inset-0 z-50 dark:bg flex items-center justify-center bg-black bg-opacity-75 p-4">
+          <div className="w-full max-w-7xl max-h-[70vh] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl">
             <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold dark:text-white">Gestione Costi di Produzione</h2>
+              <h2 className="text-xl dark:text-blue-400 font-bold ">Production Costs Manager</h2>
               <button 
                 onClick={() => setShowCostsManager(false)}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -709,7 +737,7 @@ export default function CAMPage() {
                 <X size={20} className="dark:text-gray-300" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 rounded-xl overflow-y-auto">
               <ProductionCostsManager />
             </div>
           </div>

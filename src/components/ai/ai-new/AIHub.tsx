@@ -306,7 +306,7 @@ const AIHub: React.FC<AIHubProps> = ({
             animate={{ width: 160, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-gray-50 dark:bg-gray-900 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-hidden"
+            className="bg-gray-50 dark:bg-gray-900 flex-shrink-0 border-r rounded-lg border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div className="p-2 flex flex-col h-full">
               <div className="flex items-center justify-between mb-6">

@@ -12,7 +12,7 @@ const Footer: FC = () => {
   }, []);
 
   return (
-    <footer className="border-t border-gray-200 dark:border-gray-700 px-4 py-6 text-sm">
+    <footer className="  px-4 py-6 text-sm">
       <div className="container mx-auto flex flex-col items-center gap-y-4 sm:flex-row sm:justify-between">
 
         {/* Left Side: Logo & Copyright */}
