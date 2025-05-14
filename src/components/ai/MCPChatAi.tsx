@@ -9,7 +9,6 @@ export default function MCPChatAi() {
   const [activeTab, setActiveTab] = useState('resources');
   
   return (  
-    <Layout>
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">MCP Examples</h1>
       <MCPServerWithStatus />
@@ -41,6 +40,5 @@ export default function MCPChatAi() {
         <MCPToolExplorer />
       )}
     </div>
-    </Layout>
   );
 }

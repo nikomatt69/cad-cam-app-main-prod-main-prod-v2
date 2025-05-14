@@ -100,7 +100,7 @@
     "d3-zoom": "^3.0.0",
     "date-fns": "^4.1.0",
     "deepl-node": "^1.17.3",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.5.0",
     "dxf-parser": "^1.1.2",
     "ethers": "^5.7.2",
     "express": "^4.21.2",
