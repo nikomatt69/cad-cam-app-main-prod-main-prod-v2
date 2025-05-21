@@ -395,6 +395,22 @@ export type DrawingEntityType = typeof DrawingEntityType[keyof typeof DrawingEnt
 export type DimensionType = typeof DimensionType[keyof typeof DimensionType];
 export type AnnotationType = typeof AnnotationType[keyof typeof AnnotationType];
 
+// Snap Modes for CAD functionality
+export type SnapMode = 
+  | 'endpoint' 
+  | 'midpoint' 
+  | 'center' 
+  | 'quadrant' 
+  | 'intersection' 
+  | 'grid' 
+  | 'nearest'
+  | 'tangent'
+  | 'perpendicular'
+  | 'extension'
+  | 'parallel'
+  | 'node' // Snap to points/nodes in entities like polylines or splines
+  | 'polar'; // For polar tracking lines
+
 export type EntityType = DrawingEntityType | DimensionType | AnnotationType;
 
 export interface BaseEntity {

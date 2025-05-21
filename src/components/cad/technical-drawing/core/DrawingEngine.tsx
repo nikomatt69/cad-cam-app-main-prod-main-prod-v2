@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useTechnicalDrawingStore } from '../../../../store/technicalDrawingStore';
-import { DrawingEntity, Point, DrawingStyle, ViewportDefinition } from '../../../../types/TechnicalDrawingTypes';
+import { DrawingEntity, Point, DrawingStyle, DrawingViewport } from '../../../../types/TechnicalDrawingTypes';
 import { renderEntity } from '../rendering/entity-renderers';
 
 interface DrawingEngineProps {
@@ -39,9 +39,10 @@ export const DrawingEngine: React.FC<DrawingEngineProps> = ({
     zoom,
     pan,
     selectedEntityIds,
-    
     drawingLayers
   } = useTechnicalDrawingStore();
+
+  const snapPoints: Point[] = [];
 
   // Initialize canvas context
   useEffect(() => {
@@ -118,14 +119,14 @@ export const DrawingEngine: React.FC<DrawingEngineProps> = ({
     // Draw dimensions
     Object.entries(dimensions).forEach(([id, dimension]) => {
       if (visibleLayers.includes(dimension.layer)) {
-        renderEntity(ctx, dimension, selectedEntityIds.includes(id));
+        renderEntity(ctx, dimension as unknown as DrawingEntity, selectedEntityIds.includes(id));
       }
     });
     
     // Draw annotations
     Object.entries(annotations).forEach(([id, annotation]) => {
       if (visibleLayers.includes(annotation.layer)) {
-        renderEntity(ctx, annotation, selectedEntityIds.includes(id));
+        renderEntity(ctx, annotation as unknown as DrawingEntity, selectedEntityIds.includes(id));
       }
     });
     
@@ -245,7 +246,7 @@ export const DrawingEngine: React.FC<DrawingEngineProps> = ({
   };
 
   // Draw a viewport
-  const drawViewport = (ctx: CanvasRenderingContext2D, viewport: ViewportDefinition) => {
+  const drawViewport = (ctx: CanvasRenderingContext2D, viewport: DrawingViewport) => {
     // Draw viewport border
     ctx.beginPath();
     ctx.strokeStyle = '#777777';
@@ -270,7 +271,7 @@ export const DrawingEngine: React.FC<DrawingEngineProps> = ({
 
   // Draw snap points
   const drawSnapPoints = (ctx: CanvasRenderingContext2D) => {
-    snapPoints.forEach(point  => {
+    snapPoints.forEach((point: Point)  => {
       ctx.beginPath();
       ctx.arc(point.x, point.y, 5 / zoom, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
@@ -301,7 +302,7 @@ export const DrawingEngine: React.FC<DrawingEngineProps> = ({
     return () => {
       window.cancelAnimationFrame(animationFrameId);
     };
-  }, [ctx, entities, dimensions, annotations, viewports, activeViewportId, zoom, pan, selectedEntityIds, snapPoints, gridEnabled, drawingLayers]);
+  }, [ctx, entities, dimensions, annotations, viewports, activeViewportId, zoom, pan, selectedEntityIds, /*snapPoints,*/ gridEnabled, drawingLayers]);
 
   // Handle canvas tabindex and focus
   useEffect(() => {

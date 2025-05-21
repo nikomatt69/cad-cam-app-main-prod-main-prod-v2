@@ -1,6 +1,20 @@
 import { v4 as uuidv4 } from 'uuid';
-import { DrawingEntity, Point, DrawingTool } from '../../../../types/TechnicalDrawingTypes';
+import { 
+  DrawingEntity, 
+  Point, 
+  // DrawingTool, // DrawingTool is not exported, assuming string literal type based on usage
+  LineEntity,
+  CircleEntity,
+  ArcEntity,
+  RectangleEntity,
+  PolylineEntity,
+  TextAnnotation,
+  Annotation // Import Annotation type
+} from '../../../../types/TechnicalDrawingTypes';
 import { useTechnicalDrawingStore } from '../../../../store/technicalDrawingStore';
+
+// Define DrawingTool here if it's a specific set of string literals
+export type DrawingTool = 'select' | 'line' | 'circle' | 'rectangle' | 'arc' | 'polyline' | 'move' | 'pan' | 'zoom';
 
 /**
  * Class representing a drawing tool manager
@@ -71,7 +85,7 @@ export class ToolsManager {
     ctxInfo: { ctx: CanvasRenderingContext2D, pan: Point, zoom: number }
   ): void {
     // Get the technical drawing store actions
-    const { addEntity, updateTempEntity, setTempEntity, addSnapPoint, updateEntity, selectEntity, clearSelection, addToSelection } = useTechnicalDrawingStore.getState();
+    const { addEntity, updateEntity, selectEntity, clearSelection, moveEntities } = useTechnicalDrawingStore.getState();
     
     // Get snapped point if snap is enabled
     const point = this.snapEnabled ? this.getSnapPoint(worldPoint) : worldPoint;
@@ -84,7 +98,7 @@ export class ToolsManager {
         if (entityId) {
           if (e.ctrlKey || e.metaKey) {
             // Add to selection if Ctrl/Cmd is pressed
-            addToSelection(entityId);
+            selectEntity(entityId, true);
           } else {
             // Select only this entity
             clearSelection();
@@ -124,8 +138,7 @@ export class ToolsManager {
             endPoint: { ...point }
           };
           
-          setTempEntity(tempLine);
-          addSnapPoint(point);
+          this.tempEntity = tempLine;
         } else {
           // Finish the line
           this.isDrawing = false;
@@ -148,7 +161,7 @@ export class ToolsManager {
             };
             
             addEntity(line);
-            setTempEntity(null);
+            this.tempEntity = null;
             
             // Start a new line from this point
             this.isDrawing = true;
@@ -169,7 +182,7 @@ export class ToolsManager {
               endPoint: { ...point }
             };
             
-            setTempEntity(newTempLine);
+            this.tempEntity = newTempLine;
           }
         }
         break;
@@ -196,8 +209,7 @@ export class ToolsManager {
             radius: 0
           };
           
-          setTempEntity(tempCircle);
-          addSnapPoint(point);
+          this.tempEntity = tempCircle;
         } else {
           // Finish the circle
           this.isDrawing = false;
@@ -225,7 +237,7 @@ export class ToolsManager {
             };
             
             addEntity(circle);
-            setTempEntity(null);
+            this.tempEntity = null;
           }
         }
         break;
@@ -248,14 +260,12 @@ export class ToolsManager {
               strokeWidth: 0.5,
               strokeStyle: 'solid'
             },
-            x: point.x,
-            y: point.y,
+            position: { x: point.x, y: point.y }, // Use position for RectangleEntity
             width: 0,
             height: 0
           };
           
-          setTempEntity(tempRect);
-          addSnapPoint(point);
+          this.tempEntity = tempRect;
         } else {
           // Finish the rectangle
           this.isDrawing = false;
@@ -281,14 +291,13 @@ export class ToolsManager {
                 strokeWidth: 0.5,
                 strokeStyle: 'solid'
               },
-              x,
-              y,
+              position: { x, y }, // Use position for RectangleEntity
               width: Math.abs(width),
               height: Math.abs(height)
             };
             
             addEntity(rect);
-            setTempEntity(null);
+            this.tempEntity = null;
           }
         }
         break;
@@ -317,8 +326,7 @@ export class ToolsManager {
             endAngle: Math.PI * 2
           };
           
-          setTempEntity(tempArc);
-          addSnapPoint(point);
+          this.tempEntity = tempArc;
         } else if (this.toolState.arcStep === 1) {
           // Second point - radius and start angle
           this.toolState.arcStep = 2;
@@ -333,13 +341,11 @@ export class ToolsManager {
           this.toolState.arcStartAngle = startAngle;
           
           // Update temporary arc
-          updateTempEntity({
-            radius,
-            startAngle,
-            endAngle: startAngle
-          });
-          
-          addSnapPoint(point);
+          if (this.tempEntity && this.tempEntity.type === 'arc') {
+            this.tempEntity.radius = radius;
+            this.tempEntity.startAngle = startAngle;
+            this.tempEntity.endAngle = startAngle;
+          }
         } else {
           // Third point - end angle and finish
           // Calculate end angle
@@ -362,19 +368,11 @@ export class ToolsManager {
             center: { ...this.toolState.arcCenter },
             radius: this.toolState.arcRadius,
             startAngle: this.toolState.arcStartAngle,
-            endAngle: endAngle,
-            startPoint: {
-              x: this.toolState.arcCenter.x + Math.cos(this.toolState.arcStartAngle) * this.toolState.arcRadius,
-              y: this.toolState.arcCenter.y + Math.sin(this.toolState.arcStartAngle) * this.toolState.arcRadius
-            },
-            endPoint: {
-              x: this.toolState.arcCenter.x + Math.cos(endAngle) * this.toolState.arcRadius,
-              y: this.toolState.arcCenter.y + Math.sin(endAngle) * this.toolState.arcRadius
-            }
+            endAngle: endAngle
           };
           
           addEntity(arc);
-          setTempEntity(null);
+          this.tempEntity = null;
           
           // Reset arc drawing state
           this.toolState.arcStep = 0;
@@ -405,8 +403,7 @@ export class ToolsManager {
             closed: false
           };
           
-          setTempEntity(tempPolyline);
-          addSnapPoint(point);
+          this.tempEntity = tempPolyline;
         } else {
           // Check if this point is close to the first point to close the polyline
           const firstPoint = this.toolState.polylinePoints[0];
@@ -435,7 +432,7 @@ export class ToolsManager {
             };
             
             addEntity(polyline);
-            setTempEntity(null);
+            this.tempEntity = null;
             
             // Reset polyline drawing state
             this.toolState.polylinePoints = null;
@@ -444,11 +441,9 @@ export class ToolsManager {
             this.toolState.polylinePoints.push({ ...point });
             
             // Update temporary polyline
-            updateTempEntity({
-              points: [...this.toolState.polylinePoints]
-            });
-            
-            addSnapPoint(point);
+            if (this.tempEntity && this.tempEntity.type === 'polyline') {
+              this.tempEntity.points = [...this.toolState.polylinePoints];
+            }
           }
         }
         break;
@@ -484,7 +479,7 @@ export class ToolsManager {
     ctxInfo: { ctx: CanvasRenderingContext2D, pan: Point, zoom: number }
   ): void {
     // Get the technical drawing store actions
-    const { updateTempEntity, clearSnapPoints, addSnapPoint, moveSelectedEntities } = useTechnicalDrawingStore.getState();
+    const { moveEntities } = useTechnicalDrawingStore.getState();
     
     // Get snapped point if snap is enabled
     const point = this.snapEnabled ? this.getSnapPoint(worldPoint) : worldPoint;
@@ -501,27 +496,27 @@ export class ToolsManager {
             height: Math.abs(point.y - this.toolState.selectionStart.y)
           };
           
-          updateTempEntity({
-            id: 'temp',
+          this.tempEntity = { 
+            id: 'temp', 
             type: 'selection-rect',
-            layer: 'ui',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#0088FF',
-              strokeWidth: 1,
-              strokeStyle: 'dashed',
-              fillColor: 'rgba(0, 136, 255, 0.1)'
-            },
-            ...selectionRect
-          });
+            layer: 'ui', 
+            visible: true, 
+            locked: false, 
+            style: { strokeColor: '#0088FF', strokeWidth: 1, strokeStyle: 'dashed', fillColor: 'rgba(0, 136, 255, 0.1)'},
+            position: {x: selectionRect.x, y: selectionRect.y},
+            width: selectionRect.width,
+            height: selectionRect.height
+          } as any;
         } else if (this.toolState.selectedEntityId && this.toolState.moveStartPoint) {
           // Move the selected entity
           const dx = point.x - this.toolState.moveStartPoint.x;
           const dy = point.y - this.toolState.moveStartPoint.y;
           
           if (dx !== 0 || dy !== 0) {
-            moveSelectedEntities(dx, dy);
+            const selectedIds = useTechnicalDrawingStore.getState().selectedEntityIds;
+            if (selectedIds.length > 0) {
+                moveEntities(selectedIds, {x: dx, y: dy});
+            }
             this.toolState.moveStartPoint = { ...point };
           }
         }
@@ -537,9 +532,9 @@ export class ToolsManager {
             endPoint = this.getOrthoPoint(this.startPoint, point);
           }
           
-          updateTempEntity({
-            endPoint
-          });
+          if (this.tempEntity && this.tempEntity.type === 'line') {
+            this.tempEntity.endPoint = endPoint;
+          }
         }
         break;
         
@@ -550,10 +545,9 @@ export class ToolsManager {
           const dy = point.y - this.startPoint.y;
           const radius = Math.sqrt(dx * dx + dy * dy);
           
-          // Update the temporary circle
-          updateTempEntity({
-            radius
-          });
+          if (this.tempEntity && this.tempEntity.type === 'circle') {
+            this.tempEntity.radius = radius;
+          }
         }
         break;
         
@@ -571,11 +565,10 @@ export class ToolsManager {
             height = height >= 0 ? size : -size;
           }
           
-          // Update the temporary rectangle
-          updateTempEntity({
-            width,
-            height
-          });
+          if (this.tempEntity && this.tempEntity.type === 'rectangle') {
+            this.tempEntity.width = width;
+            this.tempEntity.height = height;
+          }
         }
         break;
         
@@ -587,20 +580,20 @@ export class ToolsManager {
           const radius = Math.sqrt(dx * dx + dy * dy);
           const startAngle = Math.atan2(dy, dx);
           
-          updateTempEntity({
-            radius,
-            startAngle,
-            endAngle: startAngle
-          });
+          if (this.tempEntity && this.tempEntity.type === 'arc') {
+            this.tempEntity.radius = radius;
+            this.tempEntity.startAngle = startAngle;
+            this.tempEntity.endAngle = startAngle;
+          }
         } else if (this.toolState.arcStep === 2) {
           // Update arc end angle
           const dx = point.x - this.toolState.arcCenter.x;
           const dy = point.y - this.toolState.arcCenter.y;
           const endAngle = Math.atan2(dy, dx);
           
-          updateTempEntity({
-            endAngle
-          });
+          if (this.tempEntity && this.tempEntity.type === 'arc') {
+            this.tempEntity.endAngle = endAngle;
+          }
         }
         break;
         
@@ -619,9 +612,9 @@ export class ToolsManager {
           const points = [...this.toolState.polylinePoints, currentPoint];
           
           // Update the temporary polyline
-          updateTempEntity({
-            points
-          });
+          if (this.tempEntity && this.tempEntity.type === 'polyline') {
+            this.tempEntity.points = points;
+          }
         }
         break;
         
@@ -632,7 +625,10 @@ export class ToolsManager {
           const dy = point.y - this.toolState.moveStartPoint.y;
           
           if (dx !== 0 || dy !== 0) {
-            moveSelectedEntities(dx, dy);
+            const selectedIds = useTechnicalDrawingStore.getState().selectedEntityIds;
+            if (selectedIds.length > 0) {
+                moveEntities(selectedIds, {x: dx, y: dy});
+            }
             this.toolState.moveStartPoint = { ...point };
           }
         }
@@ -656,7 +652,7 @@ export class ToolsManager {
     ctxInfo: { ctx: CanvasRenderingContext2D, pan: Point, zoom: number }
   ): void {
     // Get the technical drawing store actions
-    const { setTempEntity, addEntity, selectEntitiesInRect, clearSnapPoints } = useTechnicalDrawingStore.getState();
+    const { addEntity, selectEntity, entities: allEntitiesFromStore } = useTechnicalDrawingStore.getState();
     
     // Get snapped point if snap is enabled
     const point = this.snapEnabled ? this.getSnapPoint(worldPoint) : worldPoint;
@@ -674,10 +670,41 @@ export class ToolsManager {
           };
           
           // Select entities within the rectangle
-          selectEntitiesInRect(selectionRect);
-          
-          // Clear temporary selection rectangle
-          setTempEntity(null);
+          const allEntities = allEntitiesFromStore;
+          const idsInRect: string[] = [];
+          for (const id in allEntities) {
+            const currentEntity = allEntities[id] as DrawingEntity;
+            if (currentEntity.type === 'rectangle') { 
+                const rectEntity = currentEntity as RectangleEntity;
+                if (rectEntity.position.x < selectionRect.x + selectionRect.width &&
+                    rectEntity.position.x + rectEntity.width > selectionRect.x &&
+                    rectEntity.position.y < selectionRect.y + selectionRect.height &&
+                    rectEntity.position.y + rectEntity.height > selectionRect.y) {
+                    idsInRect.push(id);
+                }
+            } else if (currentEntity.type === 'line') {
+                const lineEntity = currentEntity as LineEntity;
+                const p1In = lineEntity.startPoint.x >= selectionRect.x && lineEntity.startPoint.x <= selectionRect.x + selectionRect.width &&
+                             lineEntity.startPoint.y >= selectionRect.y && lineEntity.startPoint.y <= selectionRect.y + selectionRect.height;
+                const p2In = lineEntity.endPoint.x >= selectionRect.x && lineEntity.endPoint.x <= selectionRect.x + selectionRect.width &&
+                             lineEntity.endPoint.y >= selectionRect.y && lineEntity.endPoint.y <= selectionRect.y + selectionRect.height;
+                if (p1In || p2In) {
+                    idsInRect.push(id);
+                }
+            } else if (currentEntity.type === 'circle') {
+                const circleEntity = currentEntity as CircleEntity;
+                if (circleEntity.center.x >= selectionRect.x && circleEntity.center.x <= selectionRect.x + selectionRect.width &&
+                    circleEntity.center.y >= selectionRect.y && circleEntity.center.y <= selectionRect.y + selectionRect.height) {
+                    idsInRect.push(id);
+                }
+            }
+          }
+          if(idsInRect.length > 0) {
+            useTechnicalDrawingStore.getState().clearSelection();
+            idsInRect.forEach(id => selectEntity(id, true));
+          }
+
+          this.tempEntity = null;
           this.toolState.selecting = false;
         } else if (this.toolState.moving) {
           // Finish moving selected entities
@@ -702,8 +729,6 @@ export class ToolsManager {
       default:
         // No action for other tools
     }
-    
-    clearSnapPoints();
   }
   
   /**
@@ -711,7 +736,7 @@ export class ToolsManager {
    */
   handleKeyDown(e: React.KeyboardEvent<HTMLCanvasElement>): void {
     // Get the technical drawing store actions
-    const { setTempEntity, deleteSelectedEntities } = useTechnicalDrawingStore.getState();
+    const { deleteEntity } = useTechnicalDrawingStore.getState();
     
     // Handle keyboard shortcuts
     switch (e.key) {
@@ -721,14 +746,15 @@ export class ToolsManager {
           this.isDrawing = false;
           this.startPoint = null;
           this.toolState = {};
-          setTempEntity(null);
+          this.tempEntity = null;
         }
         break;
         
       case 'Delete':
       case 'Backspace':
         // Delete selected entities
-        deleteSelectedEntities();
+        const selectedIdsToDelete = useTechnicalDrawingStore.getState().selectedEntityIds;
+        selectedIdsToDelete.forEach(id => deleteEntity(id));
         break;
         
       case 'Enter':
@@ -751,7 +777,7 @@ export class ToolsManager {
           };
           
           useTechnicalDrawingStore.getState().addEntity(polyline);
-          setTempEntity(null);
+          this.tempEntity = null;
           
           // Reset polyline drawing state
           this.toolState.polylinePoints = null;
@@ -768,18 +794,21 @@ export class ToolsManager {
    */
   private getEntityAtPoint(point: Point): string | null {
     const entities = useTechnicalDrawingStore.getState().entities;
-    const selectedEntityIds = Object.keys(entities).filter(id => {
-      const entity = entities[id];
-      return this.isPointOnEntity(point, entity);
+    const annotations = useTechnicalDrawingStore.getState().annotations; // Get annotations from store
+    const allSelectableItems: Record<string, DrawingEntity | Annotation> = {...entities, ...annotations};
+
+    const selectedItemIds = Object.keys(allSelectableItems).filter(id => {
+      const item = allSelectableItems[id];
+      return this.isPointOnEntity(point, item); // item can be DrawingEntity or Annotation
     });
     
-    return selectedEntityIds.length > 0 ? selectedEntityIds[0] : null;
+    return selectedItemIds.length > 0 ? selectedItemIds[0] : null;
   }
   
   /**
-   * Check if a point is on an entity
+   * Check if a point is on an entity or annotation
    */
-  private isPointOnEntity(point: Point, entity: DrawingEntity): boolean {
+  private isPointOnEntity(point: Point, entity: DrawingEntity | Annotation): boolean { // Updated to accept Annotation
     const tolerance = 5; // Tolerance in world units
     
     switch (entity.type) {
@@ -794,14 +823,15 @@ export class ToolsManager {
         
       case 'rectangle':
         // Check if point is on the border
-        const isOnTop = Math.abs(point.y - entity.y) < tolerance && 
-                       point.x >= entity.x && point.x <= entity.x + entity.width;
-        const isOnBottom = Math.abs(point.y - (entity.y + entity.height)) < tolerance && 
-                          point.x >= entity.x && point.x <= entity.x + entity.width;
-        const isOnLeft = Math.abs(point.x - entity.x) < tolerance && 
-                        point.y >= entity.y && point.y <= entity.y + entity.height;
-        const isOnRight = Math.abs(point.x - (entity.x + entity.width)) < tolerance && 
-                         point.y >= entity.y && point.y <= entity.y + entity.height;
+        const rectEntity = entity as RectangleEntity; // Cast to RectangleEntity
+        const isOnTop = Math.abs(point.y - rectEntity.position.y) < tolerance && 
+                       point.x >= rectEntity.position.x && point.x <= rectEntity.position.x + rectEntity.width;
+        const isOnBottom = Math.abs(point.y - (rectEntity.position.y + rectEntity.height)) < tolerance && 
+                          point.x >= rectEntity.position.x && point.x <= rectEntity.position.x + rectEntity.width;
+        const isOnLeft = Math.abs(point.x - rectEntity.position.x) < tolerance && 
+                        point.y >= rectEntity.position.y && point.y <= rectEntity.position.y + rectEntity.height;
+        const isOnRight = Math.abs(point.x - (rectEntity.position.x + rectEntity.width)) < tolerance && 
+                         point.y >= rectEntity.position.y && point.y <= rectEntity.position.y + rectEntity.height;
         
         return isOnTop || isOnBottom || isOnLeft || isOnRight;
         
@@ -844,13 +874,14 @@ export class ToolsManager {
         
         return false;
         
-      case 'text':
+      case 'text-annotation': // Corrected from 'text'
         // Simple bounding box check
+        const textEntity = entity as TextAnnotation; // Cast to TextAnnotation
         const padding = 5;
-        return point.x >= entity.position.x - padding && 
-               point.x <= entity.position.x + (entity.width || 50) + padding && 
-               point.y >= entity.position.y - padding && 
-               point.y <= entity.position.y + (entity.height || 20) + padding;
+        return point.x >= textEntity.position.x - padding && 
+               point.x <= textEntity.position.x + (textEntity.width || 50) + padding && 
+               point.y >= textEntity.position.y - padding && 
+               point.y <= textEntity.position.y + (textEntity.height || 20) + padding;
         
       // Add more entity types as needed
       
@@ -885,11 +916,12 @@ export class ToolsManager {
    */
   private getSnapPoint(point: Point): Point {
     // Get the technical drawing store
-    const { entities, snapPoints, gridEnabled } = useTechnicalDrawingStore.getState();
+    const { entities, gridEnabled } = useTechnicalDrawingStore.getState();
+    const storeSnapPoints: Point[] = []; // Assuming snapPoints are not stored globally in the store for now
     
     // Check if there are any snap points nearby
     const snapTolerance = 10; // Pixels
-    for (const snapPoint of snapPoints) {
+    for (const snapPoint of storeSnapPoints) { // Use storeSnapPoints
       const dx = point.x - snapPoint.x;
       const dy = point.y - snapPoint.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -925,23 +957,29 @@ export class ToolsManager {
           break;
           
         case 'arc':
-          entitySnapPoints.push(entity.center, entity.startPoint, entity.endPoint);
+          const arcEntity = entity as ArcEntity; // Cast to ArcEntity
+          entitySnapPoints.push(arcEntity.center);
+          // Calculate startPoint and endPoint for snapping as they are not stored
+          const arcStartPoint = { x: arcEntity.center.x + arcEntity.radius * Math.cos(arcEntity.startAngle), y: arcEntity.center.y + arcEntity.radius * Math.sin(arcEntity.startAngle) };
+          const arcEndPoint = { x: arcEntity.center.x + arcEntity.radius * Math.cos(arcEntity.endAngle), y: arcEntity.center.y + arcEntity.radius * Math.sin(arcEntity.endAngle) };
+          entitySnapPoints.push(arcStartPoint, arcEndPoint);
           break;
           
         case 'rectangle':
+          const rectSnapEntity = entity as RectangleEntity; // Cast to RectangleEntity
           // Add corners
           entitySnapPoints.push(
-            { x: entity.x, y: entity.y },
-            { x: entity.x + entity.width, y: entity.y },
-            { x: entity.x + entity.width, y: entity.y + entity.height },
-            { x: entity.x, y: entity.y + entity.height }
+            { x: rectSnapEntity.position.x, y: rectSnapEntity.position.y },
+            { x: rectSnapEntity.position.x + rectSnapEntity.width, y: rectSnapEntity.position.y },
+            { x: rectSnapEntity.position.x + rectSnapEntity.width, y: rectSnapEntity.position.y + rectSnapEntity.height },
+            { x: rectSnapEntity.position.x, y: rectSnapEntity.position.y + rectSnapEntity.height }
           );
           // Add midpoints
           entitySnapPoints.push(
-            { x: entity.x + entity.width / 2, y: entity.y },
-            { x: entity.x + entity.width, y: entity.y + entity.height / 2 },
-            { x: entity.x + entity.width / 2, y: entity.y + entity.height },
-            { x: entity.x, y: entity.y + entity.height / 2 }
+            { x: rectSnapEntity.position.x + rectSnapEntity.width / 2, y: rectSnapEntity.position.y },
+            { x: rectSnapEntity.position.x + rectSnapEntity.width, y: rectSnapEntity.position.y + rectSnapEntity.height / 2 },
+            { x: rectSnapEntity.position.x + rectSnapEntity.width / 2, y: rectSnapEntity.position.y + rectSnapEntity.height },
+            { x: rectSnapEntity.position.x, y: rectSnapEntity.position.y + rectSnapEntity.height / 2 }
           );
           break;
           

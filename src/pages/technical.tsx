@@ -1,18 +1,8 @@
 // src/pages/technical.tsx
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import { TechnicalDrawingCanvas } from '../components/cad/technical-drawing/TechnicalDrawingCanvas';
-import { SheetSetupPanel } from '../components/cad/technical-drawing/SheetSetupPanel';
-import { ViewportsPanel } from '../components/cad/technical-drawing/ViewportsPanel';
-import { DimensioningPanel } from '../components/cad/technical-drawing/DimensioningPanel';
-import { LayerPanel } from '../components/cad/technical-drawing/LayerPanel';
-import { PropertiesPanel } from '../components/cad/technical-drawing/PropertiesPanel';
-import { CommandLine } from '../components/cad/technical-drawing/CommandLine';
-import { StatusBar } from '../components/cad/technical-drawing/StatusBar';
-import { useTechnicalDrawingStore } from '../store/technicalDrawingStore';
-import { useElementsStore } from '../store/elementsStore';
+import Head from 'next/head';
 import { 
   Menu, 
   X, 
@@ -21,104 +11,140 @@ import {
   Save, 
   Download, 
   ArrowLeft, 
-  Plus,
   Grid,
-  Copy,
   Clipboard,
   FileText,
-  ChevronRight,
-  ChevronDown,
   Info,
   HelpCircle,
   Tool,
-  PenTool,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Layout,
   Sliders,
-  Type,
-  Compass,
-  CornerDownRight,
-  ArrowUp,
-  Hash,
-  MousePointer,
-  Square,
-  Slash,
-  Circle,
-  Scissors,
-  ArrowRight,
-  Move,
-  List,
-  Octagon,
-  RefreshCw,
-  Maximize
+  Maximize2,
+  Home,
+  Plus,
+  Trash,
+  Edit,
+  Aperture,
+  Box,
+  Trello,
+  File as SheetSetupIcon,
+  Target as GDTIcon,
+  Cpu as MechanicalSymbolsIcon,
+  Command
 } from 'react-feather';
-import { convert3DTo2D, createOrthographicViews } from 'src/lib/model3dTo2dConverter';
-import { exportToDXF, exportToSVG, exportToPNG } from '../lib/drawingExportUtil';
-import { initializeTechnicalDrawingStore } from '../store/technicalDrawingStore';
-import { DrawingEntity } from '../types/TechnicalDrawingTypes';
-import { PenTool as PenToolIcon, Info as InfoIcon, Sliders as SlidersIcon, Eye, Lock } from 'react-feather';
-import MetaTags from '../components/layout/Metatags';
-import Layout from '../components/layout/Layout';
-import { TechnicalDrawingToolbar } from '../components/cad/technical-drawing/TechnicalDrawingToolbar';
 
-const TechnicalDrawingPage: React.FC = () => {
-  const { data: session, status } = useSession();
+import { CADCanvasTechnicalDrawing } from '../components/cad/technical-drawing/CADCanvasTechnicalDrawing';
+import { initializeTechnicalDrawingStore, useTechnicalDrawingStore } from '../store/technicalDrawingStore';
+import { useElementsStore } from '../store/elementsStore';
+import { convert3DTo2D, createOrthographicViews } from '../lib/model3dTo2dConverter';
+import { exportToDXF, exportToSVG, exportToPNG } from '../lib/drawingExportUtil';
+import { DrawingEntity } from '../types/TechnicalDrawingTypes';
+import { Ruler } from 'lucide-react';
+
+import { LayerPanel } from '../components/cad/technical-drawing/LayerPanel';
+import { PropertiesPanel } from '../components/cad/technical-drawing/PropertiesPanel';
+import { BlocksPanel } from '../components/cad/technical-drawing/BlocksPanel';
+import { DimensioningPanel } from '../components/cad/technical-drawing/DimensioningPanel';
+import { ViewportsPanel } from '../components/cad/technical-drawing/ViewportsPanel';
+import { SheetSetupPanel } from '../components/cad/technical-drawing/SheetSetupPanel';
+import { GeometricTolerancePanel } from '../components/cad/technical-drawing/GeometricTolerancePanel';
+import { MechanicalSymbolsPanel } from '../components/cad/technical-drawing/MechanicalSymbols';
+import { CommandSystem } from '../components/cad/technical-drawing/core/CommandSystem';
+import { DrawingTool } from '../components/cad/technical-drawing/core/ToolsManager';
+import { S } from 'graphql-ws/dist/server-CRG3y31G';
+import { strict } from 'assert';
+import { TechnicalDrawingToolbar } from '../components/cad/technical-drawing/TechnicalDrawingToolbar';
+import { TechnicalDrawingCanvas } from '../components/cad/technical-drawing/TechnicalDrawingCanvas';
+
+/**
+ * Enhanced Technical Drawing Page Component with AutoCAD-like features
+ */
+const TechnicalPage: React.FC = () => {
   const router = useRouter();
+  const commandSystemRef = useRef<CommandSystem | null>(null);
+  const [commandLineInput, setCommandLineInput] = useState('');
   
-  // Panel states
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [rightPanelTab, setRightPanelTab] = useState<'properties' | 'layers' | 'sheet' | 'dimension' | 'viewport' | 'styles' | 'mechanical' | 'blocks'>('sheet');
-  const [rightPanelWidth, setRightPanelWidth] = useState(320);
+  // Panel and UI states
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'home' | 'draw' | 'modify' | 'annotate' | 'mechanical' | 'view'>('home');
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [showMainMenu, setShowMainMenu] = useState(false);
   const [showHelpPanel, setShowHelpPanel] = useState(false);
-  const [showCommandLinePanel, setShowCommandLinePanel] = useState(true);
-  const [showRibbonTabs, setShowRibbonTabs] = useState(true);
-  const [activeRibbonTab, setActiveRibbonTab] = useState<'home' | 'draw' | 'modify' | 'annotate' | 'view' | 'format' | 'mechanical'>('home');
+  const [showCommandPanel, setShowCommandPanel] = useState(true);
   const [workingMode, setWorkingMode] = useState<'2D' | '3D-to-2D'>('2D');
+  const [currentTool, setCurrentTool] = useState('select');
+  const [isRightPanelOpen, setIsRightPanelOpen] = useState(true);
+  const [rightPanelContent, setRightPanelContent] = useState<
+    'layers' | 'properties' | 'tools' | 'blocks' | 'styles' | 'mechanical' | 'dimensions' | 'viewports' | 'settings' | 'sheet-setup' | 'gdt'
+  >('properties');
   
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const commandHistoryRef = useRef<string[]>([]);
+  // Reference to the drawing canvas container
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   
-  // Get technical drawing state
+  // Get state from technical drawing store
   const { 
     entities, 
     dimensions, 
     annotations, 
-    viewports, 
     sheet, 
-    drawingStandard,
+    viewports,
     zoom,
-    setZoom,
     zoomToFit,
-    zoomToSelection,
-    updateSheet,
-    selectedEntityIds,
-    clearSelection,
-    setActiveTool,
-    activeTool,
-    addViewport,
-    setActiveViewport,
     addEntity,
-    updateViewport,
-    gridEnabled,
-    toggleGrid,
-    orthoMode,
-    toggleOrthoMode,
-    snappingEnabled,
-    toggleSnapping,
-    drawingLayers,
-    activeLayer
+    deleteEntity,
+    clearSelection,
+    selectedEntityIds,
+    activeTool,
+    setActiveTool
   } = useTechnicalDrawingStore();
   
-  // Get 3D elements for conversion
+  // Get elements from 3D store
   const { elements } = useElementsStore();
   
-  // Initialize the technical drawing store when the component mounts
+  // Initialize the store and command system when the component mounts
   useEffect(() => {
     initializeTechnicalDrawingStore();
+    commandSystemRef.current = new CommandSystem();
+  }, []);
+  
+  const handleCommandSubmit = () => {
+    if (commandSystemRef.current && commandLineInput) {
+      commandSystemRef.current.processCommandLine(commandLineInput);
+      setCommandLineInput('');
+    }
+  };
+  
+  // Monitor tool changes from the canvas component
+  const handleToolChange = useCallback((tool: string) => {
+    setCurrentTool(tool);
+  }, []);
+  
+  // Handle entity creation
+  const handleEntityCreated = useCallback((entityId: string) => {
+    console.log(`Entity created: ${entityId}`);
+  }, []);
+  
+  // Handle entity selection
+  const handleEntitySelected = useCallback((entityId: string | string[]) => {
+    console.log(`Entity selected: ${Array.isArray(entityId) ? entityId.join(', ') : entityId}`);
+    
+    // Show properties panel when entity is selected
+    if (entityId && !isRightPanelOpen) {
+      setRightPanelContent('properties');
+      setIsRightPanelOpen(true);
+    }
+  }, [isRightPanelOpen]);
+  
+  // Handle entity deletion
+  const handleEntityDeleted = useCallback((entityId: string) => {
+    console.log(`Entity deleted: ${entityId}`);
   }, []);
   
   // Convert 3D to 2D and add to drawing
-  const handleConvert3DTo2D = () => {
+  const handleConvert3DTo2D = useCallback(() => {
     const viewType = 'front';
     const convertedEntities = convert3DTo2D(elements, viewType);
     
@@ -127,7 +153,6 @@ const TechnicalDrawingPage: React.FC = () => {
       return;
     }
     
-    const { addEntity } = useTechnicalDrawingStore.getState();
     convertedEntities.forEach((entity: DrawingEntity) => {
       addEntity({
         ...entity
@@ -135,111 +160,64 @@ const TechnicalDrawingPage: React.FC = () => {
     });
     
     alert(`Converted ${convertedEntities.length} entities from 3D to 2D.`);
-  };
+  }, [elements, addEntity]);
   
   // Generate orthographic views
-  const handleGenerateViews = () => {
-    // Clear current selection
-    clearSelection();
-    
-    // Create front, top, and side views
-    const views = createOrthographicViews(elements);
-    
-    if (Object.values(views).every(entities => entities.length === 0)) {
-      alert('No entities were created from the 3D model.');
+  const handleGenerateViews = useCallback(() => {
+    if (!elements || Object.keys(elements).length === 0) {
+      alert('No 3D model available for generating views.');
       return;
     }
     
-    // Create viewports for each view
-    const frontViewId = addViewport({
-      name: 'Front View',
-      type: 'front',
-      position: { x: 50, y: 50 },
-      width: 150,
-      height: 100,
-      scale: 1,
-      entities: []
-    });
+    // Clear current selection
+    clearSelection();
     
-    const topViewId = addViewport({
-      name: 'Top View',
-      type: 'top',
-      position: { x: 50, y: 200 },
-      width: 150,
-      height: 100,
-      scale: 1,
-      entities: []
-    });
-    
-    const sideViewId = addViewport({
-      name: 'Right View',
-      type: 'side',
-      position: { x: 250, y: 50 },
-      width: 150,
-      height: 100,
-      scale: 1,
-      entities: []
-    });
-    
-    // Add isometric view if elements are 3D
-    const isoViewId = addViewport({
-      name: 'Isometric View',
-      type: 'isometric',
-      position: { x: 250, y: 200 },
-      width: 150,
-      height: 100,
-      scale: 1,
-      entities: []
-    });
-    
-    setActiveViewport(frontViewId);
-    
-    const viewportEntities: Record<string, string[]> = {
-      [frontViewId]: [],
-      [topViewId]: [],
-      [sideViewId]: [],
-      [isoViewId]: []
-    };
-    
-    // Add entities to each viewport
-    views.front.forEach((entity: DrawingEntity) => {
-      const entityId = addEntity({ ...entity });
-      viewportEntities[frontViewId].push(entityId);
-    });
-    
-    views.top.forEach((entity: DrawingEntity) => {
-      const entityId = addEntity({ ...entity });
-      viewportEntities[topViewId].push(entityId);
-    });
-    
-    views.side.forEach((entity: DrawingEntity) => {
-      const entityId = addEntity({ ...entity });
-      viewportEntities[sideViewId].push(entityId);
-    });
-    
-    // Generate isometric view entities
-    views.isometric?.forEach((entity: DrawingEntity) => {
-      const entityId = addEntity({ ...entity });
-      viewportEntities[isoViewId].push(entityId);
-    });
-    
-    // Update viewports with entity IDs
-    Object.entries(viewportEntities).forEach(([viewportId, entityIds]) => {
-      updateViewport(viewportId, {
-        entities: entityIds
+    try {
+      // Create front, top, and side views
+      const views = createOrthographicViews(elements);
+      
+      if (Object.values(views).every(entities => entities.length === 0)) {
+        alert('No entities were created from the 3D model.');
+        return;
+      }
+      
+      // Add entities for each view
+      let totalEntities = 0;
+      
+      Object.entries(views).forEach(([viewName, viewEntities]) => {
+        viewEntities.forEach((entity: DrawingEntity) => {
+          addEntity({ ...entity });
+          totalEntities++;
+        });
       });
-    });
+      
+      // Zoom to fit all entities
+      zoomToFit();
+      
+      alert(`Created ${totalEntities} entities in orthographic views.`);
+    } catch (error) {
+      console.error('Error generating views:', error);
+      alert('An error occurred while generating views.');
+    }
+  }, [elements, clearSelection, addEntity, zoomToFit]);
+  
+  // Create a new empty drawing
+  const handleNewDrawing = useCallback(() => {
+    if (Object.keys(entities).length > 0 || Object.keys(dimensions).length > 0 || Object.keys(annotations).length > 0) {
+      if (confirm('Creating a new drawing will discard your current work. Continue?')) {
+        initializeTechnicalDrawingStore();
+        setActiveTool('select');
+      }
+    } else {
+      initializeTechnicalDrawingStore();
+      setActiveTool('select');
+    }
     
-    // Switch to viewport tab in the right panel
-    setRightPanelTab('viewport');
-    setRightPanelOpen(true);
-    
-    // Show success message
-    alert('Orthographic views created successfully. Added front, top, right, and isometric views.');
-  };
+    setIsMenuOpen(false);
+  }, [entities, dimensions, annotations, setActiveTool]);
   
   // Export drawing
-  const handleExport = (format: 'dxf' | 'svg' | 'png' | 'pdf' | 'dwg') => {
+  const handleExport = useCallback((format: 'dxf' | 'svg' | 'png' | 'pdf' | 'dwg') => {
     switch (format) {
       case 'dxf':
         exportToDXF(entities, dimensions, annotations, sheet);
@@ -249,8 +227,8 @@ const TechnicalDrawingPage: React.FC = () => {
         break;
       case 'png':
         // Find the canvas element
-        if (canvasRef.current) {
-          const canvas = canvasRef.current.querySelector('canvas');
+        if (canvasContainerRef.current) {
+          const canvas = canvasContainerRef.current.querySelector('canvas');
           if (canvas) {
             exportToPNG(canvas, 'technical_drawing.png');
           } else {
@@ -269,41 +247,11 @@ const TechnicalDrawingPage: React.FC = () => {
     }
     
     setShowExportMenu(false);
-  };
-
-  // Create a new empty drawing
-  const handleNewDrawing = () => {
-    if (Object.keys(entities).length > 0 || Object.keys(dimensions).length > 0 || Object.keys(annotations).length > 0) {
-      if (confirm('Creating a new drawing will discard your current work. Continue?')) {
-        initializeTechnicalDrawingStore();
-        setActiveTool('select');
-      }
-    } else {
-      initializeTechnicalDrawingStore();
-      setActiveTool('select');
-    }
-    
-    setShowMainMenu(false);
-  };
-
-  // Handle keyboard shortcuts for panel size
+  }, [entities, dimensions, annotations, sheet, viewports]);
+  
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Alt+Shift+Right Arrow to increase panel width
-      if (e.altKey && e.shiftKey && e.key === 'ArrowRight' && rightPanelOpen) {
-        setRightPanelWidth(prev => Math.min(prev + 40, 480));
-      }
-      
-      // Alt+Shift+Left Arrow to decrease panel width
-      if (e.altKey && e.shiftKey && e.key === 'ArrowLeft' && rightPanelOpen) {
-        setRightPanelWidth(prev => Math.max(prev - 40, 240));
-      }
-      
-      // Alt+Shift+P to toggle panel
-      if (e.altKey && e.shiftKey && e.key === 'p') {
-        setRightPanelOpen(prev => !prev);
-      }
-      
       // Ctrl+N for new drawing
       if (e.ctrlKey && e.key === 'n') {
         e.preventDefault();
@@ -313,7 +261,7 @@ const TechnicalDrawingPage: React.FC = () => {
       // Ctrl+S for save
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        // Implement save functionality here
+        // Implement save functionality
         alert('Drawing saved');
       }
       
@@ -328,17 +276,12 @@ const TechnicalDrawingPage: React.FC = () => {
         e.preventDefault();
         setShowHelpPanel(prev => !prev);
       }
-
-      // F2 for command line
-      if (e.key === 'F2') {
-        e.preventDefault();
-        setShowCommandLinePanel(prev => !prev);
-      }
       
-      // F10 to toggle ribbon tabs
-      if (e.key === 'F10') {
-        e.preventDefault();
-        setShowRibbonTabs(prev => !prev);
+      // Escape to close panels
+      if (e.key === 'Escape') {
+        if (isMenuOpen) setIsMenuOpen(false);
+        if (showExportMenu) setShowExportMenu(false);
+        if (isRightPanelOpen) setIsRightPanelOpen(false);
       }
     };
     
@@ -346,868 +289,696 @@ const TechnicalDrawingPage: React.FC = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [rightPanelOpen, rightPanelWidth]);
+  }, [handleNewDrawing, isMenuOpen, showExportMenu, isRightPanelOpen]);
   
-  // Process command from command line
-  const handleCommand = (command: string) => {
-    // Add command to history
-    commandHistoryRef.current = [...commandHistoryRef.current, command];
-    
-    // Process command
-    const parts = command.trim().toLowerCase().split(' ');
-    const cmdName = parts[0];
-    
-    switch (cmdName) {
-      case 'line':
-      case 'l':
-        setActiveTool('line');
-        break;
-      case 'circle':
-      case 'c':
-        setActiveTool('circle');
-        break;
-      case 'rectangle':
-      case 'rect':
-      case 'r':
-        setActiveTool('rectangle');
-        break;
-      case 'arc':
-      case 'a':
-        setActiveTool('arc');
-        break;
-      case 'polyline':
-      case 'pl':
-        setActiveTool('polyline');
-        break;
-      case 'ellipse':
-      case 'el':
-        setActiveTool('ellipse');
-        break;
-      case 'text':
-      case 't':
-        setActiveTool('text');
-        break;
-      case 'dim':
-      case 'linear':
-        setActiveTool('dimension-linear');
-        break;
-      case 'dimangular':
-        setActiveTool('dimension-angular');
-        break;
-      case 'dimradius':
-        setActiveTool('dimension-radius');
-        break;
-      case 'dimdiameter':
-        setActiveTool('dimension-diameter');
-        break;
-      case 'leader':
-        setActiveTool('leader');
-        break;
-      case 'centermark':
-      case 'center':
-        setActiveTool('centermark');
-        break;
-      case 'centerline':
-        setActiveTool('centerline');
-        break;
-      case 'hatch':
-      case 'h':
-        setActiveTool('hatch');
-        break;
-      case 'grid':
-        toggleGrid();
-        break;
-      case 'snap':
-        toggleSnapping();
-        break;
-      case 'ortho':
-        toggleOrthoMode();
-        break;
-      case 'zoom':
-        const subCmd = parts[1];
-        if (subCmd === 'in') {
-          setZoom(zoom * 1.2);
-        } else if (subCmd === 'out') {
-          setZoom(zoom * 0.8);
-        } else if (subCmd === 'all' || subCmd === 'fit') {
-          zoomToFit();
-        } else if (subCmd === 'selection' || subCmd === 'sel') {
-          zoomToSelection();
-        } else {
-          try {
-            const factor = parseFloat(subCmd);
-            if (!isNaN(factor)) {
-              setZoom(factor);
-            }
-          } catch (e) {
-            console.error('Invalid zoom factor');
-          }
-        }
-        break;
-      default:
-        console.log(`Command not recognized: ${command}`);
-    }
-  };
-  
-  if (status === 'loading') {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-  
-  if (status === 'unauthenticated') {
-    router.push('/auth/signin');
-    return null;
-  }
-  
-  // Ribbon tabs definition
+  // Define tabs for ribbon menu
   const ribbonTabs = {
     home: (
-      <div className="flex space-x-1 p-1">
-        {/* Selection group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <button 
-            onClick={() => setActiveTool('select')}
-            className={`p-2 rounded-md ${activeTool === 'select' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-            title="Select (S)"
-          >
-            <MousePointer size={18} />
-          </button>
-          <div className="flex flex-col items-center">
+      <div className="flex items-center space-x-4">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
-              onClick={() => setActiveTool('select-window')}
-              className={`p-2 rounded-md ${activeTool === 'select-window' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Window Select"
+              onClick={() => setActiveTool('select')}
+              className={`p-2 rounded ${activeTool === 'select' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Select (S)"
             >
-              <Square size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 3l7 7m0 0v-6m0 6h-6"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Window</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('select-crossing')}
-              className={`p-2 rounded-md ${activeTool === 'select-crossing' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Crossing Select"
-            >
-              <X size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Crossing</span>
-          </div>
-        </div>
-        
-        {/* Draw group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('line')}
-              className={`p-2 rounded-md ${activeTool === 'line' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Line (L)"
-            >
-              <Slash size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Line</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('circle')}
-              className={`p-2 rounded-md ${activeTool === 'circle' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Circle (C)"
-            >
-              <Circle size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Circle</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('arc')}
-              className={`p-2 rounded-md ${activeTool === 'arc' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Arc (A)"
-            >
-              <Compass size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Arc</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('rectangle')}
-              className={`p-2 rounded-md ${activeTool === 'rectangle' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Rectangle (RECT)"
-            >
-              <Square size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Rectangle</span>
-          </div>
-        </div>
-        
-        {/* Modify group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('move')}
-              className={`p-2 rounded-md ${activeTool === 'move' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'move' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Move (M)"
             >
-              <Move size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M5 12h14"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Move</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('copy')}
-              className={`p-2 rounded-md ${activeTool === 'copy' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Copy (CO)"
+              className={`p-2 rounded ${activeTool === 'copy' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Copy (CP)"
             >
-              <Copy size={18} />
+              <Clipboard size={20} className="text-gray-200" />
             </button>
-            <span className="text-xs text-gray-400 mt-1">Copy</span>
           </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('trim')}
-              className={`p-2 rounded-md ${activeTool === 'trim' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Trim (TR)"
-            >
-              <Scissors size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Trim</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Modify</div>
         </div>
         
-        {/* Annotation group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('line')}
+              className={`p-2 rounded ${activeTool === 'line' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Line (L)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M5 19l14-14"></path>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('circle')}
+              className={`p-2 rounded ${activeTool === 'circle' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Circle (C)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('rectangle')}
+              className={`p-2 rounded ${activeTool === 'rectangle' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Rectangle (R)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Draw</div>
+        </div>
+        
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
               onClick={() => setActiveTool('dimension-linear')}
-              className={`p-2 rounded-md ${activeTool === 'dimension-linear' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'dimension-linear' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Linear Dimension (DIM)"
             >
-              <ArrowRight size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 6h18M3 12h18M3 18h18"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Dimension</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('text')}
-              className={`p-2 rounded-md ${activeTool === 'text' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'text' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Text (T)"
             >
-              <Type size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M12 5v14M5 12h14"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Text</span>
           </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('leader')}
-              className={`p-2 rounded-md ${activeTool === 'leader' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Leader (LE)"
-            >
-              <CornerDownRight size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Leader</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Annotate</div>
         </div>
         
-        {/* Layers and Properties group */}
-        <div className="flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div>
+          <div className="flex space-x-1">
             <button 
-              onClick={() => setRightPanelTab('layers')}
-              className={`p-2 rounded-md ${rightPanelTab === 'layers' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              onClick={() => {
+                setRightPanelContent('layers');
+                setIsRightPanelOpen(true);
+              }}
+              className={`p-2 rounded ${rightPanelContent === 'layers' && isRightPanelOpen ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Layers (LA)"
             >
-              <Layers size={18} />
+              <Layers size={20} className="text-gray-200" />
             </button>
-            <span className="text-xs text-gray-400 mt-1">Layers</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
-              onClick={() => setRightPanelTab('properties')}
-              className={`p-2 rounded-md ${rightPanelTab === 'properties' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              onClick={() => {
+                setRightPanelContent('properties');
+                setIsRightPanelOpen(true);
+              }}
+              className={`p-2 rounded ${rightPanelContent === 'properties' && isRightPanelOpen ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Properties (PR)"
             >
-              <Sliders size={18} />
+              <Sliders size={20} className="text-gray-200" />
             </button>
-            <span className="text-xs text-gray-400 mt-1">Properties</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
-              onClick={() => toggleGrid()}
-              className={`p-2 rounded-md ${gridEnabled ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Grid (F7)"
+              onClick={() => {
+                setRightPanelContent('blocks');
+                setIsRightPanelOpen(true);
+              }}
+              className={`p-2 rounded ${rightPanelContent === 'blocks' && isRightPanelOpen ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Blocks (B)"
             >
-              <Grid size={18} />
+              <Box size={20} className="text-gray-200" />
             </button>
-            <span className="text-xs text-gray-400 mt-1">Grid</span>
           </div>
-        </div>
-      </div>
-    ),
-    
-    mechanical: (
-      <div className="flex space-x-1 p-1">
-        {/* Centerline Tools */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('centermark')}
-              className={`p-2 rounded-md ${activeTool === 'centermark' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Center Mark (CM)"
-            >
-              <Plus size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Center Mark</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('centerline')}
-              className={`p-2 rounded-md ${activeTool === 'centerline' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Centerline (CL)"
-            >
-              <ArrowUp size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Centerline</span>
-          </div>
-        </div>
-        
-        {/* Symbols */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('weldsymbol')}
-              className={`p-2 rounded-md ${activeTool === 'weldsymbol' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Weld Symbol (WELD)"
-            >
-              <Hash size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Weld Symbol</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('surface-finish')}
-              className={`p-2 rounded-md ${activeTool === 'surface-finish' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Surface Finish (SF)"
-            >
-              <Hash size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Surface Finish</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('feature-control-frame')}
-              className={`p-2 rounded-md ${activeTool === 'feature-control-frame' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Feature Control Frame (FCF)"
-            >
-              <Square size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">GD&T</span>
-          </div>
-        </div>
-        
-        {/* BOM and Callouts */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('balloontext')}
-              className={`p-2 rounded-md ${activeTool === 'balloontext' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Balloon Text (BT)"
-            >
-              <Circle size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Balloon</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('partslist')}
-              className={`p-2 rounded-md ${activeTool === 'partslist' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Parts List (PL)"
-            >
-              <List size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Parts List</span>
-          </div>
-        </div>
-        
-        {/* Section Views */}
-        <div className="flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('section-line')}
-              className={`p-2 rounded-md ${activeTool === 'section-line' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Section Line (SL)"
-            >
-              <Slash size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Section Line</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('hatch')}
-              className={`p-2 rounded-md ${activeTool === 'hatch' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Hatch Pattern (H)"
-            >
-              <Grid size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Hatch</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Tools</div>
         </div>
       </div>
     ),
     
     draw: (
-      <div className="flex space-x-1 p-1">
-        {/* Lines */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+      <div className="flex items-center space-x-4">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
               onClick={() => setActiveTool('line')}
-              className={`p-2 rounded-md ${activeTool === 'line' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'line' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Line (L)"
             >
-              <Slash size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M5 19l14-14"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Line</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('polyline')}
-              className={`p-2 rounded-md ${activeTool === 'polyline' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'polyline' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Polyline (PL)"
             >
-              <PenTool size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 3l3 9-9 3"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Polyline</span>
           </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('construction-line')}
-              className={`p-2 rounded-md ${activeTool === 'construction-line' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Construction Line (XL)"
-            >
-              <Slash size={18} className="opacity-50" />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Construction</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Lines</div>
         </div>
         
-        {/* Circles and Arcs */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
               onClick={() => setActiveTool('circle')}
-              className={`p-2 rounded-md ${activeTool === 'circle' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'circle' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Circle (C)"
             >
-              <Circle size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <circle cx="12" cy="12" r="10"></circle>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Circle</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('arc')}
-              className={`p-2 rounded-md ${activeTool === 'arc' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'arc' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Arc (A)"
             >
-              <Compass size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-9-9"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Arc</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('ellipse')}
-              className={`p-2 rounded-md ${activeTool === 'ellipse' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'ellipse' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Ellipse (EL)"
             >
-              <Circle size={18} className="opacity-70" />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <circle cx="12" cy="12" r="10" transform="scale(1.2, 0.8)"></circle>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Ellipse</span>
           </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Curves</div>
         </div>
         
-        {/* Rectangles and Polygons */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
               onClick={() => setActiveTool('rectangle')}
-              className={`p-2 rounded-md ${activeTool === 'rectangle' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Rectangle (RECT)"
+              className={`p-2 rounded ${activeTool === 'rectangle' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Rectangle (R)"
             >
-              <Square size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Rectangle</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('polygon')}
-              className={`p-2 rounded-md ${activeTool === 'polygon' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'polygon' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Polygon (POL)"
             >
-              <Octagon size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M12 2l5 5 5 10-5 5-10 0-5-5 0-10 5-5z"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Polygon</span>
           </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Shapes</div>
         </div>
         
-        {/* Curves */}
-        <div className="flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div>
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('hatch')}
+              className={`p-2 rounded ${activeTool === 'hatch' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Hatch (H)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M2 2l4 4m0 0l4 4m-4-4l-4 4m8 0l4 4m0 0l4 4m-4-4l-4 4"></path>
+              </svg>
+            </button>
             <button 
               onClick={() => setActiveTool('spline')}
-              className={`p-2 rounded-md ${activeTool === 'spline' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Spline (SP)"
+              className={`p-2 rounded ${activeTool === 'spline' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Spline (SPL)"
             >
-              <PenTool size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 20c6-9 10-9 21-3"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Spline</span>
           </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('point')}
-              className={`p-2 rounded-md ${activeTool === 'point' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Point (PO)"
-            >
-              <X size={18} className="transform scale-50" />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Point</span>
-          </div>
-        </div>
-      </div>
-    ),
-    
-    annotate: (
-      <div className="flex space-x-1 p-1">
-        {/* Dimension Group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('dimension-linear')}
-              className={`p-2 rounded-md ${activeTool === 'dimension-linear' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Linear Dimension (DIMLIN)"
-            >
-              <ArrowRight size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Linear</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('dimension-aligned')}
-              className={`p-2 rounded-md ${activeTool === 'dimension-aligned' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Aligned Dimension (DIMALIGNED)"
-            >
-              <ArrowUp size={18} className="transform -rotate-45" />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Aligned</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('dimension-angular')}
-              className={`p-2 rounded-md ${activeTool === 'dimension-angular' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Angular Dimension (DIMANG)"
-            >
-              <Compass size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Angular</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('dimension-radius')}
-              className={`p-2 rounded-md ${activeTool === 'dimension-radius' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Radius Dimension (DIMRAD)"
-            >
-              <Circle size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Radius</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('dimension-diameter')}
-              className={`p-2 rounded-md ${activeTool === 'dimension-diameter' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Diameter Dimension (DIMDIA)"
-            >
-              <Circle size={18} className="font-bold" />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Diameter</span>
-          </div>
-        </div>
-        
-        {/* Leaders and Text */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('leader')}
-              className={`p-2 rounded-md ${activeTool === 'leader' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Leader (LE)"
-            >
-              <CornerDownRight size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Leader</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('text')}
-              className={`p-2 rounded-md ${activeTool === 'text' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Text (T)"
-            >
-              <Type size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Text</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('mtext')}
-              className={`p-2 rounded-md ${activeTool === 'mtext' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Multiline Text (MT)"
-            >
-              <Type size={18} className="font-bold" />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">MText</span>
-          </div>
-        </div>
-        
-        {/* Tolerances and Tables */}
-        <div className="flex items-center space-x-2">
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('tolerance')}
-              className={`p-2 rounded-md ${activeTool === 'tolerance' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Tolerance (TOL)"
-            >
-              <Hash size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Tolerance</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('table')}
-              className={`p-2 rounded-md ${activeTool === 'table' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Table (TB)"
-            >
-              <Grid size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Table</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setRightPanelTab('dimension')}
-              className={`p-2 rounded-md ${rightPanelTab === 'dimension' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Dimension Style"
-            >
-              <Settings size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Dim Style</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Advanced</div>
         </div>
       </div>
     ),
     
     modify: (
-      <div className="flex space-x-1 p-1">
-        {/* Modify Group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+      <div className="flex items-center space-x-4">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
               onClick={() => setActiveTool('move')}
-              className={`p-2 rounded-md ${activeTool === 'move' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'move' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Move (M)"
             >
-              <Move size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M5 12h14"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Move</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('copy')}
-              className={`p-2 rounded-md ${activeTool === 'copy' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Copy (CO)"
+              className={`p-2 rounded ${activeTool === 'copy' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Copy (CP)"
             >
-              <Copy size={18} />
+              <Clipboard size={20} className="text-gray-200" />
             </button>
-            <span className="text-xs text-gray-400 mt-1">Copy</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('rotate')}
-              className={`p-2 rounded-md ${activeTool === 'rotate' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'rotate' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Rotate (RO)"
             >
-              <RefreshCw size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M23 4v6h-6M1 20v-6h6"></path>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Rotate</span>
           </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('scale')}
-              className={`p-2 rounded-md ${activeTool === 'scale' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Scale (SC)"
-            >
-              <Maximize size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Scale</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Transform</div>
         </div>
         
-        {/* Edit Group */}
-        <div className="border-r border-gray-700 pr-4 flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
             <button 
               onClick={() => setActiveTool('trim')}
-              className={`p-2 rounded-md ${activeTool === 'trim' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'trim' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Trim (TR)"
             >
-              <Scissors size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M6 12l12 0M3 3l6 6M15 15l6 6"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Trim</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('extend')}
-              className={`p-2 rounded-md ${activeTool === 'extend' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'extend' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Extend (EX)"
             >
-              <ArrowRight size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 8l3 4"></path>
+                <path d="M18 12l3 -4"></path>
+                <path d="M3 16l18 0"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Extend</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('offset')}
-              className={`p-2 rounded-md ${activeTool === 'offset' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'offset' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Offset (O)"
             >
-              <Square size={18} className="transform scale-75" />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 10h18"></path>
+                <path d="M6 14h12"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Offset</span>
           </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('fillet')}
-              className={`p-2 rounded-md ${activeTool === 'fillet' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Fillet (F)"
-            >
-              <CornerDownRight size={18} />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Fillet</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <button 
-              onClick={() => setActiveTool('chamfer')}
-              className={`p-2 rounded-md ${activeTool === 'chamfer' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Chamfer (CHA)"
-            >
-              <CornerDownRight size={18} className="transform scale-75" />
-            </button>
-            <span className="text-xs text-gray-400 mt-1">Chamfer</span>
-          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Modify</div>
         </div>
         
-        {/* Array Group */}
-        <div className="flex items-center space-x-2">
-          <div className="flex flex-col items-center">
+        <div>
+          <div className="flex space-x-1">
             <button 
-              onClick={() => setActiveTool('array-rectangular')}
-              className={`p-2 rounded-md ${activeTool === 'array-rectangular' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Rectangular Array (AR)"
+              onClick={() => setActiveTool('fillet')}
+              className={`p-2 rounded ${activeTool === 'fillet' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Fillet (F)"
             >
-              <Grid size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M7 5v7a5 5 0 0 0 5 5h7"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Rect Array</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
-              onClick={() => setActiveTool('array-polar')}
-              className={`p-2 rounded-md ${activeTool === 'array-polar' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
-              title="Polar Array (AP)"
+              onClick={() => setActiveTool('chamfer')}
+              className={`p-2 rounded ${activeTool === 'chamfer' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Chamfer (CHA)"
             >
-              <Circle size={18} />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M6 6l6 12l6 -12"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Polar Array</span>
-          </div>
-          <div className="flex flex-col items-center">
             <button 
               onClick={() => setActiveTool('mirror')}
-              className={`p-2 rounded-md ${activeTool === 'mirror' ? 'bg-blue-900 text-blue-300' : 'text-gray-300 hover:bg-gray-700'}`}
+              className={`p-2 rounded ${activeTool === 'mirror' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
               title="Mirror (MI)"
             >
-              <Slash size={18} className="transform -rotate-90" />
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M12 3l0 18M19 5l-7 7l7 7M5 5l7 7l-7 7"></path>
+              </svg>
             </button>
-            <span className="text-xs text-gray-400 mt-1">Mirror</span>
           </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Construction</div>
         </div>
       </div>
     ),
+    
+    annotate: (
+      <div className="flex items-center space-x-4">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('dimension-linear')}
+              className={`p-2 rounded ${activeTool === 'dimension-linear' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Linear Dimension (DL)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <line x1="6" y1="6" x2="6" y2="18"></line>
+                <line x1="18" y1="6" x2="18" y2="18"></line>
+                <line x1="6" y1="12" x2="18" y2="12"></line>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('dimension-angular')}
+              className={`p-2 rounded ${activeTool === 'dimension-angular' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Angular Dimension (DA)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M12 12L3 12"></path>
+                <path d="M12 12L18 5"></path>
+                <path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
+                <path d="M7 12a5 5 0 1 0 5 -5"></path>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('dimension-radius')}
+              className={`p-2 rounded ${activeTool === 'dimension-radius' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Radius Dimension (DR)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <circle cx="12" cy="12" r="9"></circle>
+                <line x1="12" y1="12" x2="21" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Dimensions</div>
+        </div>
+        
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('text')}
+              className={`p-2 rounded ${activeTool === 'text' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Text (T)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <text x="6" y="16" fontSize="14" strokeWidth="0" fill="currentColor">Aa</text>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('leader')}
+              className={`p-2 rounded ${activeTool === 'leader' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Leader (LE)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M4 21v-4a3 3 0 0 1 3 -3h5"></path>
+                <path d="M18 16l-2 -2l2 -2"></path>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('table')}
+              className={`p-2 rounded ${activeTool === 'table' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Table (TB)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <rect x="4" y="4" width="16" height="16" rx="0"></rect>
+                <line x1="4" y1="10" x2="20" y2="10"></line>
+                <line x1="4" y1="16" x2="20" y2="16"></line>
+                <line x1="10" y1="4" x2="10" y2="20"></line>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Text</div>
+        </div>
+        
+        <div>
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => {
+                setRightPanelContent('dimensions');
+                setIsRightPanelOpen(true);
+              }}
+              className={`p-2 rounded ${rightPanelContent === 'dimensions' && isRightPanelOpen ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Dimension Styles"
+            >
+              <Settings size={20} className="text-gray-200" />
+            </button>
+            <button 
+              onClick={() => setActiveTool('centermark')}
+              className={`p-2 rounded ${activeTool === 'centermark' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Center Mark (CM)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M12 3v3m0 12v3M3 12h3m12 0h3M7.5 7.5l1.5 1.5m6 6l1.5 1.5M7.5 16.5l1.5-1.5m6-6l1.5-1.5"></path>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Styles</div>
+        </div>
+      </div>
+    ),
+    
+    mechanical: (
+      <div className="flex items-center space-x-4">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('centerline')}
+              className={`p-2 rounded ${activeTool === 'centerline' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Centerline (CL)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200" strokeDasharray="4,2">
+                <line x1="12" y1="3" x2="12" y2="21"></line>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('centermark')}
+              className={`p-2 rounded ${activeTool === 'centermark' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Center Mark (CM)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M12 3v3m0 12v3M3 12h3m12 0h3M7.5 7.5l1.5 1.5m6 6l1.5 1.5M7.5 16.5l1.5-1.5m6-6l1.5-1.5"></path>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Centerlines</div>
+        </div>
+        
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('section-line')}
+              className={`p-2 rounded ${activeTool === 'section-line' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Section Line (SL)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <line x1="3" y1="3" x2="21" y2="21" strokeDasharray="6,3"></line>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('hatch')}
+              className={`p-2 rounded ${activeTool === 'hatch' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Hatch (H)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M2 2l4 4m0 0l4 4m-4-4l-4 4m8 0l4 4m0 0l4 4m-4-4l-4 4"></path>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Sections</div>
+        </div>
+        
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('gdt')}
+              className={`p-2 rounded ${activeTool === 'gdt' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Geometric Tolerancing (GDT)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <rect x="4" y="8" width="16" height="8" rx="1"></rect>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('surface-finish')}
+              className={`p-2 rounded ${activeTool === 'surface-finish' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Surface Finish (SF)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M3 10l2 -2l2 2l2 -2l2 2l2 -2l2 2l2 -2l2 2"></path>
+                <path d="M5 8l0 10"></path>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Symbols</div>
+        </div>
+        
+        <div>
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('balloontext')}
+              className={`p-2 rounded ${activeTool === 'balloontext' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Balloon (BL)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <circle cx="12" cy="10" r="6"></circle>
+                <path d="M12 16v5"></path>
+              </svg>
+            </button>
+            <button 
+              onClick={() => setActiveTool('partslist')}
+              className={`p-2 rounded ${activeTool === 'partslist' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Parts List (PL)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                <line x1="4" y1="10" x2="20" y2="10"></line>
+                <line x1="10" y1="4" x2="10" y2="20"></line>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">BOM</div>
+        </div>
+      </div>
+    ),
+    
+    view: (
+      <div className="flex items-center space-x-4">
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => zoomToFit()}
+              className="p-2 rounded hover:bg-gray-700"
+              title="Zoom Extents (ZE)"
+            >
+              <Maximize2 size={20} className="text-gray-200" />
+            </button>
+            <button 
+              onClick={() => setActiveTool('pan')}
+              className={`p-2 rounded ${activeTool === 'pan' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Pan (P)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M14 7l-5 5 5 5"></path>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Navigation</div>
+        </div>
+        
+        <div className="border-r border-gray-700 pr-4">
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => {
+                setRightPanelContent('viewports');
+                setIsRightPanelOpen(true);
+              }}
+              className={`p-2 rounded ${rightPanelContent === 'viewports' && isRightPanelOpen ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Viewports (VP)"
+            >
+              <Layout size={20} className="text-gray-200" />
+            </button>
+            <button 
+              onClick={() => {
+                setRightPanelContent('layers');
+                setIsRightPanelOpen(true);
+              }}
+              className={`p-2 rounded ${rightPanelContent === 'layers' && isRightPanelOpen ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Layers (LA)"
+            >
+              <Layers size={20} className="text-gray-200" />
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Display</div>
+        </div>
+        
+        <div>
+          <div className="flex space-x-1">
+            <button 
+              onClick={() => setActiveTool('measure-distance')}
+              className={`p-2 rounded ${activeTool === 'measure-distance' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Measure Distance (MD)"
+            >
+              <Ruler size={20} className="text-gray-200" />
+            </button>
+            <button 
+              onClick={() => setActiveTool('measure-angle')}
+              className={`p-2 rounded ${activeTool === 'measure-angle' ? 'bg-blue-600' : 'hover:bg-gray-700'}`}
+              title="Measure Angle (MA)"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" 
+                   strokeWidth="2" fill="none" className="text-gray-200">
+                <path d="M15 12h3"></path>
+                <path d="M12 12a3 3 0 1 0 -3 -3"></path>
+                <path d="M12 12v9"></path>
+              </svg>
+            </button>
+          </div>
+          <div className="text-center text-xs text-gray-500 mt-1">Measure</div>
+        </div>
+      </div>
+    )
   };
   
-  // Custom PlusMinusIcon for tolerance
-  const PlusMinusIcon = ({ size }: { size: number }) => (
-    <div className="flex flex-col items-center justify-center h-full">
-      <span className="text-sm font-bold leading-none">±</span>
-    </div>
-  );
-  
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      <MetaTags
-        title="Technical Drawing"
-        description="Create precision technical drawings with multiple views"
-        ogImage="/og-images/technical-drawing.png"
-      />
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden">
+      <Head>
+        <title>CAD Technical Drawing</title>
+        <meta name="description" content="Advanced technical drawing application" />
+      </Head>
       
       {/* Header Bar */}
-      <header className="bg-gray-900 text-white border-b border-gray-700 py-2 px-4 flex items-center justify-between shadow-md z-20">
+      <header className="bg-gray-900 text-white border-b border-gray-700 py-2 px-4 flex items-center justify-between shadow-md z-30">
         <div className="flex items-center">
           <button
-            onClick={() => setShowMainMenu(!showMainMenu)}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="flex items-center text-gray-300 hover:text-white mr-4 transition-colors duration-150"
           >
             <Menu size={18} className="mr-2" />
             <span className="font-medium">Menu</span>
           </button>
-          {showMainMenu && (
-            <div className="absolute top-12 left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 w-64 overflow-hidden transition-all duration-150">
-              <div className="py-1">
-                <button
-                  onClick={handleNewDrawing}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <FileText size={16} className="mr-2.5 text-gray-400" />
-                  <span>New Drawing</span>
-                  <span className="ml-auto text-xs text-gray-500">Ctrl+N</span>
-                </button>
-                <button
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <Save size={16} className="mr-2.5 text-gray-400" />
-                  <span>Save Drawing</span>
-                  <span className="ml-auto text-xs text-gray-500">Ctrl+S</span>
-                </button>
-                <button
-                  onClick={() => setShowExportMenu(!showExportMenu)}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <Download size={16} className="mr-2.5 text-gray-400" />
-                  <span>Export Drawing</span>
-                  <span className="ml-auto text-xs text-gray-500">Ctrl+E</span>
-                </button>
-                <div className="border-t border-gray-700 my-1"></div>
-                <button
-                  onClick={() => setWorkingMode(workingMode === '2D' ? '3D-to-2D' : '2D')}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <Tool size={16} className="mr-2.5 text-gray-400" />
-                  <span>{workingMode === '2D' ? 'Switch to 3D-to-2D Mode' : 'Switch to 2D Mode'}</span>
-                </button>
-                <button
-                  onClick={() => setShowHelpPanel(!showHelpPanel)}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <HelpCircle size={16} className="mr-2.5 text-gray-400" />
-                  <span>Help</span>
-                  <span className="ml-auto text-xs text-gray-500">F1</span>
-                </button>
-              </div>
-            </div>
-          )}
           <div className="flex items-center">
             <button
               className={`flex items-center px-3 py-1.5 rounded-md text-white ${workingMode === '2D' ? 'bg-blue-900 hover:bg-blue-800' : 'bg-gray-800 hover:bg-gray-700'} font-medium mr-2`}
@@ -1230,7 +1001,7 @@ const TechnicalDrawingPage: React.FC = () => {
               onClick={handleGenerateViews}
               className="flex items-center px-4 py-1.5 border border-gray-600 rounded-md text-gray-300 hover:bg-gray-700 transition-colors duration-150 font-medium"
             >
-              <Sliders size={16} className="mr-1.5" />
+              <Aperture size={16} className="mr-1.5" />
               <span>Generate Views</span>
             </button>
           )}
@@ -1243,56 +1014,6 @@ const TechnicalDrawingPage: React.FC = () => {
             <span>Export</span>
           </button>
           
-          {showExportMenu && (
-            <div className="absolute top-12 right-40 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 w-56 overflow-hidden transition-all duration-150">
-              <div className="py-1">
-                <div className="px-4 py-2 bg-gray-750 border-b border-gray-700">
-                  <h3 className="text-sm font-semibold text-gray-300">Export Options</h3>
-                </div>
-                <button
-                  onClick={() => handleExport('dxf')}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <FileText size={16} className="mr-2.5 text-gray-400" />
-                  <span>Export as DXF</span>
-                  <span className="ml-auto text-xs text-gray-500">CAD</span>
-                </button>
-                <button
-                  onClick={() => handleExport('svg')}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <FileText size={16} className="mr-2.5 text-gray-400" />
-                  <span>Export as SVG</span>
-                  <span className="ml-auto text-xs text-gray-500">Vector</span>
-                </button>
-                <button
-                  onClick={() => handleExport('png')}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <FileText size={16} className="mr-2.5 text-gray-400" />
-                  <span>Export as PNG</span>
-                  <span className="ml-auto text-xs text-gray-500">Image</span>
-                </button>
-                <button
-                  onClick={() => handleExport('pdf')}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <FileText size={16} className="mr-2.5 text-gray-400" />
-                  <span>Export as PDF</span>
-                  <span className="ml-auto text-xs text-gray-500">Document</span>
-                </button>
-                <button
-                  onClick={() => handleExport('dwg')}
-                  className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
-                >
-                  <FileText size={16} className="mr-2.5 text-gray-400" />
-                  <span>Export as DWG</span>
-                  <span className="ml-auto text-xs text-gray-500">AutoCAD</span>
-                </button>
-              </div>
-            </div>
-          )}
-          
           <button
             onClick={() => router.push('/cad')}
             className="flex items-center text-gray-300 hover:text-white transition-colors duration-150"
@@ -1302,280 +1023,228 @@ const TechnicalDrawingPage: React.FC = () => {
           </button>
         </div>
       </header>
-
-      {/* Ribbon Tabs */}
-      {showRibbonTabs && (
-        <div className="bg-gray-850 border-b border-gray-700 z-10">
-          <div className="flex">
+      
+      {/* Main Menu - conditionally rendered */}
+      {isMenuOpen && (
+        <div className="absolute top-12 left-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-40 w-64 overflow-hidden transition-all duration-150">
+          <div className="py-1">
             <button
-              onClick={() => setActiveRibbonTab('home')}
-              className={`flex items-center py-2 px-4 ${activeRibbonTab === 'home' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+              onClick={handleNewDrawing}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
             >
-              <span className="font-medium">Home</span>
+              <FileText size={16} className="mr-2.5 text-gray-400" />
+              <span>New Drawing</span>
+              <span className="ml-auto text-xs text-gray-500">Ctrl+N</span>
             </button>
             <button
-              onClick={() => setActiveRibbonTab('draw')}
-              className={`flex items-center py-2 px-4 ${activeRibbonTab === 'draw' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
             >
-              <span className="font-medium">Draw</span>
+              <Save size={16} className="mr-2.5 text-gray-400" />
+              <span>Save Drawing</span>
+              <span className="ml-auto text-xs text-gray-500">Ctrl+S</span>
             </button>
             <button
-              onClick={() => setActiveRibbonTab('modify')}
-              className={`flex items-center py-2 px-4 ${activeRibbonTab === 'modify' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
             >
-              <span className="font-medium">Modify</span>
+              <Download size={16} className="mr-2.5 text-gray-400" />
+              <span>Export Drawing</span>
+              <span className="ml-auto text-xs text-gray-500">Ctrl+E</span>
+            </button>
+            <div className="border-t border-gray-700 my-1"></div>
+            <button
+              onClick={() => setWorkingMode(workingMode === '2D' ? '3D-to-2D' : '2D')}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
+            >
+              <Tool size={16} className="mr-2.5 text-gray-400" />
+              <span>{workingMode === '2D' ? 'Switch to 3D-to-2D Mode' : 'Switch to 2D Mode'}</span>
             </button>
             <button
-              onClick={() => setActiveRibbonTab('annotate')}
-              className={`flex items-center py-2 px-4 ${activeRibbonTab === 'annotate' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+              onClick={() => setShowHelpPanel(!showHelpPanel)}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
             >
-              <span className="font-medium">Annotate</span>
+              <HelpCircle size={16} className="mr-2.5 text-gray-400" />
+              <span>Help</span>
+              <span className="ml-auto text-xs text-gray-500">F1</span>
             </button>
-            <button
-              onClick={() => setActiveRibbonTab('mechanical')}
-              className={`flex items-center py-2 px-4 ${activeRibbonTab === 'mechanical' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
-            >
-              <span className="font-medium">Mechanical</span>
-            </button>
-          </div>
-          
-          {/* Ribbon Content */}
-          <div className="bg-gray-900 border-b border-gray-700">
-            {activeRibbonTab === 'home' && ribbonTabs.home}
-            {activeRibbonTab === 'draw' && ribbonTabs.draw}
-            {activeRibbonTab === 'modify' && ribbonTabs.modify}
-            {activeRibbonTab === 'annotate' && ribbonTabs.annotate}
-            {activeRibbonTab === 'mechanical' && ribbonTabs.mechanical}
           </div>
         </div>
       )}
-
-      {/* Properties Tabs */}
-      <div className="flex bg-gray-850 border-b border-gray-700 z-10">
-        <button
-          onClick={() => setRightPanelTab('properties')}
-          className={`flex items-center py-3 px-6 ${rightPanelTab === 'properties' ? 'bg-gray-900 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-        >
-          <Sliders size={16} className="mr-2" />
-          <span className="font-medium">Properties</span>
-        </button>
-        <button
-          onClick={() => setRightPanelTab('layers')}
-          className={`flex items-center py-3 px-6 ${rightPanelTab === 'layers' ? 'bg-gray-900 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-        >
-          <Layers size={16} className="mr-2" />
-          <span className="font-medium">Layers</span>
-        </button>
-        <button
-          onClick={() => setRightPanelTab('styles')}
-          className={`flex items-center py-3 px-6 ${rightPanelTab === 'styles' ? 'bg-gray-900 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-        >
-          <PenTool size={16} className="mr-2" />
-          <span className="font-medium">Styles</span>
-        </button>
-        <button
-          onClick={() => setRightPanelTab('dimension')}
-          className={`flex items-center py-3 px-6 ${rightPanelTab === 'dimension' ? 'bg-gray-900 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-        >
-          <ArrowRight size={16} className="mr-2" />
-          <span className="font-medium">Dimensions</span>
-        </button>
-        <button
-          onClick={() => setRightPanelTab('blocks')}
-          className={`flex items-center py-3 px-6 ${rightPanelTab === 'blocks' ? 'bg-gray-900 text-blue-400' : 'text-gray-400 hover:text-gray-300'}`}
-        >
-          <Grid size={16} className="mr-2" />
-          <span className="font-medium">Blocks</span>
-        </button>
+      
+      {/* Export Menu - conditionally rendered */}
+      {showExportMenu && (
+        <div className="absolute top-12 right-[150px] mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-40 w-56 overflow-hidden transition-all duration-150">
+          <div className="py-1">
+            <div className="px-4 py-2 bg-gray-750 border-b border-gray-700">
+              <h3 className="text-sm font-semibold text-gray-300">Export Options</h3>
+            </div>
+            <button
+              onClick={() => handleExport('dxf')}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
+            >
+              <FileText size={16} className="mr-2.5 text-gray-400" />
+              <span>Export as DXF</span>
+              <span className="ml-auto text-xs text-gray-500">CAD</span>
+            </button>
+            <button
+              onClick={() => handleExport('svg')}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
+            >
+              <FileText size={16} className="mr-2.5 text-gray-400" />
+              <span>Export as SVG</span>
+              <span className="ml-auto text-xs text-gray-500">Vector</span>
+            </button>
+            <button
+              onClick={() => handleExport('png')}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
+            >
+              <FileText size={16} className="mr-2.5 text-gray-400" />
+              <span>Export as PNG</span>
+              <span className="ml-auto text-xs text-gray-500">Image</span>
+            </button>
+            <button
+              onClick={() => handleExport('pdf')}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
+            >
+              <FileText size={16} className="mr-2.5 text-gray-400" />
+              <span>Export as PDF</span>
+              <span className="ml-auto text-xs text-gray-500">Document</span>
+            </button>
+            <button
+              onClick={() => handleExport('dwg')}
+              className="flex items-center w-full text-left px-4 py-2.5 text-sm text-gray-300 hover:bg-gray-700 transition-colors duration-150"
+            >
+              <FileText size={16} className="mr-2.5 text-gray-400" />
+              <span>Export as DWG</span>
+              <span className="ml-auto text-xs text-gray-500">AutoCAD</span>
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Ribbon Tabs */}
+      <div className="bg-gray-850 border-b border-gray-700 z-20">
+        <div className="flex">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`flex items-center py-2 px-4 ${activeTab === 'home' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+          >
+            <Home size={16} className="mr-1.5" />
+            <span className="font-medium">Home</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('draw')}
+            className={`flex items-center py-2 px-4 ${activeTab === 'draw' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+          >
+            <Edit size={16} className="mr-1.5" />
+            <span className="font-medium">Draw</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('modify')}
+            className={`flex items-center py-2 px-4 ${activeTab === 'modify' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+          >
+            <Tool size={16} className="mr-1.5" />
+            <span className="font-medium">Modify</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('annotate')}
+            className={`flex items-center py-2 px-4 ${activeTab === 'annotate' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+          >
+            <Info size={16} className="mr-1.5" />
+            <span className="font-medium">Annotate</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('mechanical')}
+            className={`flex items-center py-2 px-4 ${activeTab === 'mechanical' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+          >
+            <Aperture size={16} className="mr-1.5" />
+            <span className="font-medium">Mechanical</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('view')}
+            className={`flex items-center py-2 px-4 ${activeTab === 'view' ? 'bg-gray-900 text-blue-400 border-t-2 border-blue-500' : 'text-gray-400 hover:text-gray-300 border-t-2 border-transparent'}`}
+          >
+            <Eye size={16} className="mr-1.5" />
+            <span className="font-medium">View</span>
+          </button>
+        </div>
+        
+        {/* Ribbon Content */}
+        <div className="bg-gray-900 py-2 px-4 border-b border-gray-700">
+          {activeTab === 'home' && ribbonTabs.home}
+          {activeTab === 'draw' && ribbonTabs.draw}
+          {activeTab === 'modify' && ribbonTabs.modify}
+          {activeTab === 'annotate' && ribbonTabs.annotate}
+          {activeTab === 'mechanical' && ribbonTabs.mechanical}
+          {activeTab === 'view' && ribbonTabs.view}
+        </div>
       </div>
-
+      <div className="flex-1 flex relative">
+      <div className="w-64 bg-white border-r border-gray-200 shadow-lg ">
+        <TechnicalDrawingToolbar />
+        </div>
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden bg-gray-900">
-        {/* Left Toolbar */}
-        
-        
-        {/* Drawing Canvas */}
-        <div ref={canvasRef} className="flex-1 relative bg-gray-900">
-          <TechnicalDrawingCanvas />
-        </div>
-        
-        {/* Right Properties Panel */}
-        <div className={`h-full bg-gray-900 border-l border-gray-700 transition-all duration-200 ease-in-out ${rightPanelOpen ? `w-${rightPanelWidth}` : 'w-0'}`}>
-          {rightPanelOpen && (
-            <>
-              {rightPanelTab === 'properties' && (
-                <PropertiesPanel 
-                  entityIds={selectedEntityIds} 
-                  onClose={() => setRightPanelOpen(false)} 
-                />
-              )}
-              
-              {rightPanelTab === 'layers' && (
-                <LayerPanel onClose={() => setRightPanelOpen(false)} />
-              )}
-              
-              {rightPanelTab === 'dimension' && (
-                <DimensioningPanel />
-              )}
-              
-              {rightPanelTab === 'sheet' && (
-                <SheetSetupPanel />
-              )}
-              
-              {rightPanelTab === 'viewport' && (
-                <ViewportsPanel />
-              )}
-              
-              {rightPanelTab === 'styles' && (
-                <div className="h-full p-4 overflow-y-auto">
-                  <h2 className="text-lg font-semibold text-white mb-4">Drawing Styles</h2>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-300 mb-2">Line Styles</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center p-2 bg-gray-800 rounded-md">
-                        <div className="w-16 h-px bg-white mr-2"></div>
-                        <span className="text-white">Solid</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <div className="w-16 border-t border-dashed border-white mr-2"></div>
-                        <span className="text-gray-300">Dashed</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <div className="w-16 border-t border-dotted border-white mr-2"></div>
-                        <span className="text-gray-300">Dotted</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <div className="w-16 h-px bg-white mr-2" style={{ backgroundImage: 'linear-gradient(to right, white 50%, transparent 50%)', backgroundSize: '8px 1px' }}></div>
-                        <span className="text-gray-300">Center</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <div className="w-16 border-t border-white border-opacity-50 mr-2"></div>
-                        <span className="text-gray-300">Hidden</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium text-gray-300 mb-2">Text Styles</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center p-2 bg-gray-800 rounded-md">
-                        <span className="text-white">Standard</span>
-                        <span className="ml-auto text-gray-400 text-xs">Arial, 3.5mm</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <span className="text-gray-300 font-bold">Title</span>
-                        <span className="ml-auto text-gray-400 text-xs">Arial Bold, 5mm</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <span className="text-gray-300">Annotation</span>
-                        <span className="ml-auto text-gray-400 text-xs">Arial, 2.5mm</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <span className="text-gray-300 italic">Notes</span>
-                        <span className="ml-auto text-gray-400 text-xs">Arial Italic, 2.5mm</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-300 mb-2">Dimension Styles</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center p-2 bg-gray-800 rounded-md">
-                        <span className="text-white">Standard</span>
-                        <span className="ml-auto text-gray-400 text-xs">ISO</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <span className="text-gray-300">Mechanical</span>
-                        <span className="ml-auto text-gray-400 text-xs">ANSI</span>
-                      </div>
-                      <div className="flex items-center p-2 hover:bg-gray-800 rounded-md">
-                        <span className="text-gray-300">Architectural</span>
-                        <span className="ml-auto text-gray-400 text-xs">Custom</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {rightPanelTab === 'blocks' && (
-                <div className="h-full p-4 overflow-y-auto">
-                  <h2 className="text-lg font-semibold text-white mb-4">Block Library</h2>
-                  
-                  <div className="mb-4">
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-sm font-medium text-gray-300">Mechanical Symbols</h3>
-                      <button className="ml-auto p-1 text-gray-400 hover:text-gray-200">
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="p-2 border border-gray-700 rounded-md hover:bg-gray-800 cursor-pointer">
-                        <div className="h-16 flex items-center justify-center mb-1">
-                          <Plus size={24} className="text-gray-400" />
-                        </div>
-                        <div className="text-xs text-center text-gray-300">Center Mark</div>
-                      </div>
-                      <div className="p-2 border border-gray-700 rounded-md hover:bg-gray-800 cursor-pointer">
-                        <div className="h-16 flex items-center justify-center mb-1">
-                          <Compass size={24} className="text-gray-400" />
-                        </div>
-                        <div className="text-xs text-center text-gray-300">Datum Symbol</div>
-                      </div>
-                      <div className="p-2 border border-gray-700 rounded-md hover:bg-gray-800 cursor-pointer">
-                        <div className="h-16 flex items-center justify-center mb-1">
-                          <Square size={24} className="text-gray-400" />
-                        </div>
-                        <div className="text-xs text-center text-gray-300">FCF</div>
-                      </div>
-                      <div className="p-2 border border-gray-700 rounded-md hover:bg-gray-800 cursor-pointer">
-                        <div className="h-16 flex items-center justify-center mb-1">
-                          <Hash size={24} className="text-gray-400" />
-                        </div>
-                        <div className="text-xs text-center text-gray-300">Surface Finish</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="flex items-center mb-2">
-                      <h3 className="text-sm font-medium text-gray-300">User Blocks</h3>
-                      <button className="ml-auto p-1 text-gray-400 hover:text-gray-200">
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                    <div className="text-center p-4 text-gray-500 text-sm border border-gray-700 border-dashed rounded-md">
-                      No user blocks created yet
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <div ref={canvasContainerRef} className="flex-1 relative">
       
-      {/* Footer Status Bar */}
-      <div className="bg-gray-850 border-t border-gray-700 py-1 px-4 flex justify-between items-center text-xs text-gray-400">
-        <StatusBar
-          coords={null}
-          zoom={zoom}
-          tool={activeTool || ''}
-          orthoMode={orthoMode}
-          toggleOrtho={toggleOrthoMode}
-          polarMode={false}
-          togglePolar={() => {}}
-          snapEnabled={snappingEnabled}
-          toggleSnap={toggleSnapping}
-          gridEnabled={gridEnabled}
-          toggleGrid={toggleGrid}
+        <TechnicalDrawingCanvas 
+          width="100%" 
+          height="100%" 
+     
+         
+   
+
+         
         />
+        </div>
+        {/* Right Hand Panel */}
+        {isRightPanelOpen && (
+          <div className="absolute top-0 right-0 h-full w-80 bg-gray-800 border-l border-gray-700 shadow-lg z-20 overflow-y-auto p-4">
+            <button 
+              onClick={() => setIsRightPanelOpen(false)} 
+              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+            >
+              <X size={18} />
+            </button>
+            {rightPanelContent === 'layers' && <LayerPanel onClose={() => setIsRightPanelOpen(false)} />}
+            {rightPanelContent === 'properties' && selectedEntityIds.length > 0 && <PropertiesPanel entityIds={selectedEntityIds} onClose={() => setIsRightPanelOpen(false)} />}
+            {rightPanelContent === 'properties' && selectedEntityIds.length === 0 && (
+              <div className="text-gray-400 text-center mt-10">Select an entity to see its properties.</div>
+            )}
+            {rightPanelContent === 'blocks' && <BlocksPanel onClose={() => setIsRightPanelOpen(false)} />}
+            {rightPanelContent === 'styles' && <div className="text-white">Styles Panel (TODO)</div>}
+            {rightPanelContent === 'mechanical' && <MechanicalSymbolsPanel onClose={() => setIsRightPanelOpen(false)} />}
+            {rightPanelContent === 'dimensions' && <DimensioningPanel />}
+            {rightPanelContent === 'viewports' && <ViewportsPanel />}
+            {rightPanelContent === 'settings' && <div className="text-white">Settings Panel (TODO)</div>}
+            {rightPanelContent === 'sheet-setup' && <SheetSetupPanel />}
+            {rightPanelContent === 'gdt' && <GeometricTolerancePanel onClose={() => setIsRightPanelOpen(false)}/>}
+
+            {/* Fallback for unhandled content */}
+            {!['layers', 'properties', 'tools', 'blocks', 'styles', 'mechanical', 'dimensions', 'viewports', 'settings', 'sheet-setup', 'gdt'].includes(rightPanelContent) && (
+                 <div className="text-gray-400 text-center mt-10">Panel content not available yet.</div>
+            )}
+          </div>
+        )}
       </div>
       
-      {/* Command Line */}
-      {showCommandLinePanel && (
-        <div className="bg-gray-900 border-t border-gray-700 p-2 flex items-center">
-          <CommandLine onSubmit={handleCommand} onCancel={() => {}} />
+      {/* Command Bar */}
+      {showCommandPanel && (
+        <div className="bg-gray-900 border-t border-gray-700 py-2 px-4">
+          <div className="flex items-center">
+            <Command size={16} className="text-gray-400 mr-2" />
+            <input
+              type="text"
+              placeholder="Type a command..."
+              className="flex-1 bg-gray-800 text-white border border-gray-700 rounded px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              value={commandLineInput}
+              onChange={(e) => setCommandLineInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleCommandSubmit();
+                }
+              }}
+            />
+          </div>
         </div>
       )}
       
@@ -1599,8 +1268,16 @@ const TechnicalDrawingPage: React.FC = () => {
                 <span className="text-gray-300">Show help panel</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">F2</span>
-                <span className="text-gray-300">Toggle command line</span>
+                <span className="text-gray-400">Ctrl+N</span>
+                <span className="text-gray-300">New drawing</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Ctrl+S</span>
+                <span className="text-gray-300">Save drawing</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Ctrl+E</span>
+                <span className="text-gray-300">Export drawing</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">F7</span>
@@ -1615,20 +1292,8 @@ const TechnicalDrawingPage: React.FC = () => {
                 <span className="text-gray-300">Toggle snap</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">F10</span>
-                <span className="text-gray-300">Toggle ribbon</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Ctrl+N</span>
-                <span className="text-gray-300">New drawing</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Ctrl+S</span>
-                <span className="text-gray-300">Save drawing</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Ctrl+E</span>
-                <span className="text-gray-300">Export drawing</span>
+                <span className="text-gray-400">Escape</span>
+                <span className="text-gray-300">Cancel current operation</span>
               </div>
             </div>
             
@@ -1651,39 +1316,44 @@ const TechnicalDrawingPage: React.FC = () => {
                 <span className="text-gray-300">Rectangle tool</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-gray-400">P</span>
+                <span className="text-gray-300">Polyline tool</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-gray-400">T</span>
                 <span className="text-gray-300">Text tool</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">DIM</span>
+                <span className="text-gray-400">D</span>
                 <span className="text-gray-300">Dimension tool</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">S</span>
-                <span className="text-gray-300">Select tool</span>
+                <span className="text-gray-400">M</span>
+                <span className="text-gray-300">Move tool</span>
               </div>
             </div>
             
-            <h4 className="text-sm font-medium text-gray-300 mb-2">Command Line Usage</h4>
-            <p className="text-gray-400 text-sm mb-2">
-              Enter commands directly in the command line at the bottom of the screen. Prefix coordinate input with @ for relative coordinates.
-            </p>
+            <h4 className="text-sm font-medium text-gray-300 mb-2">Mouse Controls</h4>
             <div className="space-y-1">
               <div className="flex justify-between">
-                <span className="text-gray-400">LINE</span>
-                <span className="text-gray-300">Start line tool</span>
+                <span className="text-gray-400">Left Click</span>
+                <span className="text-gray-300">Select or place point</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">CIRCLE</span>
-                <span className="text-gray-300">Start circle tool</span>
+                <span className="text-gray-400">Right Click</span>
+                <span className="text-gray-300">Context menu</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">ZOOM ALL</span>
-                <span className="text-gray-300">Zoom to fit</span>
+                <span className="text-gray-400">Scroll Wheel</span>
+                <span className="text-gray-300">Zoom in/out</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">GRID</span>
-                <span className="text-gray-300">Toggle grid</span>
+                <span className="text-gray-400">Middle Click + Drag</span>
+                <span className="text-gray-300">Pan view</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Double Click</span>
+                <span className="text-gray-300">Edit properties / complete action</span>
               </div>
             </div>
           </div>
@@ -1693,4 +1363,4 @@ const TechnicalDrawingPage: React.FC = () => {
   );
 };
 
-export default TechnicalDrawingPage;
+export default TechnicalPage;

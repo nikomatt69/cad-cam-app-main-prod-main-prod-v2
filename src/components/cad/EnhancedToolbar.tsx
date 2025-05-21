@@ -33,7 +33,7 @@ import AIAssistantButton from '../ai/ai-new/AIAssistantButton';
 import AIModal from '../components/AIModal';
 import { isMobile } from 'react-device-detect';
 import AIBottomSheet from '../components/AIBottomSheet';
-import { Layout } from 'lucide-react';
+import { Layout, Ruler } from 'lucide-react';
 import { useToolState } from '@/src/store/toolStore';
 import { usePluginClient } from '@/src/context/PluginClientContext';
 import PluginToolbarButton from '../plugins/PluginToolbarButton';
@@ -277,6 +277,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
             >
               {isDarkMode ? <Sun className="h-3 w-3 sm:h-4 sm:w-4" /> : <Moon className="h-3 w-3 sm:h-4 sm:w-4" />}
             </button>
+            <Link href="/technical">
             <button
              
               className={`p-1.5 border shadow-sm rounded-md flex items-center ${
@@ -286,8 +287,9 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
               }`}
               
             >
-              <Layout size={16} className="mr-1.5" />
+              <Ruler size={16} className="mr-1.5" />
             </button>
+            </Link>
           {/* Plugin manager button */}
           
           {/* --- End Example --- */}

@@ -1,15 +1,38 @@
-import { DrawingEntity, Point, SnapMode } from '../../../../types/TechnicalDrawingTypes';
+import { 
+  DrawingEntity, 
+  Point, 
+  SnapMode,
+  LineEntity,
+  CircleEntity,
+  ArcEntity,
+  RectangleEntity,
+  PolylineEntity,
+  EllipseEntity,
+  // SplineEntity, // Add if specific spline snap points are needed beyond 'node'
+  // PolygonEntity, // Add if specific polygon snap points are needed beyond 'center'/'node'
+  // PathEntity, // Path snapping is complex, usually 'node' or 'nearest'
+  TextAnnotation,
+  LinearDimension,
+  AngularDimension,
+  RadialDimension,
+  DiameterDimension,
+  SymbolAnnotation, // For 'centermark', 'centerline' if they are symbols
+  BaseDrawingEntity, // Fallback for basic properties
+  Dimension,
+  Annotation
+} from '../../../../types/TechnicalDrawingTypes';
 
 /**
  * Class responsible for handling snapping functionality
  */
 export class SnapManager {
-  private snapModes: SnapMode[] = ['endpoint', 'midpoint', 'center', 'quadrant', 'intersection', 'grid', 'nearest'];
+  private snapModes: SnapMode[] = ['endpoint', 'midpoint', 'center', 'quadrant', 'intersection', 'grid', 'nearest', 'node', 'tangent', 'perpendicular'];
   private enabled: boolean = true;
   private gridSize: number = 10;
   private snapDistance: number = 10; // Distance in pixels to snap
   private polarSnapEnabled: boolean = false;
   private polarSnapAngles: number[] = [15, 30, 45, 60, 90]; // Angles in degrees
+  private lastSnapResult: { snapPoint: Point, snapMode: SnapMode } | null = null; // Added to store last snap result
   
   /**
    * Constructor
@@ -91,7 +114,7 @@ export class SnapManager {
    */
   findSnapPoint(
     point: Point, 
-    entities: DrawingEntity[], 
+    entities: (DrawingEntity | Dimension | Annotation)[], 
     viewportScale: number, 
     basePoint?: Point, 
     gridEnabled: boolean = true
@@ -100,593 +123,501 @@ export class SnapManager {
       return null;
     }
     
-    // Adjust snap distance based on viewport scale
     const adjustedSnapDistance = this.snapDistance / viewportScale;
-    
-    // Calculate potential snap points based on active modes
     const snapCandidates: { point: Point, distance: number, mode: SnapMode }[] = [];
     
-    // Process grid snapping (only if no basePoint is provided for polar snapping)
     if (gridEnabled && this.snapModes.includes('grid') && !basePoint) {
       const gridPoint = {
         x: Math.round(point.x / this.gridSize) * this.gridSize,
         y: Math.round(point.y / this.gridSize) * this.gridSize
       };
-      
       const gridDistance = this.getDistance(point, gridPoint);
-      
       if (gridDistance <= adjustedSnapDistance) {
-        snapCandidates.push({
-          point: gridPoint,
-          distance: gridDistance,
-          mode: 'grid'
-        });
+        snapCandidates.push({ point: gridPoint, distance: gridDistance, mode: 'grid' });
       }
     }
     
-    // Process polar snapping if a base point is provided
-    if (basePoint && this.polarSnapEnabled) {
+    if (basePoint && this.polarSnapEnabled && this.snapModes.includes('polar')) {
       const polarPoint = this.getPolarSnapPoint(basePoint, point);
-      
       if (polarPoint) {
         const polarDistance = this.getDistance(point, polarPoint);
-        
         if (polarDistance <= adjustedSnapDistance) {
-          snapCandidates.push({
-            point: polarPoint,
-            distance: polarDistance,
-            mode: 'polar'
-          });
+          snapCandidates.push({ point: polarPoint, distance: polarDistance, mode: 'polar' });
         }
       }
     }
     
-    // Process entity snap points
     for (const entity of entities) {
       if (!entity.visible) continue;
       
-      // Get points based on entity type and active snap modes
       this.getEntitySnapPoints(entity).forEach(snapInfo => {
         if (this.snapModes.includes(snapInfo.mode)) {
           const distance = this.getDistance(point, snapInfo.point);
-          
           if (distance <= adjustedSnapDistance) {
-            snapCandidates.push({
-              point: snapInfo.point,
-              distance: distance,
-              mode: snapInfo.mode
-            });
+            snapCandidates.push({ point: snapInfo.point, distance: distance, mode: snapInfo.mode });
           }
         }
       });
       
-      // Process intersection points if enabled
       if (this.snapModes.includes('intersection')) {
         const intersections = this.findIntersections(entity, entities, point, adjustedSnapDistance);
         snapCandidates.push(...intersections);
       }
     }
     
-    // Find the closest snap point
     if (snapCandidates.length > 0) {
       snapCandidates.sort((a, b) => a.distance - b.distance);
-      return {
-        snapPoint: snapCandidates[0].point,
-        snapMode: snapCandidates[0].mode
-      };
+      this.lastSnapResult = { snapPoint: snapCandidates[0].point, snapMode: snapCandidates[0].mode }; // Store result
+      return this.lastSnapResult;
     }
     
+    this.lastSnapResult = null; // Clear if no snap found
     return null;
+  }
+  
+  /**
+   * Get the last successful snap result
+   */
+  public getLastSnapResult(): { snapPoint: Point, snapMode: SnapMode } | null {
+    return this.lastSnapResult;
   }
   
   /**
    * Get all potential snap points for an entity
    */
-  private getEntitySnapPoints(entity: DrawingEntity): { point: Point, mode: SnapMode }[] {
+  private getEntitySnapPoints(entity: DrawingEntity | Dimension | Annotation): { point: Point, mode: SnapMode }[] {
     const snapPoints: { point: Point, mode: SnapMode }[] = [];
     
     switch (entity.type) {
       case 'line':
-        // Endpoints
-        snapPoints.push({ point: entity.startPoint, mode: 'endpoint' });
-        snapPoints.push({ point: entity.endPoint, mode: 'endpoint' });
-        
-        // Midpoint
-        snapPoints.push({
-          point: {
-            x: (entity.startPoint.x + entity.endPoint.x) / 2,
-            y: (entity.startPoint.y + entity.endPoint.y) / 2
-          },
-          mode: 'midpoint'
-        });
-        
-        // Perpendicular - handled during intersection testing
-        // Nearest - handled during nearest point calculation
+        const line = entity as LineEntity;
+        snapPoints.push({ point: line.startPoint, mode: 'endpoint' });
+        snapPoints.push({ point: line.endPoint, mode: 'endpoint' });
+        snapPoints.push({ point: { x: (line.startPoint.x + line.endPoint.x) / 2, y: (line.startPoint.y + line.endPoint.y) / 2 }, mode: 'midpoint' });
         break;
         
       case 'circle':
-        // Center
-        snapPoints.push({ point: entity.center, mode: 'center' });
-        
-        // Quadrant points (top, right, bottom, left)
-        snapPoints.push({ 
-          point: { x: entity.center.x, y: entity.center.y - entity.radius }, 
-          mode: 'quadrant' 
-        });
-        snapPoints.push({ 
-          point: { x: entity.center.x + entity.radius, y: entity.center.y }, 
-          mode: 'quadrant' 
-        });
-        snapPoints.push({ 
-          point: { x: entity.center.x, y: entity.center.y + entity.radius }, 
-          mode: 'quadrant' 
-        });
-        snapPoints.push({ 
-          point: { x: entity.center.x - entity.radius, y: entity.center.y }, 
-          mode: 'quadrant' 
-        });
+        const circle = entity as CircleEntity;
+        snapPoints.push({ point: circle.center, mode: 'center' });
+        snapPoints.push({ point: { x: circle.center.x, y: circle.center.y - circle.radius }, mode: 'quadrant' });
+        snapPoints.push({ point: { x: circle.center.x + circle.radius, y: circle.center.y }, mode: 'quadrant' });
+        snapPoints.push({ point: { x: circle.center.x, y: circle.center.y + circle.radius }, mode: 'quadrant' });
+        snapPoints.push({ point: { x: circle.center.x - circle.radius, y: circle.center.y }, mode: 'quadrant' });
         break;
         
       case 'arc':
-        // Center
-        snapPoints.push({ point: entity.center, mode: 'center' });
+        const arc = entity as ArcEntity;
+        snapPoints.push({ point: arc.center, mode: 'center' });
+        const startPoint = { x: arc.center.x + arc.radius * Math.cos(arc.startAngle), y: arc.center.y + arc.radius * Math.sin(arc.startAngle) };
+        const endPoint = { x: arc.center.x + arc.radius * Math.cos(arc.endAngle), y: arc.center.y + arc.radius * Math.sin(arc.endAngle) };
+        snapPoints.push({ point: startPoint, mode: 'endpoint' });
+        snapPoints.push({ point: endPoint, mode: 'endpoint' });
         
-        // Endpoints
-        if (entity.startPoint) snapPoints.push({ point: entity.startPoint, mode: 'endpoint' });
-        if (entity.endPoint) snapPoints.push({ point: entity.endPoint, mode: 'endpoint' });
-        
-        // Midpoint - approximated for arcs
-        if (entity.startPoint && entity.endPoint) {
-          const startAngle = entity.startAngle || 0;
-          const endAngle = entity.endAngle || Math.PI * 2;
-          const midAngle = (startAngle + endAngle) / 2;
-          
-          snapPoints.push({
-            point: {
-              x: entity.center.x + Math.cos(midAngle) * entity.radius,
-              y: entity.center.y + Math.sin(midAngle) * entity.radius
-            },
-            mode: 'midpoint'
-          });
+        let midAngle = (arc.startAngle + arc.endAngle) / 2;
+        // Adjust midAngle if arc crosses 0 radians and endAngle < startAngle
+        if (arc.endAngle < arc.startAngle && !arc.counterclockwise) { // Clockwise arc crossing 0
+            midAngle = (arc.startAngle + (arc.endAngle + 2 * Math.PI)) / 2;
+        } else if (arc.endAngle > arc.startAngle && arc.counterclockwise === false) { // Normal clockwise arc
+             // Standard midAngle is fine
+        } else if (arc.endAngle < arc.startAngle && arc.counterclockwise === true) { // Counter-clockwise arc
+            // Standard midAngle calculation should be fine if angles are consistently CCW from X-axis
+        } else if (arc.endAngle > arc.startAngle && arc.counterclockwise === true && (arc.endAngle - arc.startAngle > Math.PI) ) {
+            // Large CCW arc, midpoint might be on the shorter path if not careful
         }
-        
-        // Quadrant points - only if they fall within the arc's range
-        // This is a simplified approach
-        const angles = [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2]; // 0, 90, 180, 270 degrees
-        angles.forEach(angle => {
-          let isInArc = false;
-          if (entity.startAngle !== undefined && entity.endAngle !== undefined) {
-            let startAngle = entity.startAngle;
-            let endAngle = entity.endAngle;
-            
-            // Normalize angles to 0-2π range
-            while (startAngle < 0) startAngle += Math.PI * 2;
-            while (endAngle < 0) endAngle += Math.PI * 2;
-            
-            // Ensure endAngle > startAngle
-            if (endAngle < startAngle) endAngle += Math.PI * 2;
-            
-            // Normalize test angle
-            let testAngle = angle;
-            while (testAngle < startAngle) testAngle += Math.PI * 2;
-            
-            isInArc = testAngle >= startAngle && testAngle <= endAngle;
-          } else {
-            // If no angles defined, assume it's a full circle
-            isInArc = true;
-          }
-          
-          if (isInArc) {
-            snapPoints.push({
-              point: {
-                x: entity.center.x + Math.cos(angle) * entity.radius,
-                y: entity.center.y + Math.sin(angle) * entity.radius
-              },
-              mode: 'quadrant'
-            });
-          }
-        });
+
+
+        // Ensure midAngle is correctly on the arc path if it spans across 0
+        const directMidAngle = (arc.startAngle + arc.endAngle) / 2;
+        const span = Math.abs(arc.endAngle - arc.startAngle);
+        if (span > Math.PI) { // If the shorter angle span is not direct
+            if (arc.counterclockwise === false) { // Clockwise
+                 midAngle = (arc.startAngle + arc.endAngle + 2*Math.PI) / 2;
+                 if (midAngle > Math.PI *2) midAngle -= Math.PI*2;
+            } else { // Counter-clockwise, this case is tricky for large arcs
+                // Using directMidAngle might be okay if angles are consistently defined
+            }
+        }
+         // Normalize angles for midpoint calculation if needed, this depends on how angles are stored (e.g. always positive, specific range)
+        const effectiveStartAngle = arc.startAngle;
+        let effectiveEndAngle = arc.endAngle;
+        if (arc.counterclockwise === false && effectiveEndAngle > effectiveStartAngle) { // Clockwise defined with end > start
+             effectiveEndAngle -= 2 * Math.PI;
+        } else if (arc.counterclockwise !== false && effectiveEndAngle < effectiveStartAngle) { // Counter-clockwise defined with end < start
+             effectiveEndAngle += 2 * Math.PI;
+        }
+        const finalMidAngle = (effectiveStartAngle + effectiveEndAngle) / 2;
+
+        snapPoints.push({ point: { x: arc.center.x + arc.radius * Math.cos(finalMidAngle), y: arc.center.y + arc.radius * Math.sin(finalMidAngle) }, mode: 'midpoint' });
         break;
         
       case 'rectangle':
-        // Corners
-        snapPoints.push({ point: { x: entity.x, y: entity.y }, mode: 'endpoint' });
-        snapPoints.push({ point: { x: entity.x + entity.width, y: entity.y }, mode: 'endpoint' });
-        snapPoints.push({ point: { x: entity.x + entity.width, y: entity.y + entity.height }, mode: 'endpoint' });
-        snapPoints.push({ point: { x: entity.x, y: entity.y + entity.height }, mode: 'endpoint' });
-        
-        // Midpoints of each edge
-        snapPoints.push({ 
-          point: { x: entity.x + entity.width / 2, y: entity.y }, 
-          mode: 'midpoint' 
-        });
-        snapPoints.push({ 
-          point: { x: entity.x + entity.width, y: entity.y + entity.height / 2 }, 
-          mode: 'midpoint' 
-        });
-        snapPoints.push({ 
-          point: { x: entity.x + entity.width / 2, y: entity.y + entity.height }, 
-          mode: 'midpoint' 
-        });
-        snapPoints.push({ 
-          point: { x: entity.x, y: entity.y + entity.height / 2 }, 
-          mode: 'midpoint' 
-        });
-        
-        // Center of rectangle
-        snapPoints.push({ 
-          point: { x: entity.x + entity.width / 2, y: entity.y + entity.height / 2 }, 
-          mode: 'center' 
-        });
+        const rect = entity as RectangleEntity;
+        const { x: rx, y: ry } = rect.position;
+        const { width: rw, height: rh, rotation: rr = 0 } = rect;
+        const corners = [
+          { x: rx, y: ry },
+          { x: rx + rw, y: ry },
+          { x: rx + rw, y: ry + rh },
+          { x: rx, y: ry + rh }
+        ];
+        const centerRect = { x: rx + rw / 2, y: ry + rh / 2 };
+        const rotatedCorners = rr !== 0 ? corners.map(p => this.rotatePoint(p, centerRect, rr)) : corners;
+
+        rotatedCorners.forEach(c => snapPoints.push({ point: c, mode: 'endpoint' }));
+        // Midpoints of sides
+        for (let i = 0; i < rotatedCorners.length; i++) {
+          const p1 = rotatedCorners[i];
+          const p2 = rotatedCorners[(i + 1) % rotatedCorners.length];
+          snapPoints.push({ point: { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 }, mode: 'midpoint' });
+        }
+        snapPoints.push({ point: centerRect, mode: 'center' }); // Center of the unrotated AABB
+        if(rr !== 0) snapPoints.push({point: this.rotatePoint(centerRect, centerRect, rr), mode: 'center'}); // Geometric center if rotated
+
         break;
         
       case 'polyline':
-        if (entity.points && entity.points.length > 0) {
-          // Endpoints
-          entity.points.forEach(point => {
-            snapPoints.push({ point, mode: 'endpoint' });
-          });
-          
-          // Midpoints of each segment
-          for (let i = 0; i < entity.points.length - 1; i++) {
-            snapPoints.push({
-              point: {
-                x: (entity.points[i].x + entity.points[i + 1].x) / 2,
-                y: (entity.points[i].y + entity.points[i + 1].y) / 2
-              },
-              mode: 'midpoint'
-            });
-          }
-          
-          // If closed, add midpoint for the closing segment
-          if (entity.closed && entity.points.length > 2) {
-            snapPoints.push({
-              point: {
-                x: (entity.points[0].x + entity.points[entity.points.length - 1].x) / 2,
-                y: (entity.points[0].y + entity.points[entity.points.length - 1].y) / 2
-              },
-              mode: 'midpoint'
-            });
-          }
+        const polyline = entity as PolylineEntity;
+        polyline.points.forEach(p => snapPoints.push({ point: p, mode: 'node' })); // 'node' for polyline vertices
+        polyline.points.forEach(p => snapPoints.push({ point: p, mode: 'endpoint' })); // also treat as endpoints
+        for (let i = 0; i < polyline.points.length - 1; i++) {
+          snapPoints.push({ point: { x: (polyline.points[i].x + polyline.points[i+1].x) / 2, y: (polyline.points[i].y + polyline.points[i+1].y) / 2 }, mode: 'midpoint' });
+        }
+        if (polyline.closed && polyline.points.length > 1) {
+            const lastPoint = polyline.points[polyline.points.length-1];
+            const firstPoint = polyline.points[0];
+             snapPoints.push({ point: { x: (lastPoint.x + firstPoint.x) / 2, y: (lastPoint.y + firstPoint.y) / 2 }, mode: 'midpoint' });
         }
         break;
         
-      case 'text':
-        // Position (top-left)
-        snapPoints.push({ point: entity.position, mode: 'endpoint' });
-        
-        // Corners if width and height are defined
-        if (entity.width && entity.height) {
-          snapPoints.push({ 
-            point: { x: entity.position.x + entity.width, y: entity.position.y }, 
-            mode: 'endpoint' 
-          });
-          snapPoints.push({ 
-            point: { x: entity.position.x + entity.width, y: entity.position.y + entity.height }, 
-            mode: 'endpoint' 
-          });
-          snapPoints.push({ 
-            point: { x: entity.position.x, y: entity.position.y + entity.height }, 
-            mode: 'endpoint' 
-          });
-          
-          // Center
-          snapPoints.push({
-            point: { 
-              x: entity.position.x + entity.width / 2, 
-              y: entity.position.y + entity.height / 2 
-            },
-            mode: 'center'
-          });
-        }
+      case 'ellipse':
+        const ellipse = entity as EllipseEntity;
+        snapPoints.push({point: ellipse.center, mode: 'center'});
+        // Quadrant points for ellipse (more complex if rotated, for now axis-aligned)
+        const rot = ellipse.rotation || 0; // assuming rotation in radians
+        const cosR = Math.cos(rot);
+        const sinR = Math.sin(rot);
+        const {radiusX, radiusY, center: ec} = ellipse;
+        // Points on the ellipse axes
+        snapPoints.push({point: {x: ec.x + radiusX * cosR, y: ec.y + radiusX * sinR}, mode: 'quadrant'}); // Major axis
+        snapPoints.push({point: {x: ec.x - radiusX * cosR, y: ec.y - radiusX * sinR}, mode: 'quadrant'}); // Major axis
+        snapPoints.push({point: {x: ec.x - radiusY * sinR, y: ec.y + radiusY * cosR}, mode: 'quadrant'}); // Minor axis
+        snapPoints.push({point: {x: ec.x + radiusY * sinR, y: ec.y - radiusY * cosR}, mode: 'quadrant'}); // Minor axis
+        break;
+
+      case 'text-annotation':
+        const text = entity as TextAnnotation;
+        snapPoints.push({ point: text.position, mode: 'endpoint' }); // Treat text anchor as an endpoint
+        // Could add corners of bounding box if width/height are known and rotation is handled
         break;
         
-      case 'dimension-linear':
-      case 'dimension-angular':
-      case 'dimension-radius':
-      case 'dimension-diameter':
-        // Add all defined points
-        if (entity.startPoint) snapPoints.push({ point: entity.startPoint, mode: 'endpoint' });
-        if (entity.endPoint) snapPoints.push({ point: entity.endPoint, mode: 'endpoint' });
-        if (entity.center) snapPoints.push({ point: entity.center, mode: 'center' });
-        if (entity.pointOnCircle) snapPoints.push({ point: entity.pointOnCircle, mode: 'endpoint' });
+      case 'linear-dimension':
+        const linearDim = entity as LinearDimension;
+        if (linearDim.startPoint) snapPoints.push({point: linearDim.startPoint, mode: 'endpoint'});
+        if (linearDim.endPoint) snapPoints.push({point: linearDim.endPoint, mode: 'endpoint'});
+        if (linearDim.textPosition) snapPoints.push({point: linearDim.textPosition, mode: 'node'}); // Snap to text anchor
+        break;
+      case 'angular-dimension':
+        const angularDim = entity as AngularDimension;
+        if (angularDim.vertex) snapPoints.push({point: angularDim.vertex, mode: 'endpoint'});
+        if (angularDim.startPoint) snapPoints.push({point: angularDim.startPoint, mode: 'node'});
+        if (angularDim.endPoint) snapPoints.push({point: angularDim.endPoint, mode: 'node'});
+        break;
+      case 'radial-dimension':
+      case 'diameter-dimension':
+        const radialOrDiaDim = entity as RadialDimension | DiameterDimension;
+        if (radialOrDiaDim.center) snapPoints.push({point: radialOrDiaDim.center, mode: 'center'});
+        if (radialOrDiaDim.pointOnCircle) snapPoints.push({point: radialOrDiaDim.pointOnCircle, mode: 'node'});
         break;
         
-      case 'centermark':
-        if (entity.center) snapPoints.push({ point: entity.center, mode: 'center' });
+      case 'symbol-annotation':
+        const symbol = entity as SymbolAnnotation;
+        if(symbol.position) snapPoints.push({point: symbol.position, mode: 'center'}); // Treat symbol position as its center
+        // Could add more based on symbolType if specific geometry is known
         break;
         
-      case 'centerline':
-        if (entity.startPoint) snapPoints.push({ point: entity.startPoint, mode: 'endpoint' });
-        if (entity.endPoint) snapPoints.push({ point: entity.endPoint, mode: 'endpoint' });
-        
-        // Midpoint
-        if (entity.startPoint && entity.endPoint) {
-          snapPoints.push({
-            point: {
-              x: (entity.startPoint.x + entity.endPoint.x) / 2,
-              y: (entity.startPoint.y + entity.endPoint.y) / 2
-            },
-            mode: 'midpoint'
-          });
+      // Default for other types or if specific snap points aren't defined above
+      default:
+        const baseEntity = entity as BaseDrawingEntity; // Fallback to base
+        if ('center' in baseEntity && (baseEntity as any).center) {
+            snapPoints.push({point: (baseEntity as any).center, mode: 'center'});
+        } else if ('position' in baseEntity && (baseEntity as any).position) {
+            snapPoints.push({point: (baseEntity as any).position, mode: 'node'});
+        } else if ('points' in baseEntity && Array.isArray((baseEntity as any).points) && (baseEntity as any).points.length > 0) {
+            (baseEntity as any).points.forEach((p: Point) => snapPoints.push({point: p, mode: 'node'}));
         }
         break;
     }
-    
     return snapPoints;
   }
   
   /**
-   * Find intersection points between entities
+   * Find intersection points between an entity and all other entities
    */
   private findIntersections(
-    entity: DrawingEntity, 
-    allEntities: DrawingEntity[], 
-    point: Point, 
-    maxDistance: number
+    entity: DrawingEntity | Dimension | Annotation, 
+    allEntities: (DrawingEntity | Dimension | Annotation)[], 
+    point: Point, // The cursor point, to filter intersections near it
+    maxDistance: number // Max distance from cursor point to consider an intersection
   ): { point: Point, distance: number, mode: SnapMode }[] {
-    const intersections: { point: Point, distance: number, mode: SnapMode }[] = [];
+    const intersectionSnaps: { point: Point, distance: number, mode: SnapMode }[] = [];
+    if (!this.snapModes.includes('intersection')) return intersectionSnaps;
     
     for (const otherEntity of allEntities) {
-      if (entity === otherEntity || !otherEntity.visible) continue;
+      if (entity.id === otherEntity.id || !otherEntity.visible) continue;
       
-      // Find intersections based on entity types
       const intersectionPoints = this.getIntersectionPoints(entity, otherEntity);
-      
-      for (const intersectionPoint of intersectionPoints) {
-        const distance = this.getDistance(point, intersectionPoint);
-        
+      for (const intPoint of intersectionPoints) {
+        const distance = this.getDistance(point, intPoint);
         if (distance <= maxDistance) {
-          intersections.push({
-            point: intersectionPoint,
-            distance,
-            mode: 'intersection'
-          });
+          intersectionSnaps.push({ point: intPoint, distance, mode: 'intersection' });
         }
       }
     }
-    
-    return intersections;
+    return intersectionSnaps;
   }
   
   /**
    * Get intersection points between two entities
    */
-  private getIntersectionPoints(entity1: DrawingEntity, entity2: DrawingEntity): Point[] {
-    const intersections: Point[] = [];
+  private getIntersectionPoints(entity1: DrawingEntity | Dimension | Annotation, entity2: DrawingEntity | Dimension | Annotation): Point[] {
+    const points: Point[] = [];
     
-    // Line - Line intersection
+    // Line-Line
     if (entity1.type === 'line' && entity2.type === 'line') {
-      const intersection = this.lineLineIntersection(
-        entity1.startPoint, entity1.endPoint, 
-        entity2.startPoint, entity2.endPoint
-      );
-      
-      if (intersection) {
-        intersections.push(intersection);
-      }
+      const line1 = entity1 as LineEntity;
+      const line2 = entity2 as LineEntity;
+      const p = this.lineLineIntersection(line1.startPoint, line1.endPoint, line2.startPoint, line2.endPoint);
+      if (p) points.push(p);
     }
-    
-    // Line - Circle intersection
-    else if (
-      (entity1.type === 'line' && entity2.type === 'circle') || 
-      (entity1.type === 'circle' && entity2.type === 'line')
-    ) {
-      const line = entity1.type === 'line' ? entity1 : entity2;
-      const circle = entity1.type === 'circle' ? entity1 : entity2;
-      
-      const lineCircleIntersections = this.lineCircleIntersection(
-        line.startPoint, line.endPoint, 
-        circle.center, circle.radius
-      );
-      
-      intersections.push(...lineCircleIntersections);
+    // Line-Circle / Circle-Line
+    else if (entity1.type === 'line' && entity2.type === 'circle') {
+      const line = entity1 as LineEntity;
+      const circle = entity2 as CircleEntity;
+      points.push(...this.lineCircleIntersection(line.startPoint, line.endPoint, circle.center, circle.radius));
+    } else if (entity1.type === 'circle' && entity2.type === 'line') {
+      const circle = entity1 as CircleEntity;
+      const line = entity2 as LineEntity;
+      points.push(...this.lineCircleIntersection(line.startPoint, line.endPoint, circle.center, circle.radius));
     }
-    
-    // Circle - Circle intersection
+    // Circle-Circle
     else if (entity1.type === 'circle' && entity2.type === 'circle') {
-      const circleCircleIntersections = this.circleCircleIntersection(
-        entity1.center, entity1.radius,
-        entity2.center, entity2.radius
-      );
-      
-      intersections.push(...circleCircleIntersections);
+      const c1 = entity1 as CircleEntity;
+      const c2 = entity2 as CircleEntity;
+      points.push(...this.circleCircleIntersection(c1.center, c1.radius, c2.center, c2.radius));
     }
-    
-    // Add more intersection types as needed
-    
-    return intersections;
+    // Line-Arc / Arc-Line (Approximation: treat arc as part of a circle for intersection)
+    else if (entity1.type === 'line' && entity2.type === 'arc') {
+        const line = entity1 as LineEntity;
+        const arc = entity2 as ArcEntity;
+        const intersections = this.lineCircleIntersection(line.startPoint, line.endPoint, arc.center, arc.radius);
+        intersections.forEach(p => { if (this.isPointOnArc(p, arc)) points.push(p); });
+    } else if (entity1.type === 'arc' && entity2.type === 'line') {
+        const arc = entity1 as ArcEntity;
+        const line = entity2 as LineEntity;
+        const intersections = this.lineCircleIntersection(line.startPoint, line.endPoint, arc.center, arc.radius);
+        intersections.forEach(p => { if (this.isPointOnArc(p, arc)) points.push(p); });
+    }
+    // Arc-Arc (Approximation: treat arcs as circles)
+    else if (entity1.type === 'arc' && entity2.type === 'arc') {
+        const arc1 = entity1 as ArcEntity;
+        const arc2 = entity2 as ArcEntity;
+        const intersections = this.circleCircleIntersection(arc1.center, arc1.radius, arc2.center, arc2.radius);
+        intersections.forEach(p => { if (this.isPointOnArc(p, arc1) && this.isPointOnArc(p, arc2)) points.push(p); });
+    }
+    // Circle-Arc / Arc-Circle
+    else if (entity1.type === 'circle' && entity2.type === 'arc') {
+        const circle = entity1 as CircleEntity;
+        const arc = entity2 as ArcEntity;
+        const intersections = this.circleCircleIntersection(circle.center, circle.radius, arc.center, arc.radius);
+        intersections.forEach(p => { if (this.isPointOnArc(p, arc)) points.push(p); });
+    } else if (entity1.type === 'arc' && entity2.type === 'circle') {
+        const arc = entity1 as ArcEntity;
+        const circle = entity2 as CircleEntity;
+        const intersections = this.circleCircleIntersection(arc.center, arc.radius, circle.center, circle.radius);
+        intersections.forEach(p => { if (this.isPointOnArc(p, arc)) points.push(p); });
+    }
+    // TODO: Add more intersection types as needed (e.g., polyline intersections, rectangle intersections)
+
+    return points;
   }
   
   /**
-   * Line - Line intersection
+   * Calculate intersection of two line segments
+   * Returns null if no intersection or segments are parallel
    */
-  private lineLineIntersection(a1: Point, a2: Point, b1: Point, b2: Point): Point | null {
-    const det = (a2.x - a1.x) * (b2.y - b1.y) - (a2.y - a1.y) * (b2.x - b1.x);
-    
-    if (det === 0) {
-      // Lines are parallel
-      return null;
-    }
-    
-    const t = ((b1.x - a1.x) * (b2.y - b1.y) - (b1.y - a1.y) * (b2.x - b1.x)) / det;
-    const u = ((b1.x - a1.x) * (a2.y - a1.y) - (b1.y - a1.y) * (a2.x - a1.x)) / det;
+  private lineLineIntersection(p1: Point, p2: Point, p3: Point, p4: Point): Point | null {
+    const den = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
+    if (den === 0) return null; // Parallel or coincident
+
+    const t = ((p1.x - p3.x) * (p3.y - p4.y) - (p1.y - p3.y) * (p3.x - p4.x)) / den;
+    const u = -((p1.x - p2.x) * (p1.y - p3.y) - (p1.y - p2.y) * (p1.x - p3.x)) / den;
     
     if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
-      // Intersection is within both line segments
       return {
-        x: a1.x + t * (a2.x - a1.x),
-        y: a1.y + t * (a2.y - a1.y)
+        x: p1.x + t * (p2.x - p1.x),
+        y: p1.y + t * (p2.y - p1.y)
       };
     }
-    
-    return null;
+    return null; // Intersection point is outside the segments
   }
   
   /**
-   * Line - Circle intersection
+   * Calculate intersection points of a line segment and a circle
    */
   private lineCircleIntersection(p1: Point, p2: Point, center: Point, radius: number): Point[] {
-    const intersections: Point[] = [];
-    
-    // Convert the line to the form ax + by + c = 0
-    const a = p2.y - p1.y;
-    const b = p1.x - p2.x;
-    const c = p2.x * p1.y - p1.x * p2.y;
-    
-    // Calculate the distance from the center of the circle to the line
-    const lineLength = Math.sqrt(a * a + b * b);
-    if (lineLength === 0) return [];
-    
-    const dist = Math.abs(a * center.x + b * center.y + c) / lineLength;
-    
-    // If the distance is greater than the radius, there are no intersections
-    if (dist > radius) {
-      return [];
-    }
-    
-    // Calculate the point on the line that is closest to the center
-    const t = -(a * center.x + b * center.y + c) / (a * a + b * b);
-    const closestPoint = {
-      x: center.x + a * t,
-      y: center.y + b * t
-    };
-    
-    // If the distance is equal to the radius, there is one intersection
-    if (Math.abs(dist - radius) < 1e-10) {
-      // Check if the intersection is on the line segment
-      if (this.isPointOnLineSegment(closestPoint, p1, p2)) {
-        intersections.push(closestPoint);
+    const points: Point[] = [];
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
+    const a = dx * dx + dy * dy;
+    const b = 2 * (dx * (p1.x - center.x) + dy * (p1.y - center.y));
+    const c = (p1.x - center.x) * (p1.x - center.x) + (p1.y - center.y) * (p1.y - center.y) - radius * radius;
+
+    const det = b * b - 4 * a * c;
+    if (a <= 0.0000001 || det < 0) { // No real solutions or not a line
+      return points;
+    } else if (det === 0) { // One solution (tangent)
+      const t = -b / (2 * a);
+      if (t >= 0 && t <= 1) {
+        points.push({ x: p1.x + t * dx, y: p1.y + t * dy });
       }
-      return intersections;
+    } else { // Two solutions
+      const t1 = (-b + Math.sqrt(det)) / (2 * a);
+      const t2 = (-b - Math.sqrt(det)) / (2 * a);
+      if (t1 >= 0 && t1 <= 1) {
+        points.push({ x: p1.x + t1 * dx, y: p1.y + t1 * dy });
+      }
+      if (t2 >= 0 && t2 <= 1) {
+        points.push({ x: p1.x + t2 * dx, y: p1.y + t2 * dy });
+      }
     }
-    
-    // Calculate the half-chord distance
-    const halfChordDistance = Math.sqrt(radius * radius - dist * dist);
-    
-    // Calculate the two intersection points
-    const intersection1 = {
-      x: closestPoint.x + halfChordDistance * (p2.x - p1.x) / lineLength,
-      y: closestPoint.y + halfChordDistance * (p2.y - p1.y) / lineLength
-    };
-    
-    const intersection2 = {
-      x: closestPoint.x - halfChordDistance * (p2.x - p1.x) / lineLength,
-      y: closestPoint.y - halfChordDistance * (p2.y - p1.y) / lineLength
-    };
-    
-    // Check if the intersections are on the line segment
-    if (this.isPointOnLineSegment(intersection1, p1, p2)) {
-      intersections.push(intersection1);
-    }
-    
-    if (this.isPointOnLineSegment(intersection2, p1, p2)) {
-      intersections.push(intersection2);
-    }
-    
-    return intersections;
+    return points;
   }
-  
+
   /**
-   * Circle - Circle intersection
+   * Calculate intersection points of two circles
    */
   private circleCircleIntersection(c1: Point, r1: number, c2: Point, r2: number): Point[] {
-    const intersections: Point[] = [];
-    
-    // Calculate the distance between the centers
-    const dx = c2.x - c1.x;
-    const dy = c2.y - c1.y;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    
-    // Check if the circles are too far apart or one is inside the other
-    if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0) {
-      return [];
+    const points: Point[] = [];
+    const d = Math.sqrt(Math.pow(c2.x - c1.x, 2) + Math.pow(c2.y - c1.y, 2));
+
+    // Check for solvability
+    if (d > r1 + r2 || d < Math.abs(r1 - r2) || d === 0 && r1 === r2) { // No solution or circles are identical/concentric with no intersection
+        return points;
     }
-    
-    // Calculate the intersection points
+
     const a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
-    const h = Math.sqrt(r1 * r1 - a * a);
-    
-    const p3 = {
-      x: c1.x + a * dx / d,
-      y: c1.y + a * dy / d
-    };
-    
-    // If the circles are tangent, there is only one intersection
-    if (Math.abs(d - (r1 + r2)) < 1e-10 || Math.abs(d - Math.abs(r1 - r2)) < 1e-10) {
-      intersections.push(p3);
-      return intersections;
+    const h = Math.sqrt(Math.max(0, r1 * r1 - a * a)); // Ensure h is not NaN from negative sqrt
+    const x2 = c1.x + a * (c2.x - c1.x) / d;
+    const y2 = c1.y + a * (c2.y - c1.y) / d;
+
+    points.push({
+        x: x2 + h * (c2.y - c1.y) / d,
+        y: y2 - h * (c2.x - c1.x) / d
+    });
+
+    if (d !== 0 && h !== 0) { // Second point if not tangent or same center
+        points.push({
+            x: x2 - h * (c2.y - c1.y) / d,
+            y: y2 + h * (c2.x - c1.x) / d
+        });
     }
-    
-    // Calculate the two intersection points
-    const intersection1 = {
-      x: p3.x + h * dy / d,
-      y: p3.y - h * dx / d
-    };
-    
-    const intersection2 = {
-      x: p3.x - h * dy / d,
-      y: p3.y + h * dx / d
-    };
-    
-    intersections.push(intersection1, intersection2);
-    return intersections;
+    return points;
   }
   
   /**
-   * Check if a point is on a line segment
+   * Check if a point lies on an arc segment
    */
-  private isPointOnLineSegment(p: Point, a: Point, b: Point): boolean {
-    const distance = this.getDistance(a, b);
-    const d1 = this.getDistance(p, a);
-    const d2 = this.getDistance(p, b);
+  private isPointOnArc(point: Point, arc: ArcEntity): boolean {
+    const dx = point.x - arc.center.x;
+    const dy = point.y - arc.center.y;
+    const distSq = dx * dx + dy * dy;
     
-    // Allow for floating-point error
-    return Math.abs(d1 + d2 - distance) < 1e-10;
-  }
-  
-  /**
-   * Get polar snap point
-   */
-  private getPolarSnapPoint(base: Point, point: Point): Point | null {
-    if (!this.polarSnapEnabled) {
-      return null;
+    // Check if point is on the circle of the arc (within a small tolerance)
+    if (Math.abs(distSq - arc.radius * arc.radius) > 0.001) { // Tolerance for float precision
+        return false;
     }
+
+    let angle = Math.atan2(dy, dx);
+    if (angle < 0) angle += 2 * Math.PI; // Normalize to 0-2PI
+
+    let startAngle = arc.startAngle;
+    let endAngle = arc.endAngle;
+
+    // Normalize angles to be in 0-2PI range for comparison
+    while(startAngle < 0) startAngle += 2 * Math.PI;
+    while(startAngle >= 2 * Math.PI) startAngle -= 2 * Math.PI;
+    while(endAngle < 0) endAngle += 2 * Math.PI;
+    while(endAngle >= 2 * Math.PI) endAngle -= 2 * Math.PI;
     
-    // Calculate angle from base to point
-    let angle = Math.atan2(point.y - base.y, point.x - base.x) * 180 / Math.PI;
-    
-    // Normalize angle to 0-360
-    while (angle < 0) angle += 360;
-    
-    // Find the closest snap angle
-    let closestAngle = 0;
-    let minDiff = 360;
-    
-    for (const snapAngle of this.polarSnapAngles) {
-      // Check all multiples of this angle within 0-360
-      for (let mult = 0; mult <= 360 / snapAngle; mult++) {
-        const currAngle = snapAngle * mult;
-        const diff = Math.abs(currAngle - angle);
-        
-        if (diff < minDiff) {
-          minDiff = diff;
-          closestAngle = currAngle;
+    if (arc.counterclockwise === false) { // Clockwise arc
+        if (startAngle >= endAngle) { // Arc crosses 0 radians
+            return (angle >= startAngle && angle <= 2 * Math.PI) || (angle >= 0 && angle <= endAngle);
+        } else {
+            return angle >= endAngle && angle <= startAngle; // Reversed check for clockwise
         }
+    } else { // Counter-clockwise arc (default)
+        if (startAngle <= endAngle) {
+            return angle >= startAngle && angle <= endAngle;
+        } else { // Arc crosses 0 radians
+            return (angle >= startAngle && angle <= 2 * Math.PI) || (angle >= 0 && angle <= endAngle);
+        }
+    }
+  }
+
+  /**
+   * Check if a point lies on a line segment
+   */
+  private isPointOnLineSegment(p: Point, a: Point, b: Point, tolerance: number = 0.001): boolean {
+    const dAP = this.getDistance(a, p);
+    const dPB = this.getDistance(p, b);
+    const dAB = this.getDistance(a, b);
+    return Math.abs(dAP + dPB - dAB) < tolerance;
+  }
+  
+  /**
+   * Get a snap point along polar tracking lines
+   */
+  private getPolarSnapPoint(base: Point, current: Point): Point | null {
+    if (!this.polarSnapEnabled || this.polarSnapAngles.length === 0) return null;
+
+    const dx = current.x - base.x;
+    const dy = current.y - base.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist === 0) return null;
+
+    let angleRad = Math.atan2(dy, dx);
+    let angleDeg = angleRad * 180 / Math.PI;
+    if (angleDeg < 0) angleDeg += 360;
+
+    let bestSnapAngleDeg: number | null = null;
+    let minAngleDiff = Infinity;
+
+    for (const polarAngle of this.polarSnapAngles) {
+      const angleDiff = Math.abs(angleDeg - polarAngle) % 360; // Handle wrap around 360
+      const diff = Math.min(angleDiff, 360 - angleDiff); // Find shorter way around circle
+
+      if (diff < minAngleDiff && diff < 5) { // Snap within 5 degrees
+        minAngleDiff = diff;
+        bestSnapAngleDeg = polarAngle;
       }
     }
     
-    // If we're close enough to a snap angle, snap to it
-    if (minDiff <= 5) { // 5 degrees tolerance
-      const distance = this.getDistance(base, point);
-      const radians = closestAngle * Math.PI / 180;
-      
+    // Also check for extension along the direct line (0 degree difference)
+    const directAngleDiff = Math.abs(angleDeg - (Math.atan2(dy,dx) * 180 / Math.PI + 360)%360 )  % 360;
+    const directDiff = Math.min(directAngleDiff, 360 - directAngleDiff);
+     if (directDiff < minAngleDiff && directDiff < 1) { // Higher precision for direct line
+        minAngleDiff = directDiff;
+        bestSnapAngleDeg = (Math.atan2(dy,dx) * 180 / Math.PI + 360)%360;
+    }
+
+
+    if (bestSnapAngleDeg !== null) {
+      const snapRad = bestSnapAngleDeg * Math.PI / 180;
       return {
-        x: base.x + Math.cos(radians) * distance,
-        y: base.y + Math.sin(radians) * distance
+        x: base.x + dist * Math.cos(snapRad),
+        y: base.y + dist * Math.sin(snapRad)
       };
     }
-    
     return null;
   }
   
@@ -694,9 +625,22 @@ export class SnapManager {
    * Calculate distance between two points
    */
   private getDistance(p1: Point, p2: Point): number {
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+  }
+
+  /**
+   * Helper to rotate a point around a center (degrees)
+   */
+  private rotatePoint(point: Point, center: Point, angleDegrees: number): Point {
+    const radians = angleDegrees * (Math.PI / 180);
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const x = point.x - center.x;
+    const y = point.y - center.y;
+    return {
+      x: x * cos - y * sin + center.x,
+      y: x * sin + y * cos + center.y
+    };
   }
 }
 
