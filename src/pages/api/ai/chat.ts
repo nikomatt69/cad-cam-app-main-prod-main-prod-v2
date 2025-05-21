@@ -104,7 +104,7 @@ export default async function handler(
     
     // Call AI provider
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4.1',
       messages: aiMessages,
       max_tokens: 1000,
     });

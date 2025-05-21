@@ -465,7 +465,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                 </div>
                 
                 {state.pendingActions && state.pendingActions.length > 0 && handleExecuteAction &&(
-                  <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 shrink-0">
+                  <div className="p-2  border-gray-200 dark:border-gray-700 rounded-t-xl bg-gray-50 dark:bg-gray-900 shrink-0">
                     <AIActionHandler
                       key="action-handler-assistant-tab"
                       actions={state.pendingActions}
@@ -482,9 +482,9 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                   <AIMessageInput
                     onSendMessage={handleSendMessage}
                     isProcessing={state.isProcessing}
-                    placeholder="Describe what you want to create or modify..."
+                    placeholder="Type a message..."
                   />
-                </div>
+                </div> 
               </TabsContent>
 
               <TabsContent value="contextual" className="flex-grow overflow-y-auto p-4 mt-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">

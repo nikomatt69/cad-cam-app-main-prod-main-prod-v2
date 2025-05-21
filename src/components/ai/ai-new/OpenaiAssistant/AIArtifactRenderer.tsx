@@ -35,7 +35,7 @@ export const AIArtifactRenderer: React.FC<AIArtifactRendererProps> = ({ artifact
     switch (artifact.type) {
       case 'code':
         return (
-          <pre className="p-3 bg-gray-800 text-gray-200 rounded overflow-x-auto">
+          <pre className="p-3 bg-gray-800 dark:bg-gray-900 text-gray-200 dark:text-gray-200 rounded overflow-x-auto">
             <code>{artifact.content}</code>
           </pre>
         );
@@ -44,13 +44,13 @@ export const AIArtifactRenderer: React.FC<AIArtifactRendererProps> = ({ artifact
         try {
           const formattedJson = JSON.stringify(JSON.parse(artifact.content), null, 2);
           return (
-            <pre className="p-3 bg-gray-800 text-gray-200 rounded overflow-x-auto">
+            <pre className="p-3 bg-gray-800 dark:bg-gray-900 text-gray-200 dark:text-gray-200 rounded overflow-x-auto">
               <code>{formattedJson}</code>
             </pre>
           );
         } catch (e) {
           return (
-            <pre className="p-3 bg-gray-800 text-gray-200 rounded overflow-x-auto">
+            <pre className="p-3 bg-gray-800 dark:bg-gray-900 text-gray-200 dark:text-gray-200 rounded overflow-x-auto">
               <code>{artifact.content}</code>
             </pre>
           );
@@ -71,7 +71,7 @@ export const AIArtifactRenderer: React.FC<AIArtifactRendererProps> = ({ artifact
             );
           } else {
             return (
-              <pre className="p-3 bg-gray-800 text-gray-200 rounded overflow-x-auto text-xs">
+              <pre className="p-3 bg-gray-800 dark:bg-gray-900 text-gray-200 dark:text-gray-200 rounded overflow-x-auto text-xs">
                 <code>{JSON.stringify(cadAction, null, 2)}</code>
               </pre>
             );
@@ -79,7 +79,7 @@ export const AIArtifactRenderer: React.FC<AIArtifactRendererProps> = ({ artifact
         } catch (e) {
           console.error("Failed to parse or render CAD artifact:", e);
           return (
-            <pre className="p-3 bg-gray-800 text-red-400 rounded overflow-x-auto">
+            <pre className="p-3 bg-gray-800 dark:bg-gray-900 text-red-400 dark:text-red-400 rounded overflow-x-auto">
               <code>Error rendering CAD preview. Raw content: {artifact.content}</code>
             </pre>
           );
@@ -88,14 +88,14 @@ export const AIArtifactRenderer: React.FC<AIArtifactRendererProps> = ({ artifact
       case 'markdown':
         // Here you could add a markdown renderer
         return (
-          <div className="p-3 border border-gray-200 rounded bg-white">
+          <div className="p-3 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900">
             {artifact.content}
           </div>
         );
         
       default:
         return (
-          <pre className="p-3 bg-gray-100 rounded overflow-x-auto">
+          <pre className="p-3 bg-gray-100 dark:bg-gray-900 rounded overflow-x-auto">
             {artifact.content}
           </pre>
         );
@@ -103,27 +103,27 @@ export const AIArtifactRenderer: React.FC<AIArtifactRendererProps> = ({ artifact
   };
   
   return (
-    <div className="border border-gray-200 rounded-md overflow-hidden bg-white">
-      <div className="flex justify-between items-center px-3 py-2 bg-gray-100 border-b">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden bg-white dark:bg-gray-900">
+      <div className="flex justify-between items-center px-3 py-2 bg-gray-100 dark:bg-gray-900 border-b">
         <div className="font-medium text-sm">{artifact.title || 'Artifact'}</div>
         <div className="flex space-x-2">
           {artifact.type === 'cad' && onAddToCanvas && (
             <button
               onClick={handleAddToCanvas}
-              className="text-xs px-2 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+              className="text-xs px-2 py-1 rounded bg-blue-500 dark:bg-blue-600 text-white hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
             >
               Add to Canvas
             </button>
           )}
           <button 
             onClick={handleCopy}
-            className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             Copy
           </button>
           <button 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-xs px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
           >
             {isExpanded ? 'Collapse' : 'Expand'}
           </button>

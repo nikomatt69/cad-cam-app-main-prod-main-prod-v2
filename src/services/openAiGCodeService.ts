@@ -7,7 +7,7 @@ import axios from 'axios';
 class OpenAiGCodeService {
   private apiKey = process.env.OPENAI_API_KEY!;
   private baseUrl: string = 'https://api.openai.com/v1';
-  private model: string = 'gpt-4o-mini';
+  private model: string = 'gpt-4.1';
 
 
 
