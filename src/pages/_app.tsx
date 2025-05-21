@@ -1,5 +1,6 @@
 // src/pages/_app.tsx
 import 'src/styles/globals.css';
+import 'src/styles/gcode-editor.css'; // Import the GCode Editor styles
 import type { AppProps } from 'next/app';
 import { SessionProvider } from 'next-auth/react';
 import { Inter } from 'next/font/google';

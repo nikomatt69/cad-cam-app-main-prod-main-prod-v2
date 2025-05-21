@@ -12,10 +12,10 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      mode: 'light', // Default theme
+      mode: 'dark', // Default theme
       setMode: (mode) => set({ mode }),
       toggleMode: () =>
-        set((state) => ({ mode: state.mode === 'light' ? 'dark' : 'light' })),
+        set((state) => ({ mode: state.mode === 'dark' ? 'light' : 'dark' })),
     }),
     {
       name: 'theme-storage', // Name for the persisted state in localStorage

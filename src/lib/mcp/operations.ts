@@ -76,7 +76,7 @@ export async function getServerResources(serverId: string): Promise<any[]> {
   }
   
   try {
-    const info = await server.getServerCapabilities();
+    const info = await server.listResources();
     return (info?.resources as any[] | undefined) || [];
   } catch (error) {
     console.error(`Failed to get resources from server ${serverId}:`, error);
@@ -93,7 +93,7 @@ export async function getServerTools(serverId: string): Promise<any[]> {
   }
   
   try {
-    const info = await server.getServerCapabilities();
+    const info = await server.listTools();
     return (info?.tools as any[] | undefined) || [];
   } catch (error) {
     console.error(`Failed to get tools from server ${serverId}:`, error);

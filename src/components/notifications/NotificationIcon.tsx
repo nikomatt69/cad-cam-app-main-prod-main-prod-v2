@@ -33,7 +33,7 @@ const NotificationIcon: React.FC<NotificationIconProps> = ({ onClick }) => {
   return (
     <button
       onClick={handleClick}
-      className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 rounded-full"
+      className="relative p-1 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-1 rounded-full"
       aria-label="Notifications"
     >
       <Bell className="h-5 w-5 text-green-500" />

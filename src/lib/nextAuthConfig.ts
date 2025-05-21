@@ -14,6 +14,10 @@ export const generateWebSocketToken = (userId: string): string => {
   );
 };
 
+// Force HTTP in dev environment
+const isDevEnvironment = process.env.NODE_ENV === 'development';
+const baseUrl = isDevEnvironment ? 'http://localhost:3000' : process.env.NEXTAUTH_URL;
+
 export const nextAuthConfig: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -81,23 +85,22 @@ export const nextAuthConfig: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.roles = user.roles;
-        
       }
-      
-      // Do NOT include the token itself in the JWT - this causes bloat
-      // Remove this line: token.token = JSON.stringify(token);
-      
       return token;
     },
     
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id as string;
-        token.roles as string[];
+        // Ensure session.user object has proper structure
+        if (!session.user.id) {
+          session.user.id = token.id as string;
+        }
         
-        // Instead of including the whole token, just add the user ID
-        // We'll generate a minimal WebSocket token when needed
-        // Remove this line: session.token = token.token;
+        // Add roles to session if available
+        if (token.roles) {
+          session.user.roles = token.roles as UserRole[];
+        }
       }
       return session;
     },

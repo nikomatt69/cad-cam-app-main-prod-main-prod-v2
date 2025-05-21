@@ -33,8 +33,11 @@ import {
   Box,
   Folder,
   X,
-  DollarSign
+  DollarSign,
+  Sun,
+  Moon
 } from 'react-feather';
+import { PanelRightIcon, PanelRightInactiveIcon } from 'lucide-react';
 import EnhancedSidebarCam from '../components/cam/EnanchedSidebarCam';
 
 import AIToolpathOptimizer from '../components/ai/AIToolpathOptimizer';
@@ -60,7 +63,10 @@ import CNCControlPage from '../components/cam/FanucCncControl';
 import ToolpathGenerator3DPrintIntegration from '../components/cam/ToolpathGenerator3DPrintIntegration';
 import render3DPrinterSection from '../components/cam/render3DPrinterSection';
 import { useCAMStore } from '@/src/store/camStore';
-
+import ChatPanel from '../components/layout/ChatPanel';
+import ChatPanelCam from '../components/layout/ChatPanelCam';
+import ToolpathAnalysisPanel from '../components/ai/CAMAssistant/ToolpathAnalysisPanel';
+import GCodeAIAgent from '../components/ai/GCodeAIAgent/GCodeAIAgent';
 // Tipi di post-processor supportati
 type PostProcessorType = 'fanuc' | 'heidenhain' | 'siemens' | 'haas' | 'mazak' | 'okuma' | 'generic';
 export const DynamicToolpathGenerator = dynamic(() => import('src/components/cam/ToolpathGenerator'), {
@@ -98,17 +104,17 @@ export default function CAMPage() {
   const [processedGcode, setProcessedGcode] = useState<string>('');
   const [isSimulating, setIsSimulating] = useState(false);
   const [selectedPostProcessor, setSelectedPostProcessor] = useState<PostProcessorType>('fanuc');
-  const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control' | 'costs'>('generator');
+  const [activeRightPanel, setActiveRightPanel] = useState<'generator' | 'cycles' | 'control' | 'analysis'>('generator');
   const [selectedLibraryTool, setSelectedLibraryTool] = useState<string | null>(null);
   const [selectedToolpathId, setSelectedToolpathId] = useState<string | null>(null);
-  
+  const [showChatPanel, setShowChatPanel] = useState(true);
   // Nuovo stato per la libreria CAM
   const [showLibrary, setShowLibrary] = useState(false);
   // Add state for the unified library modal
   const [showUnifiedLibrary, setShowUnifiedLibrary] = useState(false);
   // Add state for production costs manager modal
   const [showCostsManager, setShowCostsManager] = useState(false);
-  
+  const [cadElements, setCadElements] = useState<any[]>([]);
   // Add useEffect to load toolpath from localStorage when URL contains loadToolpath parameter
   useEffect(() => {
     const loadToolpathFromStorage = async () => {
@@ -323,7 +329,21 @@ export default function CAMPage() {
   const handleToolpathSelect = (toolpathId: string) => {
     setSelectedToolpathId(toolpathId);
     // Passa automaticamente alla tab di costi
-    setActiveRightPanel('costs');
+    setActiveRightPanel('analysis');
+  };
+
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // Implement dark/light theme
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
   };
 
   if (status === 'loading') {
@@ -353,7 +373,7 @@ export default function CAMPage() {
      
       <div className="flex flex-col rounded-xl h-full w-full">
         {/* Top toolbar */}
-        <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border-b rounded-xl w-full px-4 py-2 flex items-center justify-between">
+        <div className="bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white border-b rounded-xl w-full px-4 py-1 flex items-center justify-between">
           <div className="flex rounded-xl w-max items-center">
             <button
               className="mr-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
@@ -361,22 +381,7 @@ export default function CAMPage() {
             >
               <Menu size={20} className="text-gray-600 dark:text-gray-400" />
             </button>
-            {isMobile ? (
-  <Link href="/" className="">
-    <div className=""></div>
-  </Link>
-) : (
-  <Link href="/" className="flex items-center">
-    <div className="flex-shrink-0 flex items-center">
-      <img
-        className="h-14 w-auto"
-        src="/logo.png"
-        alt="CAD/CAM FUN"
-       
-      />
-    </div>
-  </Link>
-)}
+            
             <div className="ml-6 flex items-center space-x-2">
               <button
                 onClick={handleSaveGcode}
@@ -423,6 +428,17 @@ export default function CAMPage() {
                 <DollarSign size={16} className="mr-1" />
                 Costi
               </button>
+              <button
+              onClick={toggleDarkMode}
+              className={`p-1.5 border shadow-sm rounded-md flex items-center ${
+                isDarkMode 
+                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+              aria-label="Toggle dark mode"
+            >
+              {isDarkMode ? <Sun className="h-3 w-3 sm:h-4 sm:w-4" /> : <Moon className="h-3 w-3 sm:h-4 sm:w-4" />}
+            </button>
             </div>
           </div>
           
@@ -472,6 +488,13 @@ export default function CAMPage() {
               <Settings size={16} className="mr-1" />
               Post-Processor
             </button>
+            <button
+              onClick={() => setShowChatPanel(!showChatPanel)}
+              className="flex items-center px-1  text-sm font-medium bg-blue-400 hover:bg-blue-600 text-white  rounded-md shadow-lg z-50"
+              aria-label={showChatPanel ? "Close Chat Panel" : "Open Chat Panel"}
+            >
+              {showChatPanel ? <PanelRightIcon size={16}/> : <PanelRightInactiveIcon size={16}/>}
+            </button>
           </div>
         </div>
 
@@ -516,6 +539,7 @@ export default function CAMPage() {
                   isSimulating={isSimulating}
                   selectedTool={selectedLibraryTool}
                   showWorkpiece={true}
+                  cadElements={cadElements}
                   onSimulationComplete={() => {
                     // Handle simulation complete
                     setIsSimulating(false);
@@ -614,27 +638,17 @@ export default function CAMPage() {
                   Fixed Cycles
                 </button>
                 <button
-                  onClick={() => setActiveRightPanel('costs')}
+                  onClick={() => setActiveRightPanel('analysis')}
                   className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeRightPanel === 'costs'
+                    activeRightPanel === 'analysis'
                       ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
                       : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
                   <DollarSign size={16} className="mr-1" />
-                  Costi
+                  Costs
                 </button>
-                <button
-                  onClick={() => setActiveRightPanel('control')}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
-                    activeRightPanel === 'control'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-gray-700 dark:text-gray-100 border-b-2 border-blue-500'
-                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                  }`}
-                >
-                  <Settings size={16} className="mr-1" />
-                  Control
-                </button>
+                
               </div>
             </div>
 
@@ -654,51 +668,14 @@ export default function CAMPage() {
                 </>
               )}
               
-              {activeRightPanel === 'control' && (
-                <>
-               <></>
-               </>
-              )}
-              
-              {activeRightPanel === 'costs' && (
-                <div className="flex flex-col space-y-4">
-                  <div className="bg-white p-4 rounded-lg shadow">
-                    <h3 className="text-lg font-medium mb-3">Seleziona Toolpath</h3>
-                    {toolpaths.length > 0 ? (
-                      <select
-                        className="w-full border border-gray-300 rounded-md p-2"
-                        value={selectedToolpathId || ''}
-                        onChange={(e) => handleToolpathSelect(e.target.value)}
-                      >
-                        <option value="">Seleziona un toolpath</option>
-                        {toolpaths.map((tp) => (
-                          <option key={tp.id} value={tp.id}>
-                            {tp.name || `Toolpath #${tp.id.substring(0, 6)}`}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <p className="text-gray-500">
-                        Nessun toolpath disponibile. Genera un toolpath per calcolare i costi.
-                      </p>
-                    )}
-                  </div>
-                  
-                  {selectedToolpathId && (
-                    <ToolpathCostPanel toolpathId={selectedToolpathId} />
-                  )}
-                  
-                  <button
-                    onClick={() => setShowCostsManager(true)}
-                    className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
-                  >
-                    Gestione Completa Costi
-                  </button>
-                </div>
+             
+              {activeRightPanel === 'analysis' && (
+               <ToolpathAnalysisPanel/>
               )}
             </div>
+           
           </div>
-          
+         
           {/* Toggle right sidebar button */}
           <button
             className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-[#F8FBFF]  dark:bg-gray-800 dark:text-white p-2 rounded-l-md shadow-md"
@@ -706,6 +683,7 @@ export default function CAMPage() {
           >
             {rightSidebarOpen ? <ChevronRight size={20} className="text-gray-600" /> : <ChevronLeft size={20} className="text-gray-600" />}
           </button>
+          
         </div>
         
         {/* Status bar */}
@@ -742,15 +720,16 @@ export default function CAMPage() {
         onClose={() => setShowUnifiedLibrary(false)}
         onSelectTool={handleToolSelection}
         onSelectMaterial={handleMaterialSelection}
+        onSelectComponent={(component) => { /* Placeholder if needed */ }}
         defaultTab="tools"
       />
       
       {/* Production Costs Manager Modal */}
       {showCostsManager && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
-          <div className="w-full max-w-7xl max-h-[90vh] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <div className="fixed inset-0 z-50 dark:bg flex items-center justify-center bg-black bg-opacity-75 p-4">
+          <div className="w-full max-w-7xl max-h-[70vh] flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-xl">
             <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold dark:text-white">Gestione Costi di Produzione</h2>
+              <h2 className="text-xl dark:text-blue-400 font-bold ">Production Costs Manager</h2>
               <button 
                 onClick={() => setShowCostsManager(false)}
                 className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -758,12 +737,18 @@ export default function CAMPage() {
                 <X size={20} className="dark:text-gray-300" />
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 rounded-xl overflow-y-auto">
               <ProductionCostsManager />
             </div>
           </div>
         </div>
       )}
+
+      {/* Chat Panel Toggle Button */}
+     
+
+      {/* Chat Panel */}
+     
     </div>
   );
 }

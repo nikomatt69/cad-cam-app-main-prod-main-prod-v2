@@ -4,7 +4,8 @@ import { MCPApiClient, MCPServerConfig } from '../../lib/mcp/api-client';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import Layout from '@/src/components/layout/Layout';
-
+import { useSession } from 'next-auth/react';
+import Loading from '@/src/components/ui/Loading';
 export default function MCPDirectoryPage() {
   const [servers, setServers] = useState<MCPServerConfig[]>([]);
   const [serverInfo, setServerInfo] = useState<Record<string, any>>({});
@@ -66,12 +67,18 @@ export default function MCPDirectoryPage() {
       setError(err.message || 'Failed to update server');
     }
   };
+
+  const { status } = useSession();
+  
+  if (status === 'unauthenticated') {
+    router.push('/auth/signin');
+    return null;
+  }
   
   if (loading) {
     return (
       <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-4">MCP Server Directory</h1>
-        <div className="text-center p-8">Loading servers...</div>
+        <div className="text-center p-8"><Loading/></div>
       </div>
     );
   }
@@ -127,7 +134,16 @@ export default function MCPDirectoryPage() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-gray-600 text-sm mt-1 truncate">{server.url}</p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full mr-2">
+                      {server.type === 'sse' ? 'SSE' : 'stdio'}
+                    </span>
+                    {server.type === 'sse' ? (
+                      <p className="text-gray-600 text-sm truncate">{server.url}</p>
+                    ) : (
+                      <p className="text-gray-600 text-sm truncate">{(server as any).command}</p>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="p-4 border-t">

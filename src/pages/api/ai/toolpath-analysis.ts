@@ -8,11 +8,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const session = await getSession({ req });
-  if (!session || !session.user) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-  
+
   const userId = await requireAuth(req, res);
   if (!userId) return;
   
@@ -23,16 +19,26 @@ export default async function handler(
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
+  const secretKey = process.env.ANTHROPIC_API_KEY;
+
+  if (!secretKey) {
+    // Throw error only in development/build time, avoid crashing production server if env var is momentarily unavailable.
+    // Consider more robust error handling or logging here for production.
+    if (process.env.NODE_ENV !== 'production') {
+      throw new Error("Anthropic API key is not defined. Please set ANTHROPIC_API_KEY in your environment variables.");
+    }
+    console.error("Anthropic API key is not defined.");
+  }
 
   try {
-    const { gcode, model = 'claude-3-5-sonnet-20240229', max_tokens = 300 } = req.body;
+    const { gcode, model = 'claude-3-5-sonnet-20240229', max_tokens } = req.body;
 
     if (!gcode) {
       return res.status(400).json({ message: 'G-code is required' });
     }
 
     const anthropic = new Anthropic({
-      apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
+      apiKey: secretKey,
     });
 
     // Build the prompt for toolpath analysis

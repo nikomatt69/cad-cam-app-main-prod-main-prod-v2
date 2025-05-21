@@ -8,6 +8,7 @@ import TransformToolbar from '../components/cad/TrasformToolbar';
 import FloatingToolbar from '../components/cad/FloatingToolbar';
 
 import { Book, X, ChevronLeft, ChevronRight, Sliders, PenTool, Tool, Box, Cpu, Activity } from 'react-feather';
+import { PanelRightIcon, PanelRightInactiveIcon, PuzzleIcon } from 'lucide-react';
 import LocalCadLibraryView from 'src/components/library/LocalCadLibraryView';
 import ImportExportDialog from 'src/components/cad/ImportExportDialog';
 import { useCADStore } from 'src/store/cadStore';
@@ -41,9 +42,15 @@ import { AssemblyConstraints } from '../components/cad/assembly/AssemblyConstrai
 import { Joint } from '../types/assembly';
 import { Constraint } from '../types/assembly';
 import { assemblyManager } from '../store/assemblyStore';
+import ChatPanel from '../components/layout/ChatPanel';
 
 // Simulation Imports
 import { BufferGeometry, NormalBufferAttributes, Material, Mesh, Mesh as ThreeMesh } from 'three';
+import PluginHostContainer from '../components/plugins/PluginHostContainer';
+import { usePluginClient } from '../context/PluginClientContext';
+
+import { usePluginRegistry } from '../hooks/usePluginRegistry';
+import { PluginRegistryEntry } from '../plugins/core/registry';
 
 // Assuming a type for results
 
@@ -88,6 +95,7 @@ export default function CADPage() {
   
   // Add state for CAD Assistant
   const [showCADAssistant, setShowCADAssistant] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
   
   // State to manage subscriptions from plugin windows
   const [crossWindowSubscriptions, setCrossWindowSubscriptions] = useState<CrossWindowSubscription[]>([]);
@@ -97,6 +105,11 @@ export default function CADPage() {
   // Add state for CAD Assistant
   const [simulationMesh, setSimulationMesh] = useState<ThreeMesh | null>(null);
 
+  const [showRightPanel, setShowRightPanel] = useState(true);
+
+  const toggleRightPanel = () => {
+    setShowRightPanel(!showRightPanel);
+  };
 
   const handleAssemblyNodeSelect = useCallback((nodeId: string) => {
     console.log('Assembly Node Selected:', nodeId);
@@ -344,6 +357,33 @@ export default function CADPage() {
     }
   }, [router.query.loadComponent, layers, addElement, router]);
 
+  const { plugins: clientPlugins } = usePluginClient(); // Use client context hook
+  const [activePluginId, setActivePluginId] = useState<string | null>(null);
+    const [sidebarPlugins, setSidebarPlugins] = useState<PluginRegistryEntry[]>([]); // Use correct type
+    const [expandedWidth, setExpandedWidth] = useState(false); // Stato per larghezza
+  const [isContentVisible, setIsContentVisible] = useState(false); // Stato per visibilità contenuto (come FloatingToolbar) - Changed default to false
+  
+  // Filter plugins that contribute to sidebar
+  useEffect(() => {
+    // Filter directly from context plugins
+    const filtered = clientPlugins.filter(plugin => 
+      plugin.enabled && // Check if enabled via context state
+      plugin.manifest.contributes?.sidebar
+    );
+    
+    setSidebarPlugins(filtered);
+    
+    // Auto-select the first plugin if none is selected or selected is no longer valid
+    const currentSelectionValid = filtered.some(p => p.id === activePluginId);
+    if (filtered.length > 0 && (!activePluginId || !currentSelectionValid)) {
+      setActivePluginId(filtered[0].id);
+    } else if (filtered.length === 0) {
+        setActivePluginId(null); // Clear selection if no sidebar plugins are enabled
+    }
+
+  }, [activePluginId, clientPlugins]); // Depend on context plugins list
+  
+  
   // Reset component selection when closing library
   useEffect(() => {
     if (!showUnifiedLibrary && !sidebarOpen) {
@@ -431,6 +471,9 @@ export default function CADPage() {
           selectedLibraryComponent={selectedLibraryComponent}
           setSelectedLibraryComponent={setSelectedLibraryComponent}
           setIsPlacingComponent={setIsPlacingComponent}
+          
+         
+       
         />
 
         <div className="flex flex-1 p-0.5 bg-gradient-to-b from-[#2A2A2A] to-[#303030] border-b border-gray-200 dark:border-gray-700 overflow-hidden w-full">
@@ -479,10 +522,7 @@ export default function CADPage() {
             />
           </div>
           
-          <><PluginSidebar 
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-          /></>
+         
           
           {/* Right sidebar for properties */}
           <div 
@@ -513,8 +553,8 @@ export default function CADPage() {
                       : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                   }`}
                 >
-                  <Cpu size={16} className="mr-1" />
-                  Assembly
+                  <PuzzleIcon size={16} className="mr-1" />
+                  Plugins
                 </button>
                 
               </div>
@@ -528,25 +568,42 @@ export default function CADPage() {
               
               
               {activeRightPanel === 'constraints' && (
+           
                 <>
-                <AssemblyBrowser 
-                    selectedNodeId={selectedAssemblyNodeId}
-                    onNodeSelect={handleAssemblyNodeSelect} 
-                  />
-
-                  {/* Joint Creator */}
-                  <JointCreator 
-                    onJointCreated={handleJointCreated} 
-                    // onJointRemoved={...} // Add if needed
-                  />
-
-                  {/* Constraint Manager */}
-                  <AssemblyConstraints 
-                    onConstraintAdded={handleConstraintAdded}
-                    // onConstraintRemoved={...} // Add if needed
-                  />
-
-                  <ParametricModelingPanel />
+                
+                <div className="flex-1 flex flex-col overflow-hidden"> {/* Use flex-col here */}
+          {/* Tabs */} 
+          <div className="flex-shrink-0 flex space-x-1 px-2 pt-2 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            {sidebarPlugins.map(plugin => (
+              <button
+                key={plugin.id}
+                className={`px-3 py-2 rounded-t text-sm font-medium transition-colors ${ 
+                  activePluginId === plugin.id 
+                    ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+                onClick={() => setActivePluginId(plugin.id)}
+              >
+                {plugin.manifest.contributes?.sidebar?.title || plugin.manifest.name}
+              </button>
+            ))}
+          </div>
+        
+          {/* Content Host (flex-1 to fill remaining space, overflow-auto for scroll) */}
+          <div className="flex-1 p-4 overflow-auto"> 
+            {activePluginId && (
+              <PluginHostContainer
+                pluginId={activePluginId}
+                entryPoint="sidebar"
+              />
+            )}
+            {sidebarPlugins.length === 0 && (
+              <div className="h-full flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
+                No plugins with sidebar UI are enabled
+              </div>
+            )}
+          </div>
+        </div>
                     
                 </>
               )}
@@ -598,6 +655,9 @@ export default function CADPage() {
         onSelectTool={handleToolSelection}
         defaultTab="components"
       />
+
+      {/* Chat Panel Toggle Button */}
+     
     </div>
   );
 }

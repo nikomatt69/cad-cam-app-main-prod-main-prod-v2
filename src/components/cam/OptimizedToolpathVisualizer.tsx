@@ -17,7 +17,7 @@ interface OptimizedToolpathVisualizerProps {
   onSimulationComplete?: () => void;
   onSimulationProgress?: (progress: number) => void;
   onToolChange?: (toolName: string) => void;
-  
+  cadElements: any[];
   // Optimization options
   optimizationOptions?: {
     targetFps?: number;
@@ -45,13 +45,14 @@ const OptimizedToolpathVisualizer: React.FC<OptimizedToolpathVisualizerProps> = 
   onSimulationComplete,
   onSimulationProgress,
   onToolChange,
+  cadElements,
   optimizationOptions = {}
 }) => {
   // References to Three.js entities
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  
+
   // Reference to the inner ToolpathVisualizer component
   const toolpathVisualizerRef = useRef<any>(null);
   
@@ -190,7 +191,7 @@ const OptimizedToolpathVisualizer: React.FC<OptimizedToolpathVisualizerProps> = 
     <div className="relative w-full h-full">
       {/* Original ToolpathVisualizer */}
       <ToolpathVisualizer
-        
+        cadElements={cadElements}
         width={width}
         height={height}
         gcode={gcode}

@@ -29,7 +29,8 @@ const CAMWorkpieceSetup: React.FC = () => {
     selectedWorkpieceElementId,
     setSelectedWorkpieceElementId,
     syncWorkpieceFromCAD,
-    workpieceElements
+    workpieceElements,
+    setWorkpieceElements
   } = useCAMStore();
 
   const [machineConfigs, setMachineConfigs] = useState<MachineConfig[]>([]);
@@ -50,7 +51,7 @@ const CAMWorkpieceSetup: React.FC = () => {
   });
   
   const workpieceExists = workpiece !== undefined;
-  const camStore = useCAMStore();
+  
   // Load machine configurations
   // Nuova funzione per sincronizzare il workpiece dalle selezioni CAD
   const syncFromCADSelection = useCallback(() => {
@@ -214,8 +215,8 @@ const CAMWorkpieceSetup: React.FC = () => {
             <label className="inline-flex items-center">
               <input
                 type="checkbox"
-                checked={camStore.preserveGeometry}
-                onChange={(e) => camStore.preserveGeometry = e.target.checked}
+                checked={true}
+                onChange={(e) => setWorkpieceElements({...workpieceElements as any, preserveGeometry: e.target.checked})}
                 className="form-checkbox h-4 w-4 text-blue-600 dark:text-blue-400"
               />
               <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">

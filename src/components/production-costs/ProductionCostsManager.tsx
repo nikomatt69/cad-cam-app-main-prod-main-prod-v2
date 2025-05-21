@@ -204,47 +204,47 @@ const ProductionCostsManager: React.FC = () => {
       case 'overview':
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Panoramica Costi</h2>
+            <h2 className="text-xl font-semibold dark:text-gray-300 mb-4">Cost Overview</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-medium text-blue-800">Utensili con Costi</h3>
+              <div className="bg-blue-50 dark:bg-gray-600 p-4 rounded-lg">
+                <h3 className="font-medium text-blue-800">Tools with Costs</h3>
                 <p className="text-2xl font-bold">{toolWearCosts.length}</p>
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-medium text-green-800">Materiali con Costi</h3>
+              <div className="bg-green-50 dark:bg-gray-600 p-4 rounded-lg">
+                <h3 className="font-medium text-green-800">Materials with Costs</h3>
                 <p className="text-2xl font-bold">{materialCosts.length}</p>
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <h3 className="font-medium text-purple-800">Operazioni</h3>
+              <div className="bg-purple-50 dark:bg-gray-600 p-4 rounded-lg">
+                <h3 className="font-medium text-purple-800">Operations</h3>
                 <p className="text-2xl font-bold">{operationCosts.length}</p>
               </div>
-              <div className="bg-amber-50 p-4 rounded-lg">
-                <h3 className="font-medium text-amber-800">Stime Generate</h3>
+              <div className="bg-amber-50 p-4 dark:bg-gray-600 rounded-lg">
+                <h3 className="font-medium text-amber-800">Generated Estimates</h3>
                 <p className="text-2xl font-bold">{costEstimates.length}</p>
               </div>
             </div>
             
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Seleziona Toolpath per Stima Costi</h3>
+              <h3 className="text-lg font-semibold mb-2">Select Toolpath for Cost Estimation</h3>
               <div className="flex flex-col space-y-2">
                 <select
                   className="border border-gray-300 rounded-md p-2"
                   value={selectedToolpathId || ''}
                   onChange={(e) => handleToolpathSelect(e.target.value)}
                 >
-                  <option value="">Seleziona una toolpath</option>
+                  <option value="">Select a toolpath</option>
                   
                   {/* Current toolpath option */}
                   {currentToolpaths.length > 0 && (
                     <option value={CURRENT_TOOLPATH_ID} className="font-semibold">
-                      [Toolpath Corrente] {getCurrentToolpath()?.name || "Senza nome"}
+                      [Current Toolpath] {getCurrentToolpath()?.name || "No name"}
                     </option>
                   )}
                   
                   {/* Add option group for saved toolpaths if there are any */}
                   {savedToolpaths.length > 0 && (
-                    <optgroup label="Toolpaths Salvati">
+                    <optgroup label="Saved Toolpaths">
                       {savedToolpaths.map((tp) => (
                         <option key={tp.id} value={tp.id}>
                           {tp.name}
@@ -255,7 +255,7 @@ const ProductionCostsManager: React.FC = () => {
                   
                   {/* Show current session toolpaths if different from the current one */}
                   {currentToolpaths.length > 1 && (
-                    <optgroup label="Toolpaths Sessione Corrente">
+                    <optgroup label="Current Session Toolpaths">
                       {currentToolpaths.slice(0, -1).map((tp) => (
                         <option key={tp.id} value={tp.id}>
                           {tp.name || `Toolpath #${tp.id.substring(0, 6)}`}
@@ -266,7 +266,7 @@ const ProductionCostsManager: React.FC = () => {
                 </select>
                 
                 <button
-                  className="bg-blue-500 text-white px-4 py-2 rounded-md disabled:bg-gray-300"
+                  className="bg-blue-500 dark:bg-gray-600 text-white px-4 py-2 rounded-md disabled:bg-gray-300"
                   disabled={!selectedToolpathId}
                   onClick={generateEstimateAndUpdateState}
                 >
@@ -278,42 +278,42 @@ const ProductionCostsManager: React.FC = () => {
             </div>
             
             {selectedEstimate && (
-              <div className="border border-gray-200 rounded-lg p-4 mb-6">
-                <h3 className="text-lg font-semibold mb-2">Stima Costi per {selectedToolpath?.name || "Toolpath Selezionato"}</h3>
+              <div className="border border-gray-200 dark:text-gray-300 rounded-lg p-4 mb-6">
+                <h3 className="text-lg font-semibold mb-2">Cost Estimation for {selectedToolpath?.name || "Selected Toolpath"}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <span className="text-gray-600">Costo Materiale:</span>
+                    <span className="text-gray-600">Material Cost:</span>
                     <p className="text-lg font-bold">
                       {formatCurrency(selectedEstimate.materialCost, selectedEstimate.currencyCode)}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <span className="text-gray-600">Costo Utensile:</span>
+                    <span className="text-gray-600">Tool Wear Cost:</span>
                     <p className="text-lg font-bold">
                       {formatCurrency(selectedEstimate.toolWearCost, selectedEstimate.currencyCode)}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <span className="text-gray-600">Tempo Macchina:</span>
+                    <span className="text-gray-600">Machine Time:</span>
                     <p className="text-lg font-bold">
                       {formatTime(selectedEstimate.machineTime)}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <span className="text-gray-600">Costo Tempo Macchina:</span>
+                    <span className="text-gray-600">Machine Time Cost:</span>
                     <p className="text-lg font-bold">
                       {formatCurrency(selectedEstimate.machineTimeCost, selectedEstimate.currencyCode)}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <span className="text-gray-600">Costo Operatore:</span>
+                    <span className="text-gray-600">Operator Cost:</span>
                     <p className="text-lg font-bold">
                       {formatCurrency(selectedEstimate.operatorTimeCost, selectedEstimate.currencyCode)}
                     </p>
                   </div>
                   <div className="bg-gray-50 p-3 rounded-md">
-                    <span className="text-gray-600">Costo Setup:</span>
+                    <span className="text-gray-600">Setup Cost:</span>
                     <p className="text-lg font-bold">
                       {formatCurrency(selectedEstimate.setupCost, selectedEstimate.currencyCode)}
                     </p>
@@ -321,7 +321,7 @@ const ProductionCostsManager: React.FC = () => {
                 </div>
                 
                 <div className="bg-blue-50 p-4 rounded-md">
-                  <span className="text-blue-800">COSTO TOTALE:</span>
+                  <span className="text-blue-800">TOTAL COST:</span>
                   <p className="text-2xl font-bold">
                     {formatCurrency(selectedEstimate.totalCost, selectedEstimate.currencyCode)}
                   </p>
@@ -329,25 +329,25 @@ const ProductionCostsManager: React.FC = () => {
                 
                 {selectedEstimate.details && (
                   <div className="mt-4 border-t border-gray-200 pt-4">
-                    <h4 className="font-medium mb-2">Dettagli</h4>
+                    <h4 className="font-medium mb-2">Details</h4>
                     <ul className="text-sm text-gray-600">
                       {selectedEstimate.details.materialId && (
-                        <li>Materiale: {getMaterialName(selectedEstimate.details.materialId)}</li>
+                        <li>Material: {getMaterialName(selectedEstimate.details.materialId)}</li>
                       )}
                       {selectedEstimate.details.toolId && (
-                        <li>Utensile: {getToolName(selectedEstimate.details.toolId)}</li>
+                        <li>Tool: {getToolName(selectedEstimate.details.toolId)}</li>
                       )}
                       {selectedEstimate.details.materialVolume && (
-                        <li>Volume Materiale: {formatVolume(selectedEstimate.details.materialVolume)}</li>
+                        <li>Material Volume: {formatVolume(selectedEstimate.details.materialVolume)}</li>
                       )}
                       {selectedEstimate.details.toolPathLength && (
-                        <li>Lunghezza Percorso: {formatDimension(selectedEstimate.details.toolPathLength)}</li>
+                        <li>Toolpath Length: {formatDimension(selectedEstimate.details.toolPathLength)}</li>
                       )}
                       {selectedEstimate.details.toolWearPercentage && (
-                        <li>Usura Utensile: {formatPercentage(selectedEstimate.details.toolWearPercentage)}</li>
+                        <li>Tool Wear: {formatPercentage(selectedEstimate.details.toolWearPercentage)}</li>
                       )}
                       {selectedEstimate.details.feedRate && (
-                        <li>Velocità Avanzamento: {selectedEstimate.details.feedRate} mm/min</li>
+                        <li>Feed Rate: {selectedEstimate.details.feedRate} mm/min</li>
                       )}
                     </ul>
                   </div>
@@ -359,7 +359,7 @@ const ProductionCostsManager: React.FC = () => {
                     onClick={async () => {
                       if (selectedEstimateId) {
                         try {
-                          if (window.confirm('Sei sicuro di voler eliminare questa stima?')) {
+                          if (window.confirm('Are you sure you want to delete this estimate?')) {
                             const success = await deleteEstimate(selectedEstimateId);
                             if (success) {
                               setSelectedEstimateId(null);
@@ -372,7 +372,7 @@ const ProductionCostsManager: React.FC = () => {
                       }
                     }}
                   >
-                    Elimina
+                    Delete
                   </button>
                   <button 
                     className="text-blue-600 hover:text-blue-800"
@@ -380,12 +380,12 @@ const ProductionCostsManager: React.FC = () => {
                       if (selectedEstimate) {
                         const report = ProductionCostsAPI.Utils.generateCostReport(selectedEstimate, true);
                       navigator.clipboard.writeText(report)
-                        .then(() => alert('Report copiato negli appunti!'))
-                        .catch(() => alert('Impossibile copiare il report.'));
+                        .then(() => alert('Report copied to clipboard!'))
+                        .catch(() => alert('Unable to copy report.'));
                       }
                     }}
                   >
-                    Copia Report
+                    Copy Report
                   </button>
                 </div>
               </div>
@@ -395,32 +395,32 @@ const ProductionCostsManager: React.FC = () => {
       case 'tool-wear':
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Gestione Costi Usura Utensili</h2>
+            <h2 className="text-xl dark:text-gray-300 font-semibold mb-4">Tool Wear Costs Management</h2>
             <ToolWearCostForm 
               key={editingToolWearCostId || 'new'}
               costToEditId={editingToolWearCostId} 
               onSubmissionDone={handleToolWearFormAction} 
             />
             <div className="mt-8 pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-3">Costi Usura Registrati</h3>
-              {isFetchingLibraries && <p>Caricamento nomi utensili...</p>}
+              <h3 className="text-lg font-semibold mb-3">Registered Tool Wear Costs</h3>
+              {isFetchingLibraries && <p>Loading tool names...</p>}
               {libraryError && <p className="text-red-500">{libraryError}</p>}
-              {toolWearCosts.length === 0 && !isFetchingLibraries && <p className="text-gray-500">Nessun costo di usura utensile configurato.</p>}
+              {toolWearCosts.length === 0 && !isFetchingLibraries && <p className="text-gray-500">No tool wear cost configured.</p>}
               <div className="space-y-3">
                 {toolWearCosts.map(cost => (
                   <div key={cost.id} className="bg-white p-3 rounded-md shadow-sm border flex justify-between items-center">
                     <div>
                       <p className="font-medium">{getToolName(cost.toolId)}</p>
                       <p className="text-sm text-gray-600">
-                        Tasso Usura: {cost.wearRatePerMeter}% per metro, 
-                        Sostituzione: {formatCurrency(cost.replacementCost, cost.currencyCode)} @ {cost.replacementThreshold}%
+                        Wear Rate: {cost.wearRatePerMeter}% per meter, 
+                        Replacement Cost: {formatCurrency(cost.replacementCost, cost.currencyCode)} @ {cost.replacementThreshold}%
                       </p>
                     </div>
                     <div className="flex space-x-2">
                       <button onClick={() => setEditingToolWearCostId(cost.id)} className="p-1 text-blue-600 hover:text-blue-800"><EditIcon /></button>
                       <button 
                         onClick={async () => {
-                            if (window.confirm('Sei sicuro di voler eliminare questo costo?')) {
+                            if (window.confirm('Are you sure you want to delete this cost?')) {
                                 await deleteToolWearCost(cost.id); 
                                 if (editingToolWearCostId === cost.id) setEditingToolWearCostId(null);
                             }
@@ -438,32 +438,32 @@ const ProductionCostsManager: React.FC = () => {
       case 'materials':
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Gestione Costi Materiali</h2>
+            <h2 className="text-xl font-semibold dark:text-gray-300 mb-4">Materials Costs Management</h2>
             <MaterialCostForm 
               key={editingMaterialCostId || 'new'}
               costToEditId={editingMaterialCostId} 
               onSubmissionDone={handleMaterialFormAction} 
             />
             <div className="mt-8 pt-6 border-t">
-              <h3 className="text-lg font-semibold mb-3">Costi Materiali Registrati</h3>
-              {isFetchingLibraries && <p>Caricamento nomi materiali...</p>}
+              <h3 className="text-lg font-semibold mb-3">Registered Materials Costs</h3>
+              {isFetchingLibraries && <p>Loading material names...</p>}
               {libraryError && <p className="text-red-500">{libraryError}</p>}
-              {materialCosts.length === 0 && !isFetchingLibraries && <p className="text-gray-500">Nessun costo materiale configurato.</p>}
+              {materialCosts.length === 0 && !isFetchingLibraries && <p className="text-gray-500">No material cost configured.</p>}
               <div className="space-y-3">
                 {materialCosts.map(cost => (
-                  <div key={cost.id} className="bg-white p-3 rounded-md shadow-sm border flex justify-between items-center">
+                  <div key={cost.id} className="bg-white dark:bg-gray-800 p-3 rounded-md shadow-sm border flex justify-between items-center">
                     <div>
                       <p className="font-medium">{getMaterialName(cost.materialId)}</p>
                       <p className="text-sm text-gray-600">
-                        Costo/Unità: {formatCurrency(cost.costPerUnit, cost.currencyCode)}, 
-                        Scarto: {cost.wasteFactor}%, Min: {formatCurrency(cost.minimumCharge, cost.currencyCode)}
+                        Cost per Unit: {formatCurrency(cost.costPerUnit, cost.currencyCode)}, 
+                        Waste Factor: {cost.wasteFactor}%, Min: {formatCurrency(cost.minimumCharge, cost.currencyCode)}
                       </p>
                     </div>
                     <div className="flex space-x-2">
                       <button onClick={() => setEditingMaterialCostId(cost.id)} className="p-1 text-blue-600 hover:text-blue-800"><EditIcon /></button>
                       <button 
                         onClick={async () => { 
-                            if (window.confirm('Sei sicuro di voler eliminare questo costo?')) {
+                            if (window.confirm('Are you sure you want to delete this cost?')) {
                                 await deleteMaterialCost(cost.id); 
                                 if (editingMaterialCostId === cost.id) setEditingMaterialCostId(null);
                             }
@@ -481,7 +481,7 @@ const ProductionCostsManager: React.FC = () => {
       case 'operations':
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Gestione Costi Operazioni</h2>
+            <h2 className="text-xl d font-semibold mb-4">Operations Costs Management</h2>
             <OperationCostForm 
               key={editingOperationCostId || 'new'} // Re-render form when targeted operation changes or goes to null (new)
               costToEditId={editingOperationCostId} 
@@ -492,8 +492,8 @@ const ProductionCostsManager: React.FC = () => {
       case 'estimates':
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Tutte le Stime di Costo</h2>
-            {costEstimates.length === 0 && <p className="text-gray-500">Nessuna stima di costo generata.</p>}
+            <h2 className="text-xl font-semibold mb-4">All Cost Estimates</h2>
+            {costEstimates.length === 0 && <p className="text-gray-500">No cost estimate generated.</p>}
             <div className="space-y-4">
               {costEstimates.map(estimate => {
                 const linkedToolpath = 
@@ -506,7 +506,7 @@ const ProductionCostsManager: React.FC = () => {
                     toolpathName={linkedToolpath?.name || 'Toolpath Sconosciuta'} 
                     onDelete={async (id) => {
                       try {
-                        if (window.confirm('Sei sicuro di voler eliminare questa stima?')) {
+                        if (window.confirm('Are you sure you want to delete this estimate?')) {
                           // Set local loading state if needed
                           const success = await deleteEstimate(id);
                           if (success && selectedEstimateId === id) {
@@ -527,19 +527,19 @@ const ProductionCostsManager: React.FC = () => {
       case 'settings':
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Impostazioni Costi</h2>
+            <h2 className="text-xl font-semibold mb-4">Cost Settings</h2>
             <CostSettingsForm />
           </div>
         );
       default:
-        return <div>Seleziona una tab</div>;
+        return <div>Select a tab</div>;
     }
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen"> {/* Main container styling */}
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-xl p-6">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">Gestione Costi di Produzione</h1>
+    <div className="p-6 bg-gray-100 dark:bg-gray-700 min-h-screen"> {/* Main container styling */}
+      <div className="max-w-6xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6">
+        <h1 className="text-3xl dark:text-blue-400 font-bold mb-8 text-gray-800">Production Costs Management</h1>
         
         {/* Tab Navigation */}
         <div className="border-b border-gray-200 mb-6">
@@ -574,7 +574,7 @@ const ProductionCostsManager: React.FC = () => {
         {/* Error Display */}
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 mb-4 rounded relative shadow" role="alert">
-            <strong className="font-bold">Errore: </strong>
+            <strong className="font-bold">Error: </strong>
             <span className="block sm:inline">{error}</span>
           </div>
         )}
@@ -583,7 +583,7 @@ const ProductionCostsManager: React.FC = () => {
         {isLoading && !toolWearCosts.length && !materialCosts.length && !operationCosts.length && (
           <div className="flex items-center justify-center py-10">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-            <span className="ml-4 text-gray-600 text-lg">Caricamento dati iniziali...</span>
+            <span className="ml-4 text-gray-600 text-lg">Loading initial data...</span>
           </div>
         )}
         

@@ -19,7 +19,9 @@ import {
   ToggleLeft,
   Maximize,
   RotateCcw,
-  RotateCw
+  RotateCw,
+  Moon,
+  Sun
 } from 'react-feather';
 import { useRouter } from 'next/router';
 import { useElementsStore } from 'src/store/elementsStore';
@@ -31,12 +33,15 @@ import AIAssistantButton from '../ai/ai-new/AIAssistantButton';
 import AIModal from '../components/AIModal';
 import { isMobile } from 'react-device-detect';
 import AIBottomSheet from '../components/AIBottomSheet';
-
+import { Layout, Ruler } from 'lucide-react';
 import { useToolState } from '@/src/store/toolStore';
 import { usePluginClient } from '@/src/context/PluginClientContext';
 import PluginToolbarButton from '../plugins/PluginToolbarButton';
 import { useCADStore } from 'src/store/cadStore';
 import { ComponentLibraryItem, ToolLibraryItem, MaterialLibraryItem } from '@/src/hooks/useUnifiedLibrary';
+import ChatPanel from '../layout/ChatPanel';
+import { PanelRightInactiveIcon } from 'lucide-react';
+import { PanelRightIcon } from 'lucide-react';
 
 interface EnhancedToolbarProps {
   sidebarOpen: boolean;
@@ -75,6 +80,20 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
   const [showPluginsMenu, setShowPluginsMenu] = useState(false);
   const pluginsMenuRef = useRef<HTMLDivElement>(null);
   const [showPluginSidebar, setShowPluginSidebar] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+    // Implement dark/light theme
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    }
+  };
+
   // Get active plugins and their toolbar contributions
   const { plugins } = usePluginClient();
   const toolbarPlugins = plugins?.filter(
@@ -159,7 +178,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
   
 
   return (
-    <div className="bg-[#F8FBFF] dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex items-center justify-between w-full rounded-xl text-gray-900 dark:text-white">
+    <div className="bg-[#F8FBFF] dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-1 flex items-center justify-between w-full rounded-xl text-gray-900 dark:text-white">
       <div className="flex w-max rounded-xl items-center">
         <button
           className="mr-2 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
@@ -167,21 +186,7 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
         >
           <Menu size={20} className="text-gray-600 dark:text-gray-400" />
         </button>
-        {isMobile ? 
-          <Link href="/" className="">
-            <div className=""></div>
-          </Link> 
-        : 
-          <Link href="/" className="flex items-center">
-            <div className="flex-shrink-0 flex items-center">
-              <img
-                className="h-14 w-auto"
-                src="/logo.png"
-                alt="CAD/CAM FUN"
-              />
-            </div>
-          </Link>
-        }
+        
         <div className="ml-6 flex items-center space-x-2">
           <button
             onClick={handleSaveProject}
@@ -260,7 +265,31 @@ const EnhancedToolbar: React.FC<EnhancedToolbarProps> = ({
           >
             <Tool size={16} className="" />
           </button>
-          
+
+          <button
+              onClick={toggleDarkMode}
+              className={`p-1.5 border shadow-sm rounded-md flex items-center ${
+                isDarkMode 
+                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+              aria-label="Toggle dark mode"
+            >
+              {isDarkMode ? <Sun className="h-3 w-3 sm:h-4 sm:w-4" /> : <Moon className="h-3 w-3 sm:h-4 sm:w-4" />}
+            </button>
+            <Link href="/technical">
+            <button
+             
+              className={`p-1.5 border shadow-sm rounded-md flex items-center ${
+                isDarkMode 
+                  ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300' 
+                  : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+              
+            >
+              <Ruler size={16} className="mr-1.5" />
+            </button>
+            </Link>
           {/* Plugin manager button */}
           
           {/* --- End Example --- */}

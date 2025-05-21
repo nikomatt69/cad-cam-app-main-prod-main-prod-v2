@@ -35,10 +35,10 @@ import AIProviderSelector from './AIProviderSelector';
 import { useElementsStore } from '@/src/store/elementsStore';
 import { Brain } from 'lucide-react';
 import { ContextAwareGenerationPanel } from './OpenaiAssistant/ContextAwareGenerationPanel';
-
+import MCPChatAi from '../MCPChatAi';
 
 // Tipi di tool AI disponibili
-type AITool = 'textToCad' | 'designAssistant' | 'toolpathOptimizer' | 'settings' | 'analytics' | 'mpc' | 'openai' | 'badge' | 'provider' | 'dashboard' | 'componentLibrary' | 'mlDashboard' | 'contextAwareGeneration';
+type AITool = 'textToCad' | 'designAssistant' | 'toolpathOptimizer' | 'settings' | 'analytics' | 'mpc' | 'openai' | 'badge' | 'provider' | 'dashboard' | 'componentLibrary' | 'mlDashboard' | 'contextAwareGeneration' | 'mcpchat';
 
 interface AIHubProps {
   initialTool?: AITool;
@@ -138,6 +138,12 @@ const AIHub: React.FC<AIHubProps> = ({
       description: 'Configure OpenAI AI behavior'
     },
     { 
+      id: 'mcpchat' as AITool, 
+      name: 'MCP Chat', 
+      icon: <Settings size={15} />,
+      description: 'Configure MCP Chat AI behavior'
+    },
+    { 
       id: 'provider' as AITool, 
       name: 'AI Provider', 
       icon: <Settings size={15} />,
@@ -196,6 +202,8 @@ const AIHub: React.FC<AIHubProps> = ({
     switch (activeTool) {
       case 'textToCad':
         return <TextToCADPanel />; 
+      case 'mcpchat':
+        return <MCPChatAi />;
       case 'designAssistant':
         return <AIDesignAssistant />;
       case 'toolpathOptimizer':
@@ -298,7 +306,7 @@ const AIHub: React.FC<AIHubProps> = ({
             animate={{ width: 160, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-gray-50 dark:bg-gray-900 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-hidden"
+            className="bg-gray-50 dark:bg-gray-900 flex-shrink-0 border-r rounded-lg border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div className="p-2 flex flex-col h-full">
               <div className="flex items-center justify-between mb-6">

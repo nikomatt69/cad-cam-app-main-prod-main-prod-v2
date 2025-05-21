@@ -143,7 +143,7 @@ export const Element3dPreview: React.FC<Element3dPreviewProps> = ({
     <div 
       ref={containerRef} 
       style={{ width: size.width, height: size.height }}
-      className="bg-gray-50 dark:bg-gray-700 rounded"
+      className="bg-gray-50 dark:bg-gray-900 rounded"
     />
   );
 };

@@ -18,6 +18,9 @@ import dynamic from 'next/dynamic';
 import { AIAssistantOpenai } from '../ai/ai-new/OpenaiAssistant/AIAssistantOpenai';
 import PluginSidebar from 'src/components/plugins/PluginSidebar';
 
+import ChatPanel from './ChatPanel';
+import { PanelRightIcon, PanelRightInactiveIcon } from 'lucide-react';
+
 // Dynamically import PluginSidebar with SSR disabled
 const DynamicPluginSidebar = dynamic(
   () => import('src/components/plugins/PluginSidebar'),
@@ -48,6 +51,8 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
   const [showScrollTop, setShowScrollTop] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+
+  const [showChatPanel, setShowChatPanel] = useState(false);
   
   // Handle sidebar toggle based on screen size
   useEffect(() => {
@@ -169,7 +174,8 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
   }, [session]);
 
   return (
-    <div className="h-screen rounded-xl bg-gray dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
+    <>
+     <div className="h-screen rounded-xl  bg-gray dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col">
       {!hideNav && 
         <Navbar />
      }
@@ -177,7 +183,7 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
       {/* Container root for plugin iframes */}
       <div id="plugin-container-root" style={{ position: 'absolute', top: 0, left: 0, width: 0, height: 0, overflow: 'hidden' }}></div>
 
-      <div className="flex flex-1 rounded-xl overflow-hidden">
+      <div className="flex flex-1 rounded-xl rounded-t-none overflow-hidden">
         {!hideSidebar && (
           <EnhancedSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
         )}
@@ -203,7 +209,7 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
           
           {/* Breadcrumbs - Hide on very small screens */}
           {showBreadcrumbs && breadcrumbs.length > 0 && (
-            <nav className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white shadow-sm px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0 hidden sm:block">
+            <nav className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white shadow-sm px-3 rounded-b-xl rounded-t-none py-2 sm:px-4 sm:py-3 flex-shrink-0 hidden sm:block">
               <ol className="flex text-xs sm:text-sm overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent pb-1">
                 {breadcrumbs.map((breadcrumb, index) => (
                   <li key={breadcrumb.href} className="flex items-center whitespace-nowrap">
@@ -225,23 +231,15 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
             </nav>
           )}
           
-          {/* Main content with scrolling */}
           <main 
             ref={mainRef}
-            className="flex-1 flex-grow overflow-y-auto dark:bg-gray-900 dark:text-white scrollbar-thin bg-gray-50 rounded-xl scrollbar-thumb-gray-300 scrollbar-track-transparent" 
+            className={`flex-1 flex-grow overflow-y-auto dark:bg-gradient-to-b from-gray-900 to-gray-800/80 dark:text-white scrollbar-trasparent bg-gray-50 rounded-md scrollbar-trasparent scrollbar-track-transparent transition-all duration-300 ease-in-out ${showChatPanel ? 'main-content-shrink' : ''}`}
             style={{ scrollBehavior: 'smooth' }}
           >
-            
-            <div className={`${contentWidthClass} mx-auto mb-1 rounded-xl overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6`}>
+            <div className={`${contentWidthClass} mx-auto mb-1 rounded-xl overflow-y-auto  scrollbar-trasparent scrollbar-track-transparent px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6`}>
               {children}
             </div>
-            <> 
-              
-              <PluginSidebar 
-             isOpen={sidebarOpen}
-             onClose={() => setSidebarOpen(false)}
-              /> 
-            </>
+            
             <Toaster
               position="bottom-right"
               containerStyle={{ 
@@ -261,8 +259,8 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
             />
             <ToastContainer />
             
-            {/* Notification Prompt */}
-            {showNotificationPrompt && (
+            {/* Notification Prompt - Hide in Electron mode */}
+            {showNotificationPrompt  && (
               <NotificationPermissionPrompt 
                 onClose={() => {
                   // Persist dismissal state if not already granted
@@ -274,17 +272,19 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
               />
             )}
             
-            {/* AI Assistant Integration */}
-            <AIAssistantOpenai /> 
+
             
-            {/* Bottom Navigation for Mobile */}
-            <div className="sm:hidden">
-              <BottomNavigation/>
-            </div>
+            {/* Pulsante per aprire il pannello della chat - spostato per essere più contestuale */}
+            
+            
+            
+              <div className="sm:hidden">
+                <BottomNavigation/>
+              </div>
+          
           </main>
           
-          {/* Footer - Placed correctly here after main */}
-          <Footer />
+        
           
           {/* Back to Top button - positioned higher on mobile to avoid bottom nav */}
           {showScrollTop && (
@@ -297,11 +297,15 @@ const EnhancedLayout: React.FC<EnhancedLayoutProps> = ({
             </button>
           )}
         </div>
+
+        {/* Pannello Chat Integrato */}
+        
       </div>
-      
-      {/* Cookie Consent Banner - at the very bottom with bottom padding for mobile */}
+      <Footer />
+      {/* Cookie Consent Banner - Hide in Electron mode */}
       <CookieConsentBanner />
     </div>
+    </>
   );
 };
 

@@ -401,7 +401,7 @@ const GCodeViewer: React.FC<GCodeViewerProps> = ({
   return (
     <div 
       ref={containerRef}
-      className="h-full w-full flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent"
+      className="h-full w-full flex flex-col overflow-y-auto scrollbar-thin rounded-xl scrollbar-thumb-gray-300 scrollbar-track-transparent"
       style={{ maxHeight: height || '800px' }}
     >
       <div className="relative flex-1" style={{ width, minHeight: '400px' }}>

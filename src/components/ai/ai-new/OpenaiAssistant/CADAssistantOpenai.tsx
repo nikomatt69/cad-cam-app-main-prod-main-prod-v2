@@ -363,10 +363,10 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
         }}
       >
         {isPanelExpanded ? (
-          <div className="flex flex-col rounded-t-3xl h-full">
+          <div className="flex flex-col rounded-t-3xl rounded-b-3xl h-full overflow-hidden">
             <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-blue-400 to-blue-700 text-white rounded-t-3xl dark:from-gray-700 dark:to-gray-800 dark:border-gray-600">
               <div className="flex rounded-t-3xl items-center">
-                <Layers size={18} className="mr-2" />
+                <img src="/icon.png" className="mr-2 w-6 h-6" />
                 <div>
                   <h3 className="font-medium">CAD Assistant</h3> 
                   <div className="text-xs text-blue-100">
@@ -401,13 +401,13 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
             
             <AnimatePresence>
               {showSettings && (
-                <div className="overflow-y-auto max-h-full border-b border-gray-200 dark:border-gray-700">
+                <div className="overflow-y-auto max-h-[80%] border-b border-gray-200 dark:border-gray-700">
                   <AISettingsPanel />
                  <motion.div
                  initial={{ height: 0, opacity: 0 }}
                  animate={{ height: 'auto', opacity: 1 }}
                  exit={{ height: 0, opacity: 0 }}
-                 className="border-b border-gray-200 overflow-hidden"
+                 className="overflow-hidden"
                >
                  <div className="p-3 space-y-2 rounded-b-2xl text-sm bg-gray-50">
                    <button
@@ -465,7 +465,7 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                 </div>
                 
                 {state.pendingActions && state.pendingActions.length > 0 && handleExecuteAction &&(
-                  <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 shrink-0">
+                  <div className="p-2  border-gray-200 dark:border-gray-700 rounded-t-xl bg-gray-50 dark:bg-gray-900 shrink-0">
                     <AIActionHandler
                       key="action-handler-assistant-tab"
                       actions={state.pendingActions}
@@ -482,9 +482,9 @@ export const CADAssistantOpenai: React.FC<CADAssistantOpenaiProps> = ({
                   <AIMessageInput
                     onSendMessage={handleSendMessage}
                     isProcessing={state.isProcessing}
-                    placeholder="Describe what you want to create or modify..."
+                    placeholder="Type a message..."
                   />
-                </div>
+                </div> 
               </TabsContent>
 
               <TabsContent value="contextual" className="flex-grow overflow-y-auto p-4 mt-0 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">

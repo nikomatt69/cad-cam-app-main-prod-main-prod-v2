@@ -19,9 +19,9 @@ export const ComponentPreviewSection: React.FC<ComponentPreviewSectionProps> = (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
-      className="mt-3 border rounded-md p-3 bg-blue-50 dark:bg-blue-900/20"
+      className="mt-3 border border-gray-200 dark:border-gray-700 rounded-md p-3 bg-blue-50 dark:bg-blue-900/20"
     >
-      <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+      <h4 className="text-sm font-medium text-blue-700  dark:text-blue-300 mb-2">
         Anteprima componenti ({elements.length})
       </h4>
       
@@ -33,7 +33,7 @@ export const ComponentPreviewSection: React.FC<ComponentPreviewSectionProps> = (
             </div>
             <div className="text-xs">
               <p className="font-medium">{element.name || `${element.type} ${index + 1}`}</p>
-              <p className="text-gray-500 dark:text-gray-400 truncate">
+              <p className="text-gray-500  dark:text-gray-400 truncate">
                 {element.type}, {element.width || element.radius || 0}x
                 {element.height || element.radius || 0}x
                 {element.depth || 0}

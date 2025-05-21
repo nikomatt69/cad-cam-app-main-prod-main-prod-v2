@@ -43,26 +43,26 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
   };
   
   return (
-    <div className="border-t border-gray-200 p-3 bg-gray-50">
-      <h3 className="text-sm font-medium text-gray-700 mb-2">CAD Operations</h3>
+    <div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-900">
+      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">CAD Operations</h3>
       <div className="space-y-3">
         {actions.map((action, index) => (
           <div 
             key={`${action.type}-${index}`}
-            className="border border-blue-200 rounded-md bg-blue-50 p-3"
+            className="border border-blue-200 dark:border-blue-700 rounded-md bg-blue-50 dark:bg-blue-900 p-3"
           >
             <div className="flex justify-between items-center">
               <div>
-                <h4 className="font-medium text-blue-700">{getActionName(action.type)}</h4>
-                <p className="text-sm text-gray-600">{action.description}</p>
+                <h4 className="font-medium text-blue-700 dark:text-blue-400">{getActionName(action.type)}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{action.description}</p>
               </div>
               <button
                 onClick={() => onExecute(action)}
                 disabled={isProcessing}
                 className={`px-3 py-1.5 rounded-md text-sm font-medium ${
                   isProcessing
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 dark:bg-blue-700 text-white hover:bg-blue-700 dark:hover:bg-blue-800'
                 }`}
               >
                 {isProcessing ? 'Processing...' : 'Apply Changes'}
@@ -71,7 +71,7 @@ export const CADActionHandler: React.FC<CADActionHandlerProps> = ({
             
             {/* Render action-specific preview or general payload */}
             <div className="mt-2 text-xs">
-              <div className="font-medium text-gray-600 mb-1">Payload Preview:</div>
+              <div className="font-medium text-gray-600 dark:text-gray-400 mb-1">Payload Preview:</div>
               <pre className="bg-white dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                 {action.payload ? JSON.stringify(action.payload, null, 2) : '{}'}
               </pre>

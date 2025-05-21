@@ -30,6 +30,7 @@ interface ToolpathVisualizerProps {
   isSimulating: boolean;
   selectedTool?: string | null;
   showWorkpiece?: boolean;
+  cadElements?: any[]; // New prop to accept CAD elements
   onSimulationComplete?: () => void;
   onSimulationProgress?: (progress: number) => void;
   onToolChange?: (toolName: string) => void;
@@ -201,6 +202,7 @@ const ToolpathVisualizer: FC<ToolpathVisualizerProps> = ({
   isSimulating,
   selectedTool = null,
   showWorkpiece: initialShowWorkpiece = true,
+  cadElements = [], // Initialize new prop
   onSimulationComplete,
   onSimulationProgress,
   onToolChange

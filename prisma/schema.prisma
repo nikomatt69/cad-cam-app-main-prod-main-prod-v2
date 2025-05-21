@@ -675,14 +675,17 @@ model CostSettings {
 
 
 model MCPServerConfig {
-  id          String    @id @default(cuid())
-  name        String
-  type        String    @default("sse")  // Only SSE for Vercel deployed apps
-  url         String
-  enabled     Boolean   @default(true)
-  userId      String?   // Optional user ID for user-specific configurations
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id                String    @id @default(cuid())
+  name              String
+  type              String    @default("sse")  // 'sse' or 'stdio'
+  url               String?   // Optional - only for SSE servers
+  command           String?   // Optional - only for stdio servers
+  args              Json?     // Optional - arguments for stdio servers
+  workingDirectory  String?   // Optional - working directory for stdio servers
+  enabled           Boolean   @default(true)
+  userId            String?   // Optional user ID for user-specific configurations
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@index([userId])
 }

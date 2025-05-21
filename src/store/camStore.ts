@@ -181,7 +181,7 @@ export const useCAMStore = create<CAMStoreState>((set, get) => ({
     const { workpiece } = useCADStore.getState();
     
     // Prima controlla se il workpiece nel CAD ha un elemento collegato
-    if (workpiece.elementId) {
+    if (workpiece) {
       const elementFromWorkpiece = elements.find(el => el.id === workpiece.elementId);
       if (elementFromWorkpiece) {
         // Il CAD ha un elemento collegato, usalo come workpiece nel CAM
@@ -218,8 +218,8 @@ export const useCAMStore = create<CAMStoreState>((set, get) => ({
         width: dimensions?.width || workpiece.width,
         height: dimensions?.height || workpiece.height,
         depth: dimensions?.depth || workpiece.depth,
-        material: selectedElement.material || workpiece.material,
-        radius: selectedElement.radius || workpiece.radius,
+        material: selectedElement.material || workpiece?.material,
+        radius: selectedElement.radius || workpiece?.radius,
         elementId: selectedElement.id // Aggiungi il riferimento all'elemento
       });
       

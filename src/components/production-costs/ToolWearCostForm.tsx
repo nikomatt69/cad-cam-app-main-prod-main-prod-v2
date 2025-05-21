@@ -139,15 +139,15 @@ function ToolWearCostForm({
   };
     
   return (
-    <div className="bg-gray-50 p-4 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-700">
-        {isEditing ? 'Modifica Costo Usura Utensile' : 'Aggiungi Nuovo Costo Usura Utensile'}
+    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">
+        {isEditing ? 'Modify Tool Wear Cost' : 'Add New Tool Wear Cost'}
       </h3>
       
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4"> 
         <div>
-          <label htmlFor="toolId" className="block text-sm font-medium text-gray-700 mb-1">
-            Utensile
+          <label htmlFor="toolId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"> 
+            Tool
           </label>
           <select
             id="toolId"
@@ -159,12 +159,12 @@ function ToolWearCostForm({
             disabled={isEditing || isLoadingTools || !!toolError}
           >
             {isLoadingTools ? (
-              <option value="">Caricamento utensili...</option>
+              <option value="">Loading tools...</option>
             ) : toolError ? (
               <option value="">{toolError}</option>
             ) : (
               <>
-                <option value="">Seleziona un utensile</option>
+                <option value="">Select a tool</option>
                 {isEditing && formData.toolId ? ( // Ensure formData.toolId is present
                   allTools
                     .filter(tool => tool.id === formData.toolId) // Show only the current tool when editing
@@ -181,7 +181,7 @@ function ToolWearCostForm({
                   ))
                 )}
                 {isEditing && formData.toolId && !allTools.find(tool => tool.id === formData.toolId) && (
-                   <option value={formData.toolId} disabled>{`Utensile (ID: ${formData.toolId}) - Caricato`}</option>
+                   <option value={formData.toolId} disabled>{`Tool (ID: ${formData.toolId}) - Loaded`}</option>
                 )}
               </>
             )}
@@ -189,8 +189,8 @@ function ToolWearCostForm({
         </div>
         
         <div>
-          <label htmlFor="wearRatePerMeter" className="block text-sm font-medium text-gray-700 mb-1">
-            Tasso di Usura per Metro (%)
+              <label htmlFor="wearRatePerMeter" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"> 
+            Wear Rate per Meter (%)
           </label>
           <input
             id="wearRatePerMeter"
@@ -204,13 +204,13 @@ function ToolWearCostForm({
             required
           />
           <p className="text-xs text-gray-500 mt-1">
-            Percentuale di usura dell&apos;utensile per ogni metro di percorso. Es. 0.5 per 0.5%.
+            Percentage of tool wear per meter of path. Es. 0.5 for 0.5%.
           </p>
         </div>
         
         <div>
-          <label htmlFor="replacementCost" className="block text-sm font-medium text-gray-700 mb-1">
-            Costo di Sostituzione ({formData.currencyCode})
+          <label htmlFor="replacementCost" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1"> 
+            Replacement Cost ({formData.currencyCode})
           </label>
           <input
             id="replacementCost"
@@ -220,14 +220,14 @@ function ToolWearCostForm({
             onChange={handleChange}
             min="0"
             step="0.01"
-            className="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"  
             required
           />
         </div>
 
         <div>
-          <label htmlFor="replacementThreshold" className="block text-sm font-medium text-gray-700 mb-1">
-            Soglia di Sostituzione (%)
+          <label htmlFor="replacementThreshold" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Replacement Threshold (%)
           </label>
           <input
             id="replacementThreshold"
@@ -242,13 +242,13 @@ function ToolWearCostForm({
             required
           />
            <p className="text-xs text-gray-500 mt-1">
-            Percentuale di usura massima prima che l&apos;utensile venga considerato da sostituire.
+            Maximum wear percentage before the tool is considered to be replaced.
           </p>
         </div>
 
         <div>
-          <label htmlFor="currencyCode" className="block text-sm font-medium text-gray-700 mb-1">
-            Valuta
+          <label htmlFor="currencyCode" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Currency
           </label>
           <select
             id="currencyCode"
@@ -274,17 +274,17 @@ function ToolWearCostForm({
                     onSubmissionDone();
                 }
               }}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Annulla{isEditing ? '' : '/Pulisci'}
+              Cancel{isEditing ? '' : '/Clear'}
             </button>
           )}
           <button
             type="submit"
             disabled={isSubmittingCost || isLoadingTools || !formData.toolId}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 dark:bg-indigo-700 dark:hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
           >
-            {isSubmittingCost ? 'Salvataggio...' : (isEditing ? 'Salva Modifiche' : 'Aggiungi Costo')}
+            {isSubmittingCost ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Cost')}
           </button>
         </div>
       </form>

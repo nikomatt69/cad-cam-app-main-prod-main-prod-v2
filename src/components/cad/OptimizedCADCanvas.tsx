@@ -1,5 +1,5 @@
 // src/components/cad/OptimizedCADCanvas.tsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import CADCanvas from './CADCanvas';
 import useThreeJsOptimizer from '../../hooks/useThreeJsOptimizer'; // Restore this hook
 import { useLOD } from 'src/hooks/useLodWasm'; // Keep the LOD hook
@@ -51,7 +51,7 @@ const OptimizedCADCanvas: React.FC<OptimizedCADCanvasProps> = ({
   const cameraRef = useRef<THREE.Camera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cadCanvasRef = useRef<any>(null);
-
+  const [cadElements, setCadElements] = useState<any[]>([]);
   // --- Default Options & Configuration --- 
   const defaultOptions = {
     targetFps: 60,
@@ -235,7 +235,8 @@ const OptimizedCADCanvas: React.FC<OptimizedCADCanvasProps> = ({
   return (
     <div className="relative w-full h-full">
       <CADCanvas
-        // ref={cadCanvasRef} // Needs forwardRef in CADCanvas
+        // ref={cadCanvasRef}
+        onElementsChange={(elements) => setCadElements(elements)} // Needs forwardRef in CADCanvas
         width={width}
         height={height}
         previewComponent={previewComponent}

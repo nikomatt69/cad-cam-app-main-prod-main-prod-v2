@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Cloud, Check, X, Cpu } from 'react-feather';
 import axios from 'axios';
+import openAiGCodeService from '@/src/services/openAiGCodeService';
 
 // Importazione dinamica di MonacoEditor per Next.js
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -24,7 +25,7 @@ interface SuggestionState {
 const AIEnhancedEditor: React.FC<AIEnhancedEditorProps> = ({
   value,
   onChange,
-  language = 'plaintext'
+  language = 'gcode'
 }) => {
   // Riferimenti
   const editorRef = useRef<any>(null);
@@ -147,14 +148,9 @@ const AIEnhancedEditor: React.FC<AIEnhancedEditorProps> = ({
       const prompt = buildGcodeCompletionPrompt(context, language);
       
       // Call Claude API (either directly or through a proxy)
-      const response = await callClaudeAPI(prompt);
-      
-      // Process the response
-      if (response && response.trim()) {
-        // Get the first line of the response as the suggestion
-        const suggestion = response.trim();
-        
-        // Create a range for the suggestion
+      const response = await openAiGCodeService.getGCodeCompletions(prompt);
+      if (response && response.length > 0 && response[0].text && response[0].text.trim()) {
+        const suggestion = response[0].text.trim().split('\n')[0];
         const range = new monaco.Range(
           position.lineNumber,
           position.column,
@@ -206,43 +202,7 @@ const AIEnhancedEditor: React.FC<AIEnhancedEditorProps> = ({
   };
   
   // Function to call Claude API
-  const callClaudeAPI = async (prompt: string) => {
-    try {
-      // You would need an API endpoint that calls Claude
-      // This can be a Next.js API route or a direct call to Claude API
-      
-      // Example using a Next.js API route
-      const response = await axios.post('/api/ai/completion', {
-        prompt,
-        model: CLAUDE_MODEL,
-        temperature: TEMPERATURE,
-        max_tokens: 100
-      });
-      
-      return response.data.completion;
-      
-      // If API isn't yet set up, use this mockup for demonstration
-      /*
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock responses based on G-code context
-      if (prompt.includes('G0') || prompt.includes('G00')) {
-        return 'Z5 ; Safe rapid position';
-      } else if (prompt.includes('G1') || prompt.includes('G01')) {
-        return 'F150 ; Feed rate';
-      } else if (prompt.includes('M3') || prompt.includes('M03')) {
-        return 'S1000 ; Spindle speed';
-      } else if (prompt.includes('(') || prompt.includes(';')) {
-        return ' Operation description';
-      } else {
-        return 'G0 Z5 ; Safe position';
-      }
-      */
-    } catch (error) {
-      console.error('Error calling Claude API:', error);
-      return '';
-    }
-  };
+  
   
   // Accept the current suggestion
   const acceptSuggestion = () => {
@@ -310,12 +270,12 @@ const AIEnhancedEditor: React.FC<AIEnhancedEditorProps> = ({
   };
   
   return (
-    <div className="relative h-full rounded-xl t-3 flex flex-col">
+    <div className="h-full w-full flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
       <MonacoEditor
         height="100%"
         language={language}
         value={value}
-        theme="vs-light"
+        theme="vs-dark"
         className='rounded-xl'
         options={{
           minimap: { enabled: false },
@@ -327,6 +287,10 @@ const AIEnhancedEditor: React.FC<AIEnhancedEditorProps> = ({
           automaticLayout: true,
           suggestOnTriggerCharacters: true,
           quickSuggestions: true,
+          roundedSelection: true,
+       
+        renderLineHighlight: 'all',
+        contextmenu: true,
           acceptSuggestionOnEnter: 'on',
         }}
         onMount={handleEditorDidMount}
@@ -341,10 +305,10 @@ const AIEnhancedEditor: React.FC<AIEnhancedEditorProps> = ({
       
       {aiSuggestion?.isVisible && renderSuggestion()}
       
-      <div className="mt-2 px-3 py-1.5 bg-gray-50 rounded border border-gray-200 text-xs text-gray-500 flex justify-between">
+      <div className="mt-2 px-3 py-1.5 bg-gray-50 rounded-t-xl  border-gray-200 text-xs text-gray-500 flex justify-between">
         <span>
           <kbd className="px-1 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono">Tab</kbd> to indent or accept suggestions, 
-          <kbd className="px-1 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono ml-1">Ctrl+Enter</kbd> to accept suggestions
+          <kbd className="px-1 py-0.5 bg-white border border-gray-300 rounded text-xs font-mono ml-1">Cmd+Enter</kbd> to accept suggestions
         </span>
         <span className="flex items-center">
           <Cpu size={10} className="mr-1 text-blue-500" />

@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Electron specific styles */
+
 :root {
   --primary: #3b82f6;
   --primary-dark: #2563eb;
@@ -29,7 +31,10 @@
   html.dark {
     color: theme('colors.blue.400');
   }
-
+  .main-content-shrink {
+   
+     margin-right: 3px;
+  }
   /* Dark mode form styles - text color will now inherit from html.dark */
   html.dark input[type="text"],
   html.dark input[type="email"],
@@ -321,8 +326,8 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
 
   /* Improved scrollbar styling */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
   
   .animate-fadeIn { animation: fadeIn 0.3s ease-in-out; }
@@ -331,17 +336,16 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
    .text-xxs { font-size: 0.65rem; }
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
-    border-radius: 10px;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-400;
-    border-radius: 10px;
+    background: transparent;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
+    background: transparent;
   }
   .sidebar-container {
     position: relative;
@@ -403,13 +407,13 @@ body.cursor-erase { cursor: url('/cursors/erase.svg') 12 12, crosshair !importan
   }
   
   .hide-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.1);
+    background: transparent;
     border-radius: 2px;
   }
   
   .hide-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(0,0,0,0.1) transparent;
+    scrollbar-color: transparent transparent;
   }
   
   /* Ottimizzazioni per touch */
@@ -836,7 +840,7 @@ html, body {
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* Ensure the main app container fills the screen */
@@ -1410,4 +1414,35 @@ input:checked + .toggle-slider:before {
   to {
     transform: rotate(360deg);
   }
-} 
+}
+
+/* Make all scrollbars transparent */
+/* For Webkit-based browsers (Chrome, Safari, Edge, etc.) */
+::-webkit-scrollbar {
+  width: 8px; /* Adjust as needed */
+  height: 8px; /* Adjust as needed */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px; /* Optional: if you want rounded thumbs even when transparent */
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin; /* "auto" or "thin" */
+  scrollbar-color: transparent transparent; /* thumb and track color */
+}
+
+/* Ensure html and body take full height for consistent scrollbar behavior */
+html,
+body {
+  height: 100%;
+  overflow: auto; /* Or visible, depending on desired global scroll behavior */
+}
+
+/* You might want to ensure specific elements that you intend to scroll also have overflow: auto or scroll; */ 

@@ -1,16 +1,5 @@
 import { lemonSqueezySetup, createCheckout } from '@lemonsqueezy/lemonsqueezy.js';
 
-// Initialize Lemon Squeezy client
-const apiKey = process.env.LEMONSQUEEZY_API_KEY!;
-if (!apiKey) {
-    // Throw error only in development/build time, avoid crashing production server if env var is momentarily unavailable.
-    // Consider more robust error handling or logging here for production.
-   
-    console.error("Lemonsqueezy secret key is not defined.");
-  }
-lemonSqueezySetup({ apiKey: apiKey , onError: (error) => {
-  console.error("Lemon Squeezy API Error:", error);
-} });
 
 
 // --- Public Config ---

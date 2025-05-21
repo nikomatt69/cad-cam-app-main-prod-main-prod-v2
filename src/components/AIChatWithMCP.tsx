@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useMCP } from '../contexts/MCPContext';
 import MCPServerSelector from './MCPServerSelector';
+import { useContextStore } from '@/src/store/contextStore';
 
 type Message = {
   role: 'user' | 'assistant' | 'system';
@@ -17,8 +18,7 @@ export default function AIChatWithMCP() {
   const [mcpReference, setMcpReference] = useState('');
   const [useMcpData, setUseMcpData] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
-  const { servers } = useMCP();
+  const { activeContextIds } = useContextStore();
   
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -48,6 +48,7 @@ export default function AIChatWithMCP() {
         },
         body: JSON.stringify({
           messages: [...messages, userMessage],
+          contextIds: activeContextIds,
           // Only include MCP data if requested
           ...(useMcpData && selectedServerId && mcpReference
             ? { mcpServerId: selectedServerId, mcpReference }
@@ -100,7 +101,7 @@ export default function AIChatWithMCP() {
               value={mcpReference}
               onChange={(e) => setMcpReference(e.target.value)}
               placeholder="e.g., resource://users or create_user"
-              className="w-full p-2 border rounded"
+              className="w-full p-2 border truncate flex rounded"
               disabled={!selectedServerId}
             />
           </div>
@@ -124,7 +125,7 @@ export default function AIChatWithMCP() {
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 my-8">
+          <div className="text-center text-gray-500 dark:text-gray-400 my-8">
             Start a conversation by typing a message below.
           </div>
         ) : (
@@ -133,8 +134,8 @@ export default function AIChatWithMCP() {
               key={index}
               className={`p-4 rounded-lg max-w-3xl ${
                 message.role === 'user'
-                  ? 'bg-blue-100 ml-auto'
-                  : 'bg-gray-100'
+                  ? 'bg-blue-100 dark:bg-blue-900 ml-auto'
+                  : 'bg-gray-100 dark:bg-gray-800'
               }`}
             >
               <div className="text-sm font-semibold mb-1">

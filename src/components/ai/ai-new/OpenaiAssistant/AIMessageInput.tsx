@@ -3,6 +3,9 @@ import { Brain, Hammer, LightbulbIcon, Ruler } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, AlertCircle, Box, List, Zap, X, Image as ImageIcon, Loader, Type, Edit3, Trash, ExternalLink, Plus, Tool, BookOpen } from 'react-feather';
 import toast from 'react-hot-toast';
+import ReferenceMenu from './components/ReferenceMenu';
+import CommandMenu from './components/CommandMenu';
+
 
 // Define and export tool types for clarity
 export type ToolName = 'generateCADElement' | 'chainOfThoughtAnalysis' | 'suggestOptimizations' | 'textToCAD' | 'updateCADElement' | 'removeCADElement' | 'exportCADProjectAsZip' | 'thinkAloudMode' | 'autoQuoteCADElements' | 'analyzeManufacturability' | 'generate2DTechnicalDrawings' | 'simulatePhysicalProperties';
@@ -52,20 +55,22 @@ const toolDescriptions: Record<ToolName, string> = {
 export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   onSendMessage,
   isProcessing,
-  placeholder = 'Send a message...',
+  placeholder = 'Type a message...',
   maxFiles = DEFAULT_MAX_FILES,
   maxFileSizeMB = DEFAULT_MAX_SIZE_MB,
   acceptedTextTypes = DEFAULT_ACCEPTED_TEXT_TYPES,
   acceptedImageTypes = DEFAULT_ACCEPTED_IMAGE_TYPES
 }) => {
   const [inputMessage, setInputMessage] = useState('');
-  // Store structured file data
-  const [selectedFilesData, setSelectedFilesData] = useState<SelectedFileData[]>([]); 
+  const [selectedFilesData, setSelectedFilesData] = useState<SelectedFileData[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<ToolName | null>(null);
-  const [isTyping, setIsTyping] = useState(false); // State for user typing
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref for timeout
+  const [isTyping, setIsTyping] = useState(false);
+  const [showCommandMenu, setShowCommandMenu] = useState(false);
+  const [showReferenceMenu, setShowReferenceMenu] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Combine accepted types explicitly avoiding Set spread for compatibility
   const combinedTypes = acceptedTextTypes.concat(acceptedImageTypes);
@@ -112,6 +117,12 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       handleSendClick();
+    } else if (event.key === '/' && !showCommandMenu && inputMessage === '') {
+      event.preventDefault();
+      setShowCommandMenu(true);
+    } else if (event.key === '@' && !showReferenceMenu) {
+      event.preventDefault();
+      setShowReferenceMenu(true);
     }
   };
   
@@ -193,6 +204,18 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
     setSelectedFilesData(prevData => prevData.filter(file => file.name !== fileName));
   };
   
+  const handleCommandSelect = (command: string) => {
+    setShowCommandMenu(false);
+    setInputMessage(command + ' ');
+    textareaRef.current?.focus();
+  };
+
+  const handleReferenceSelect = (refType: 'selectedElement' | 'currentProject' | 'editSelection' | 'allElements' | 'measurements' | 'constraints') => {
+    setShowReferenceMenu(false);
+    setInputMessage(prev => prev + `@${refType} `);
+    textareaRef.current?.focus();
+  };
+  
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -203,14 +226,13 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
   }, []);
   
   return (
-    <div className="p-3 border-t bg-gradient-to-br from-gray-50 to-gray-200 rounded-b-3xl  dark:bg-gradient-to-br dark:from-gray-700 dark:to-gray-800 dark:border-gray-600">
-      {/* User typing indicator */}
-      
+    <div className="p-3 border-t bg-white dark:bg-gray-900 relative">
       {fileError && (
         <div className="mb-2 text-xs text-red-600 flex items-center">
           <AlertCircle size={14} className="mr-1" /> {fileError}
         </div>
       )}
+      
       {selectedFilesData.length > 0 && (
         <div className="mb-2 text-xs flex flex-wrap gap-1">
           <span className="font-medium self-center">Files:</span>
@@ -232,8 +254,8 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
           ))}
         </div>
       )}
-      
-      <div className="flex space-x-1 mb-2  flex-wrap">
+
+      <div className="flex space-x-1 mb-2 flex-wrap">
         <div className="relative group">
           <button
             onClick={() => handleToolButtonClick('textToCAD')}
@@ -390,51 +412,106 @@ export const AIMessageInput: React.FC<AIMessageInputProps> = ({
         </div>
       </div>
       
-      <div className="flex rounded-b-3xl items-end space-x-2">
-        <button
-          onClick={handleAttachClick}
-          className="p-2 text-gray-500 hover:text-blue-600 disabled:opacity-50 self-end mb-1"
-          disabled={isProcessing || selectedFilesData.length >= maxFiles}
-          title={`Attach files (${selectedFilesData.length}/${maxFiles})`}
-        >
-          <Paperclip size={18} />
+      <div className="flex space-x-2">
+        <div className="flex-1 relative">
+          <textarea
+            ref={textareaRef}
+            id="ai-message-textarea"
+            value={inputMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder={activeTool ? `Input for ${activeTool}...` : placeholder}
+            className="w-full p-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none min-h-[40px] max-h-[120px]"
+            disabled={isProcessing}
+            rows={1}
+          />
+          
+          {showCommandMenu && (
+            <CommandMenu 
+              onSelectCommand={handleCommandSelect}
+              onClose={() => setShowCommandMenu(false)}
+            />
+          )}
+          
+          {showReferenceMenu && (
+            <ReferenceMenu
+              onSelectReference={handleReferenceSelect}
+              hasSelectedElement={false} // Update this based on your CAD canvas state
+              onClose={() => setShowReferenceMenu(false)}
+            />
+          )}
+        </div>
+
+        <div className="flex items-end space-x-2">
+          <button
+            onClick={handleAttachClick}
+            className={`p-2 rounded-lg ${
+              isProcessing
+                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600'
+            }`}
+            title="Attach image"
+            disabled={isProcessing}
+          >
+            <Paperclip size={20} />
+          </button>
           <input
             type="file"
-            multiple
             ref={fileInputRef}
             onChange={handleFileChange}
-            className="hidden"
             accept={allAcceptedTypesString}
-            disabled={selectedFilesData.length >= maxFiles}
+            className="hidden"
+            multiple
+            disabled={isProcessing}
           />
-        </button>
-        <textarea
-          id="ai-message-textarea"
-          value={inputMessage}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={activeTool ? `Input for ${activeTool}...` : placeholder}
-          className="flex-1 border border-gray-300 rounded-md p-2 text-sm resize-none overflow-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600"
-          rows={2}
-          style={{ maxHeight: '80px' }}
-          disabled={isProcessing}
-        />
-        <button
-          onClick={handleSendClick}
-          className={`p-2 rounded-md text-white ${ 
-            isProcessing || (!activeTool && !inputMessage.trim() && selectedFilesData.length === 0)
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700' 
-          } transition-colors self-end mb-1`}
-          disabled={isProcessing || (!activeTool && !inputMessage.trim() && selectedFilesData.length === 0)}
-          title="Send message"
-        >
-          {isProcessing ? (
-            <Loader size={18} className="animate-spin" />
-          ) : (
-            <Send size={18} />
+
+          <button
+            onClick={handleSendClick}
+            disabled={isProcessing || (!activeTool && !inputMessage.trim() && selectedFilesData.length === 0)}
+            className={`p-2 rounded-lg ${
+              isProcessing || (!activeTool && !inputMessage.trim() && selectedFilesData.length === 0)
+                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                : 'bg-blue-500 hover:bg-blue-600 text-white'
+            }`}
+            title="Send message"
+          >
+            {isProcessing ? <Loader size={20} className="animate-spin" /> : <Send size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Command Bar */}
+      <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex space-x-2">
+          <span>
+            <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Enter</kbd> send
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">Shift+Enter</kbd> new line
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">/</kbd> commands
+          </span>
+          <span>
+            <kbd className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">@</kbd> reference
+          </span>
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400 border-t pt-2 border-gray-200 dark:border-gray-700">
+        <div>
+          {/* Left side status */}
+        </div>
+
+        <div>
+          {isProcessing && (
+            <span className="flex items-center">
+              <Loader size={12} className="animate-spin mr-1" />
+              Processing...
+            </span>
           )}
-        </button>
+        </div>
       </div>
     </div>
   );

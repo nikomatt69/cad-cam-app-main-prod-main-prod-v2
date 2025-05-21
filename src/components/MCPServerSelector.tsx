@@ -6,9 +6,15 @@ type MCPServerSelectorProps = {
   value: string;
   onChange: (serverId: string) => void;
   onlyEnabled?: boolean;
+  showType?: boolean;
 };
 
-export default function MCPServerSelector({ value, onChange, onlyEnabled = true }: MCPServerSelectorProps) {
+export default function MCPServerSelector({ 
+  value, 
+  onChange, 
+  onlyEnabled = true,
+  showType = false 
+}: MCPServerSelectorProps) {
   const { servers, isLoading, error } = useMCP();
   
   const filteredServers = onlyEnabled ? servers.filter(server => server.enabled) : servers;
@@ -34,7 +40,12 @@ export default function MCPServerSelector({ value, onChange, onlyEnabled = true 
       <option value="" disabled>Select MCP Server</option>
       {filteredServers.map((server) => (
         <option key={server.id} value={server.id}>
-          {server.name}
+          {server.name} 
+          {showType && (
+            <span className="text-gray-500">
+              {` (${server.type === 'sse' ? 'SSE' : 'stdio'})`}
+            </span>
+          )}
         </option>
       ))}
     </select>

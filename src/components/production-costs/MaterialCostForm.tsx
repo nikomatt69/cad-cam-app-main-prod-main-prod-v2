@@ -139,15 +139,15 @@ function MaterialCostForm({
   };
   
   return (
-    <div className="bg-gray-50 p-4 rounded-lg shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-700">
-        {isEditing ? 'Modifica Costo Materiale' : 'Aggiungi Nuovo Costo Materiale'}
+    <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold mb-4 text-gray-700 dark:text-gray-200">
+        {isEditing ? 'Modify Material Cost' : 'Add New Material Cost'}
       </h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="materialId" className="block text-sm font-medium text-gray-700 mb-1">
-            Materiale
+          <label htmlFor="materialId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                Material
           </label>
           <select
             id="materialId"
@@ -159,12 +159,12 @@ function MaterialCostForm({
             disabled={isEditing || isLoadingMaterials || !!materialError}
           >
             {isLoadingMaterials ? (
-              <option value="">Caricamento materiali...</option>
+              <option value="">Loading materials...</option>
             ) : materialError ? (
               <option value="">{materialError}</option>
             ) : (
               <>
-                <option value="">Seleziona un materiale</option>
+                <option value="">Select a material</option>
                 {isEditing && formData.materialId ? (
                   allMaterials
                     .filter(material => material.id === formData.materialId)
@@ -181,7 +181,7 @@ function MaterialCostForm({
                   ))
                 )}
                 {isEditing && formData.materialId && !allMaterials.find(material => material.id === formData.materialId) && (
-                   <option value={formData.materialId} disabled>{`Materiale (ID: ${formData.materialId}) - Caricato`}</option>
+                  <option value={formData.materialId} disabled>{`Material (ID: ${formData.materialId}) - Loaded`}</option>
                 )}
               </>
             )}
@@ -189,8 +189,8 @@ function MaterialCostForm({
         </div>
         
         <div>
-          <label htmlFor="costPerUnit" className="block text-sm font-medium text-gray-700 mb-1">
-            Costo per Unità ({formData.currencyCode} / unità)
+          <label htmlFor="costPerUnit" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Cost per Unit ({formData.currencyCode} / unit)
           </label>
           <div className="flex items-center">
             <input
@@ -218,13 +218,13 @@ function MaterialCostForm({
             </select>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Es. costo per cm³ o per kg. Assicurati che l&apos;unità sia consistente.
+            Es. costo per cm³ o per kg. Ensure the unit is consistent. (e.g. cost per cm³ or per kg)
           </p>
         </div>
         
         <div>
-          <label htmlFor="wasteFactor" className="block text-sm font-medium text-gray-700 mb-1">
-            Fattore di Scarto (%)
+          <label htmlFor="wasteFactor" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Waste Factor (%)
           </label>
           <input
             id="wasteFactor"
@@ -239,13 +239,13 @@ function MaterialCostForm({
             required
           />
           <p className="text-xs text-gray-500 mt-1">
-            Percentuale di materiale extra da considerare per scarti e sfridi (es. 10 per 10%).
+            Percentage of extra material to consider for waste and scrap (e.g. 10 for 10%).
           </p>
         </div>
         
         <div>
-          <label htmlFor="minimumCharge" className="block text-sm font-medium text-gray-700 mb-1">
-            Addebito Minimo ({formData.currencyCode})
+          <label htmlFor="minimumCharge" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+            Minimum Charge ({formData.currencyCode})
           </label>
           <input
               id="minimumCharge"
@@ -258,7 +258,7 @@ function MaterialCostForm({
               className="w-full border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             />
             <p className="text-xs text-gray-500 mt-1">
-                Eventuale costo minimo applicabile per questo materiale.
+                Optional minimum charge for this material.
             </p>
         </div>
         
@@ -272,17 +272,17 @@ function MaterialCostForm({
                     onSubmissionDone();
                 }
               }}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              Annulla{isEditing ? '' : '/Pulisci'}
+              Cancel{isEditing ? '' : '/Clear'}
             </button>
           )}
           <button
             type="submit"
             disabled={isSubmittingCost || isLoadingMaterials || !formData.materialId}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 dark:bg-indigo-700 dark:hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-300"
           >
-            {isSubmittingCost ? 'Salvataggio...' : (isEditing ? 'Salva Modifiche' : 'Aggiungi Costo')}
+            {isSubmittingCost ? 'Saving...' : (isEditing ? 'Save Changes' : 'Add Cost')}
           </button>
         </div>
       </form>

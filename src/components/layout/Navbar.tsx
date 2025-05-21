@@ -17,7 +17,7 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { plan, isLoading } = useSubscription(); // Use the hook to get plan and loading state
-
+  const [showChatPanel, setShowChatPanel] = useState(false);
   // Close any open dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -79,7 +79,7 @@ const Navbar = () => {
   const { name: planName, Icon: PlanIcon, color: planColor } = getPlanDisplayDetails(plan);
 
   return (
-    <header className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white border-0 dark:bg-gray-800 rounded-b-xl shadow-sm">
+    <header className="bg-[#F8FBFF] dark:bg-gray-800 dark:text-white border-0 dark:bg-gray-800  shadow-sm">
       <div className="px-3 sm:px-6 lg:px-8 rounded-b-xl ">
         <div className="flex rounded-b-xl items-center  justify-between h-14 sm:h-16">
           {/* Left section */}
@@ -107,18 +107,7 @@ const Navbar = () => {
           {/* Right section - Actions */}
           <div className="flex items-center b space-x-1 sm:space-x-4">
             {/* Subscription Status Banner */}
-            <div className="hidden md:flex items-center bg-gray-100 dark:bg-gray-700 rounded-md px-3 py-1.5 text-sm shadow-sm border border-gray-200 dark:border-gray-600">
-              {isLoading ? (
-                <span className="text-xs text-gray-400 italic">Loading plan...</span>
-              ) : (
-                <>
-                  <PlanIcon size={16} className={`mr-1.5 ${planColor}`} />
-                  <span className={`font-medium ${planColor}`}>{planName} Plan</span>
-                </>
-              )}
-              {/* Optional: Link to subscription settings */}
-              <Link href="/settings/subscription" className="ml-2 text-blue-600 dark:text-blue-400 hover:underline text-xs">Manage</Link>
-            </div>
+           
             
             {/* Dark/Light Theme toggle */}
             <button

@@ -45,18 +45,18 @@ export const CADElementPreview: React.FC<CADElementPreviewProps> = ({ action }) 
   );
 
   return (
-    <div className="mt-3 border border-blue-100 rounded-md p-2 bg-blue-50">
-      <h4 className="text-xs font-medium text-blue-700 mb-2">
+    <div className="mt-3 border border-blue-100 dark:border-blue-700 rounded-md p-2 bg-blue-50 dark:bg-blue-900">
+      <h4 className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">
         Elements to be created ({action.payload.elements.length}):
       </h4>
       <div className="max-h-40 overflow-y-auto space-y-1">
         {action.payload.elements.map((element: any, index: number) => (
           <div 
             key={index}
-            className="flex items-center p-1.5 bg-white rounded-md border border-blue-100"
+            className="flex items-center p-1.5 bg-white dark:bg-gray-900 rounded-md border border-blue-100 dark:border-blue-700"
           >
             {/* Element icon based on type */}
-            <div className="mr-2 text-gray-500">
+            <div className="mr-2 text-gray-500 dark:text-gray-400 ">
               {element.type === 'cube' && <Box size={14} />}
               {element.type === 'sphere' && <Circle size={14} />}
               {element.type === 'cylinder' && <Cylinder size={14} />}
@@ -78,16 +78,16 @@ export const CADElementPreview: React.FC<CADElementPreviewProps> = ({ action }) 
               style={{ backgroundColor: element.color || '#1e88e5' }}
             />
             
-            {/* Element info */}
+            {/* Element info */}  
             <div className="flex-1">
               <div className="text-xs font-medium capitalize">{element.type}</div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                 Position: ({Math.round(element.x || 0)}, {Math.round(element.y || 0)}, {Math.round(element.z || 0)})
               </div>
             </div>
             
             {/* Dimensions */}
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               {element.type === 'cube' && (
                 <span>{element.width || 50}×{element.height || 50}×{element.depth || 50}</span>
               )}

@@ -70,16 +70,16 @@ const ToolpathCostPanel: React.FC<ToolpathCostPanelProps> = ({ toolpathId }) => 
   // Se non ci sono dati da mostrare e non sta caricando (dopo il fetch iniziale)
   if (!loading && !estimate && toolpathId) { // ensure toolpathId is present to show generate button
     return (
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium mb-3">Costo di Produzione</h3>
+      <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+        <h3 className="text-lg font-medium mb-3">Production Cost</h3>
         <p className="text-gray-500">
-          Nessuna stima dei costi disponibile per questo toolpath.
+          No production cost estimate available for this toolpath.
         </p>
         <button
           onClick={generateNewEstimate}
           className="mt-3 bg-blue-500 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-600"
         >
-          Genera Stima
+          Generate Estimate
         </button>
       </div>
     );
@@ -88,11 +88,11 @@ const ToolpathCostPanel: React.FC<ToolpathCostPanelProps> = ({ toolpathId }) => 
   // Mostra il caricamento
   if (loading) {
     return (
-      <div className="bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-medium mb-3">Costo di Produzione</h3>
+      <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+        <h3 className="text-lg font-medium mb-3">Production Cost</h3>
         <div className="flex items-center justify-center py-4">
           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
-          <span>Calcolo in corso...</span>
+          <span>Calculation in progress...</span>
         </div>
       </div>
     );
@@ -100,32 +100,32 @@ const ToolpathCostPanel: React.FC<ToolpathCostPanelProps> = ({ toolpathId }) => 
   
   // Mostra i dettagli della stima
   return (
-    <div className="bg-white p-4 rounded-lg shadow">
-      <h3 className="text-lg font-medium mb-3">Costo di Produzione</h3>
+    <div className="bg-white dark:bg-gray-700 p-4 rounded-lg shadow">
+      <h3 className="text-lg font-medium mb-3">Production Cost</h3>
       
       {estimate && (
         <div>
           <div className="grid grid-cols-2 gap-2 mb-3">
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="text-sm text-gray-600">Materiale:</span>
+            <div className="bg-gray-50 dark:bg-gray-800     p-2 rounded">
+              <span className="text-sm text-gray-600">Material:</span>
               <p className="font-medium">
                 {formatCurrency(estimate.materialCost, estimate.currencyCode)}
               </p>
             </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="text-sm text-gray-600">Utensile:</span>
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+              <span className="text-sm text-gray-600">Tool:</span>
               <p className="font-medium">
                 {formatCurrency(estimate.toolWearCost, estimate.currencyCode)}
               </p>
             </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="text-sm text-gray-600">Tempo Macchina:</span>
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+              <span className="text-sm text-gray-600">Machine Time:</span>
               <p className="font-medium">
                 {formatTime(estimate.machineTime)}
               </p>
             </div>
-            <div className="bg-gray-50 p-2 rounded">
-              <span className="text-sm text-gray-600">Operatore:</span>
+            <div className="bg-gray-50 dark:bg-gray-800 p-2 rounded">
+              <span className="text-sm text-gray-600">Operator Time:</span>
               <p className="font-medium">
                 {formatCurrency(estimate.operatorTimeCost, estimate.currencyCode)}
               </p>
@@ -133,16 +133,16 @@ const ToolpathCostPanel: React.FC<ToolpathCostPanelProps> = ({ toolpathId }) => 
           </div>
           
           {/* Costo totale */}
-          <div className="bg-blue-50 p-3 rounded-md flex justify-between items-center">
-            <span className="font-medium text-blue-800">COSTO TOTALE:</span>
+          <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-md flex justify-between items-center">
+            <span className="font-medium text-blue-800 dark:text-blue-200">TOTAL COST:</span>
             <span className="text-lg font-bold">
               {formatCurrency(estimate.totalCost, estimate.currencyCode)}
             </span>
           </div>
           
           {/* Data calcolo */}
-          <div className="mt-2 text-xs text-gray-500 text-right">
-            Ultimo aggiornamento: {new Date(estimate.updatedAt).toLocaleString('it-IT')}
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-right">
+            Last update: {new Date(estimate.updatedAt).toLocaleString('en-US')}
           </div>
           
           {/* Pulsante per rigenerare la stima */}
@@ -150,7 +150,7 @@ const ToolpathCostPanel: React.FC<ToolpathCostPanelProps> = ({ toolpathId }) => 
             onClick={generateNewEstimate}
             className="mt-2 text-blue-600 text-sm hover:text-blue-800"
           >
-            Aggiorna Stima
+            Update Estimate
           </button>
         </div>
       )}
