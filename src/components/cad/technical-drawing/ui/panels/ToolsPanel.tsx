@@ -1,252 +1,290 @@
 import React, { useState } from 'react';
-import DockPanel from './DockPanel';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+ 
+  Pencil, 
+  Square, 
+  Circle, 
+  Ruler,
+  Type,
 
-export type DrawingTool = 
-  | 'select'
-  | 'pan'
-  | 'line'
-  | 'rectangle'
-  | 'circle'
-  | 'arc'
-  | 'ellipse'
-  | 'polygon'
-  | 'polyline'
-  | 'spline'
-  | 'text'
-  | 'dimension'
-  | 'fillet'
-  | 'chamfer'
-  | 'trim'
-  | 'extend'
-  | 'offset'
-  | 'mirror'
-  | 'rotate'
-  | 'scale';
+  Pentagon,
+  Spline,
 
-interface ToolOption {
-  id: DrawingTool;
-  name: string;
-  icon: string;
-  description: string;
-  group: 'basic' | 'shapes' | 'curves' | 'modify' | 'transform' | 'annotate';
-}
+  Scissors,
+  Move,
+  Copy,
+ 
+  HelpCircle,
+  Edit,
+  Trash2,
+  Layers,
+  Grid,
+  Hash,
+  Compass,
+  Settings,
+  ChevronDown,
+  ChevronRight,
+  Pointer,
+  EllipsisIcon,
+  BeanIcon,
+  RotateCw
+} from 'lucide-react';
 
 interface ToolsPanelProps {
-  activeTool?: DrawingTool;
-  onToolSelect?: (tool: DrawingTool) => void;
-  defaultPosition?: 'left' | 'right' | 'top' | 'bottom' | 'float';
+  activeTool: string;
+  onToolSelect: (tool: string) => void;
+  defaultPosition?: 'left' | 'right';
 }
 
 const ToolsPanel: React.FC<ToolsPanelProps> = ({
-  activeTool = 'select',
+  activeTool,
   onToolSelect,
-  defaultPosition = 'left',
+  defaultPosition = 'left'
 }) => {
-  const [expandedGroup, setExpandedGroup] = useState<string | null>('basic');
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Define all available tools
-  const tools: ToolOption[] = [
-    // Basic tools
-    { id: 'select', name: 'Select', icon: '🔍', description: 'Select and manipulate entities', group: 'basic' },
-    { id: 'pan', name: 'Pan', icon: '✋', description: 'Pan the drawing view', group: 'basic' },
-    
-    // Shape tools
-    { id: 'line', name: 'Line', icon: '📏', description: 'Draw a straight line', group: 'shapes' },
-    { id: 'rectangle', name: 'Rectangle', icon: '⬜', description: 'Draw a rectangle', group: 'shapes' },
-    { id: 'circle', name: 'Circle', icon: '⭕', description: 'Draw a circle', group: 'shapes' },
-    { id: 'polygon', name: 'Polygon', icon: '⬡', description: 'Draw a regular polygon', group: 'shapes' },
-    
-    // Curve tools
-    { id: 'arc', name: 'Arc', icon: '🧲', description: 'Draw an arc', group: 'curves' },
-    { id: 'ellipse', name: 'Ellipse', icon: '⭮', description: 'Draw an ellipse', group: 'curves' },
-    { id: 'polyline', name: 'Polyline', icon: '➰', description: 'Draw a polyline', group: 'curves' },
-    { id: 'spline', name: 'Spline', icon: '〰️', description: 'Draw a spline curve', group: 'curves' },
-    
-    // Modify tools
-    { id: 'fillet', name: 'Fillet', icon: '⌢', description: 'Create a rounded corner between two lines', group: 'modify' },
-    { id: 'chamfer', name: 'Chamfer', icon: '⧩', description: 'Create an angled corner between two lines', group: 'modify' },
-    { id: 'trim', name: 'Trim', icon: '✂️', description: 'Trim entities at their intersections', group: 'modify' },
-    { id: 'extend', name: 'Extend', icon: '📐', description: 'Extend entities to meet other entities', group: 'modify' },
-    { id: 'offset', name: 'Offset', icon: '⫽', description: 'Create parallel copies of entities', group: 'modify' },
-    
-    // Transform tools
-    { id: 'mirror', name: 'Mirror', icon: '⟷', description: 'Create a mirrored copy of entities', group: 'transform' },
-    { id: 'rotate', name: 'Rotate', icon: '↻', description: 'Rotate entities around a point', group: 'transform' },
-    { id: 'scale', name: 'Scale', icon: '⤢', description: 'Scale entities relative to a base point', group: 'transform' },
-    
-    // Annotation tools
-    { id: 'text', name: 'Text', icon: 'T', description: 'Add text to the drawing', group: 'annotate' },
-    { id: 'dimension', name: 'Dimension', icon: '⟺', description: 'Add linear, angular, or radial dimensions', group: 'annotate' },
+  const [expandedCategory, setExpandedCategory] = useState<string>('drawing');
+  
+  const toggleCategory = (category: string) => {
+    setExpandedCategory(prevCategory => 
+      prevCategory === category ? '' : category
+    );
+  };
+  
+  // Definiamo le categorie di strumenti
+  const toolCategories = [
+    {
+      id: 'selection',
+      name: 'Selezione',
+      icon: <Pointer size={18} />,
+      tools: [
+        { id: 'select', name: 'Seleziona', icon: <Pointer size={18} /> },
+        { id: 'move', name: 'Sposta', icon: <Move size={18} /> },
+        { id: 'copy', name: 'Copia', icon: <Copy size={18} /> },
+        { id: 'rotate', name: 'Ruota', icon: <RotateCw size={18} /> }
+      ]
+    },
+    {
+      id: 'drawing',
+      name: 'Disegno',
+      icon: <Pencil size={18} />,
+      tools: [
+        { id: 'line', name: 'Linea', icon: <Pencil size={18} /> },
+        { id: 'rectangle', name: 'Rettangolo', icon: <Square size={18} /> },
+        { id: 'circle', name: 'Cerchio', icon: <Circle size={18} /> },
+        { id: 'ellipse', name: 'Ellisse', icon: <EllipsisIcon size={18} /> },
+        { id: 'arc', name: 'Arco', icon: <Compass size={18} /> },
+        { id: 'polyline', name: 'Polilinea', icon: <Hash size={18} /> },
+        { id: 'polygon', name: 'Poligono', icon: <Pentagon size={18} /> },
+        { id: 'spline', name: 'Spline', icon: <Spline size={18} /> },
+        { id: 'bezier', name: 'Bezier', icon: <BeanIcon size={18} /> }
+      ]
+    },
+    {
+      id: 'modification',
+      name: 'Modifica',
+      icon: <Edit size={18} />,
+      tools: [
+        { id: 'trim', name: 'Taglia', icon: <Scissors size={18} /> },
+        { id: 'extend', name: 'Estendi', icon: <Edit size={18} /> },
+        { id: 'fillet', name: 'Raccordo', icon: <Edit size={18} /> },
+        { id: 'chamfer', name: 'Smusso', icon: <Edit size={18} /> },
+        { id: 'offset', name: 'Offset', icon: <Edit size={18} /> },
+        { id: 'delete', name: 'Elimina', icon: <Trash2 size={18} /> }
+      ]
+    },
+    {
+      id: 'annotation',
+      name: 'Annotazioni',
+      icon: <Type size={18} />,
+      tools: [
+        { id: 'text', name: 'Testo', icon: <Type size={18} /> },
+        { id: 'dimension-linear', name: 'Quota lineare', icon: <Ruler size={18} /> },
+        { id: 'dimension-aligned', name: 'Quota allineata', icon: <Ruler size={18} /> },
+        { id: 'dimension-angle', name: 'Quota angolare', icon: <Ruler size={18} /> },
+        { id: 'dimension-radius', name: 'Quota raggio', icon: <Circle size={18} /> },
+        { id: 'dimension-diameter', name: 'Quota diametro', icon: <Circle size={18} /> }
+      ]
+    },
+    {
+      id: 'settings',
+      name: 'Impostazioni',
+      icon: <Settings size={18} />,
+      tools: [
+        { id: 'layers', name: 'Livelli', icon: <Layers size={18} /> },
+        { id: 'grid', name: 'Griglia', icon: <Grid size={18} /> },
+        { id: 'settings', name: 'Preferenze', icon: <Settings size={18} /> },
+        { id: 'help', name: 'Aiuto', icon: <HelpCircle size={18} /> }
+      ]
+    }
   ];
-
-  // Group tools by category
-  const groupedTools: { [key: string]: ToolOption[] } = {
-    'basic': tools.filter(tool => tool.group === 'basic'),
-    'shapes': tools.filter(tool => tool.group === 'shapes'),
-    'curves': tools.filter(tool => tool.group === 'curves'),
-    'modify': tools.filter(tool => tool.group === 'modify'),
-    'transform': tools.filter(tool => tool.group === 'transform'),
-    'annotate': tools.filter(tool => tool.group === 'annotate'),
-  };
-
-  // Get user-friendly group name
-  const getGroupName = (group: string): string => {
-    switch (group) {
-      case 'basic': return 'Basic Tools';
-      case 'shapes': return 'Shapes';
-      case 'curves': return 'Curves';
-      case 'modify': return 'Modify';
-      case 'transform': return 'Transform';
-      case 'annotate': return 'Annotation';
-      default: return group.charAt(0).toUpperCase() + group.slice(1);
-    }
-  };
-
-  // Toggle a group's expanded state
-  const toggleGroup = (group: string) => {
-    setExpandedGroup(expandedGroup === group ? null : group);
-  };
-
-  // Handle tool selection
-  const handleToolSelect = (tool: DrawingTool) => {
-    if (onToolSelect) {
-      onToolSelect(tool);
-    }
-  };
-
-  // Filter tools based on search term
-  const filteredTools = searchTerm.trim() === '' 
-    ? tools 
-    : tools.filter(tool => 
-        tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tool.description.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
-  // Render a tool button
-  const renderToolButton = (tool: ToolOption) => {
-    const isActive = tool.id === activeTool;
-    
-    return (
-      <button
-        key={tool.id}
-        type="button"
-        className={`tool-button ${isActive ? 'active' : ''}`}
-        onClick={() => handleToolSelect(tool.id)}
-        title={`${tool.name}: ${tool.description}`}
+  
+  return (
+    <motion.div
+      className="tools-panel"
+      style={{
+        width: '250px',
+        height: '100%',
+        overflowY: 'auto',
+        backgroundColor: '#f8f9fa',
+        borderRight: defaultPosition === 'left' ? '1px solid #e0e0e0' : 'none',
+        borderLeft: defaultPosition === 'right' ? '1px solid #e0e0e0' : 'none',
+        padding: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}
+      initial={{ opacity: 0, x: defaultPosition === 'left' ? -20 : 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div 
+        className="tools-panel-header"
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '8px 12px',
-          margin: '4px 0',
-          width: '100%',
-          border: isActive ? '1px solid #1890ff' : '1px solid transparent',
-          borderRadius: '4px',
-          backgroundColor: isActive ? '#e6f7ff' : 'transparent',
-          cursor: 'pointer',
-          textAlign: 'left',
-          transition: 'background-color 0.2s',
+          fontWeight: 'bold',
+          fontSize: '16px',
+          padding: '8px',
+          borderBottom: '1px solid #e0e0e0',
+          marginBottom: '8px'
         }}
       >
-        <span style={{ 
-          display: 'inline-flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          width: '24px',
-          height: '24px',
-          marginRight: '12px',
-          fontSize: '18px'
-        }}>
-          {tool.icon}
-        </span>
-        <span style={{ flexGrow: 1 }}>{tool.name}</span>
-      </button>
-    );
-  };
-
-  // Render a group of tools
-  const renderToolGroup = (group: string, tools: ToolOption[]) => {
-    const isExpanded = expandedGroup === group;
-    
-    return (
-      <div key={group} className="tool-group" style={{ marginBottom: '8px' }}>
-        <div
-          className="tool-group-header"
-          onClick={() => toggleGroup(group)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            padding: '8px 12px',
-            cursor: 'pointer',
-            backgroundColor: '#f5f5f5',
-            borderRadius: '4px',
-          }}
-        >
-          <span style={{ marginRight: '8px' }}>{isExpanded ? '▼' : '►'}</span>
-          <span style={{ fontWeight: 'bold' }}>{getGroupName(group)}</span>
-        </div>
-        
-        {isExpanded && (
-          <div className="tool-group-content" style={{ marginTop: '4px', marginLeft: '12px' }}>
-            {tools.map(renderToolButton)}
-          </div>
-        )}
+        Strumenti
       </div>
-    );
-  };
-
-  // Render tools based on search results or grouped
-  const renderTools = () => {
-    if (searchTerm.trim() !== '') {
-      // Render search results
-      return (
-        <div className="search-results">
-          {filteredTools.length === 0 ? (
-            <div style={{ padding: '12px', color: '#888', textAlign: 'center' }}>
-              No tools match your search.
-            </div>
-          ) : (
-            filteredTools.map(renderToolButton)
-          )}
-        </div>
-      );
-    } else {
-      // Render grouped tools
-      return Object.entries(groupedTools).map(([group, tools]) => 
-        renderToolGroup(group, tools)
-      );
-    }
-  };
-
-  return (
-    <DockPanel
-      title="Drawing Tools"
-      defaultPosition={defaultPosition}
-      defaultWidth={250}
-      minWidth={200}
-    >
-      <div className="tools-panel-content">
-        {/* Search input */}
-        <div className="tool-search" style={{ marginBottom: '16px' }}>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search tools..."
+      
+      {toolCategories.map(category => (
+        <div key={category.id} className="tools-category">
+          <motion.div
+            className="category-header"
             style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #ddd',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px',
               borderRadius: '4px',
+              cursor: 'pointer',
+              backgroundColor: expandedCategory === category.id ? '#e6f7ff' : 'transparent',
+              color: expandedCategory === category.id ? '#1890ff' : '#333'
             }}
-          />
+            onClick={() => toggleCategory(category.id)}
+            whileHover={{ backgroundColor: expandedCategory === category.id ? '#e6f7ff' : '#f0f0f0' }}
+          >
+            <div style={{ marginRight: '8px' }}>
+              {category.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              {category.name}
+            </div>
+            <div>
+              {expandedCategory === category.id ? (
+                <ChevronDown size={16} />
+              ) : (
+                <ChevronRight size={16} />
+              )}
+            </div>
+          </motion.div>
+          
+          <AnimatePresence>
+            {expandedCategory === category.id && (
+              <motion.div
+                className="tools-list"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: '8px',
+                  padding: '8px'
+                }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {category.tools.map(tool => (
+                  <motion.div
+                    key={tool.id}
+                    className="tool-item"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      backgroundColor: activeTool === tool.id ? '#1890ff' : 'transparent',
+                      color: activeTool === tool.id ? 'white' : '#333'
+                    }}
+                    onClick={() => onToolSelect(tool.id)}
+                    whileHover={{ 
+                      backgroundColor: activeTool === tool.id ? '#1890ff' : '#f0f0f0',
+                      scale: 1.05
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <div style={{ marginBottom: '4px' }}>
+                      {tool.icon}
+                    </div>
+                    <div style={{ 
+                      fontSize: '12px',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      width: '100%'
+                    }}>
+                      {tool.name}
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        
-        {/* Tools */}
-        {renderTools()}
-      </div>
-    </DockPanel>
+      ))}
+      
+      {/* Tooltip per lo strumento attivo */}
+      <motion.div
+        style={{
+          marginTop: 'auto',
+          padding: '12px',
+          backgroundColor: '#e6f7ff',
+          borderRadius: '4px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5, duration: 0.3 }}
+      >
+        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+          {toolCategories
+            .flatMap(category => category.tools)
+            .find(tool => tool.id === activeTool)?.name || 'Strumento'}
+        </div>
+        <div style={{ fontSize: '12px', color: '#666' }}>
+          {getToolDescription(activeTool)}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
-export default ToolsPanel; 
+function getToolDescription(toolId: string): string {
+  switch(toolId) {
+    case 'select':
+      return 'Seleziona oggetti singoli o multipli. Tieni premuto Shift per una selezione multipla.';
+    case 'line':
+      return 'Disegna una linea retta. Fai clic per impostare il punto iniziale, poi fai clic di nuovo per il punto finale.';
+    case 'rectangle':
+      return 'Disegna un rettangolo. Fai clic e trascina per definire gli angoli opposti.';
+    case 'circle':
+      return 'Disegna un cerchio. Fai clic per impostare il centro, poi trascina per definire il raggio.';
+    case 'ellipse':
+      return 'Disegna un\'ellisse. Fai clic per impostare il centro, poi trascina per definire i raggi.';
+    case 'polyline':
+      return 'Disegna una polilinea. Fai clic per aggiungere vertici, doppio clic per terminare.';
+    case 'dimension-linear':
+      return 'Aggiungi una quota lineare. Seleziona due punti da quotare, poi posiziona la linea di quota.';
+    case 'text':
+      return 'Aggiungi un\'annotazione testuale. Fai clic per posizionare, poi digita il testo.';
+    default:
+      return 'Strumento di disegno. Consulta la documentazione per maggiori dettagli.';
+  }
+}
+
+export default ToolsPanel;

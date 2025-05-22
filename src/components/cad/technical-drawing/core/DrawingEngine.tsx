@@ -1,328 +1,337 @@
+// src/components/cad/technical-drawing/core/DrawingEngine.tsx
+// Main drawing engine for the technical drawing system
+
 import React, { useRef, useEffect, useState } from 'react';
 import { useTechnicalDrawingStore } from '../../../../store/technicalDrawingStore';
-import { DrawingEntity, Point, DrawingStyle, DrawingViewport } from '../../../../types/TechnicalDrawingTypes';
+import { Point, AnyEntity, isDrawingEntity, isDimension, isAnnotation } from '../../../../types/TechnicalDrawingTypes';
 import { renderEntity } from '../rendering/entity-renderers';
 
 interface DrawingEngineProps {
   width: number;
   height: number;
-  onMouseDown?: (e: React.MouseEvent<HTMLCanvasElement>) => void;
-  onMouseMove?: (e: React.MouseEvent<HTMLCanvasElement>) => void;
-  onMouseUp?: (e: React.MouseEvent<HTMLCanvasElement>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLCanvasElement>) => void;
-  onKeyUp?: (e: React.KeyboardEvent<HTMLCanvasElement>) => void;
-  onWheel?: (e: React.WheelEvent<HTMLCanvasElement>) => void;
+  viewportId?: string;
+  gridSize?: number;
+  showGrid?: boolean;
+  snapToGrid?: boolean;
+  backgroundColor?: string;
+  onEntityClick?: (entityId: string) => void;
+  onCanvasClick?: (point: Point) => void;
+  onCanvasMove?: (point: Point) => void;
 }
 
+/**
+ * DrawingEngine - Core component responsible for rendering the technical drawing canvas
+ * Handles rendering, transformations, and user interactions
+ */
 export const DrawingEngine: React.FC<DrawingEngineProps> = ({
   width,
   height,
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
-  onKeyDown,
-  onKeyUp,
-  onWheel
+  viewportId,
+  gridSize = 10,
+  showGrid = true,
+  snapToGrid = true,
+  backgroundColor = '#FFFFFF',
+  onEntityClick,
+  onCanvasClick,
+  onCanvasMove,
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [ctx, setCtx] = useState<CanvasRenderingContext2D | null>(null);
-  
-  // Get state from technical drawing store
+  // Get drawing store state
   const {
     entities,
-    dimensions,
-    annotations,
+    layers,
+    activeLayer,
     viewports,
-    activeViewportId,
-    sheet,
-    gridEnabled,
+    activeViewport,
     zoom,
     pan,
-    selectedEntityIds,
-    drawingLayers
+    selectedEntities,
+    setSelectedEntities,
   } = useTechnicalDrawingStore();
 
-  const snapPoints: Point[] = [];
+  // Set up canvas refs for main drawing and grid
+  const mainCanvasRef = useRef<HTMLCanvasElement>(null);
+  const gridCanvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // State for tracking mouse position and interactions
+  const [mousePosition, setMousePosition] = useState<Point | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState<Point | null>(null);
+  
+  // Use the provided viewportId or the active viewport
+  const currentViewportId = viewportId || activeViewport;
+  const viewport = currentViewportId ? viewports[currentViewportId] : null;
 
-  // Initialize canvas context
-  useEffect(() => {
-    if (canvasRef.current) {
-      const context = canvasRef.current.getContext('2d');
-      if (context) {
-        // Set high DPI canvas if needed
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvasRef.current.getBoundingClientRect();
-        
-        canvasRef.current.width = rect.width * dpr;
-        canvasRef.current.height = rect.height * dpr;
-        
-        context.scale(dpr, dpr);
-        
-        // Enable anti-aliasing
-        context.imageSmoothingEnabled = true;
-        context.imageSmoothingQuality = 'high';
-        
-        setCtx(context);
-      }
-    }
-  }, [width, height]);
+  // Convert screen coordinates to world coordinates
+  const screenToWorld = (point: Point): Point => {
+    if (!viewport) return point;
+    return {
+      x: (point.x - pan.x) / zoom,
+      y: (point.y - pan.y) / zoom,
+    };
+  };
 
-  // Main rendering function
-  const renderCanvas = () => {
-    if (!ctx || !canvasRef.current) return;
-    
-    // Clear canvas
+  // Convert world coordinates to screen coordinates
+  const worldToScreen = (point: Point): Point => {
+    if (!viewport) return point;
+    return {
+      x: point.x * zoom + pan.x,
+      y: point.y * zoom + pan.y,
+    };
+  };
+
+  // Snap point to grid if enabled
+  const snapToGridPoint = (point: Point): Point => {
+    if (!snapToGrid) return point;
+    return {
+      x: Math.round(point.x / gridSize) * gridSize,
+      y: Math.round(point.y / gridSize) * gridSize,
+    };
+  };
+
+  // Draw grid on grid canvas
+  const drawGrid = () => {
+    const gridCanvas = gridCanvasRef.current;
+    if (!gridCanvas) return;
+
+    const ctx = gridCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear the canvas
     ctx.clearRect(0, 0, width, height);
     
-    // Apply transformations
+    if (!showGrid) return;
+
+    // Set grid style
+    ctx.strokeStyle = '#CCCCCC';
+    ctx.lineWidth = 0.5;
+    
+    // Calculate grid spacing based on zoom level
+    const scaledGridSize = gridSize * zoom;
+    
+    // Offset based on pan
+    const offsetX = pan.x % scaledGridSize;
+    const offsetY = pan.y % scaledGridSize;
+    
+    // Draw vertical lines
+    for (let x = offsetX; x < width; x += scaledGridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    
+    // Draw horizontal lines
+    for (let y = offsetY; y < height; y += scaledGridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+  };
+
+  // Draw all entities on main canvas
+  const drawEntities = () => {
+    const canvas = mainCanvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Clear canvas with background color
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Apply global transformation based on zoom and pan
     ctx.save();
     ctx.translate(pan.x, pan.y);
     ctx.scale(zoom, zoom);
     
-    // Draw grid if enabled
-    if (gridEnabled) {
-      drawGrid(ctx);
-    }
+    // Get entities to render (either from viewport or all entities)
+    const entitiesToRender = viewport ? 
+      viewport.entities.map(id => entities[id]).filter(Boolean) : 
+      Object.values(entities);
     
-    // Draw sheet border
-    drawSheetBorder(ctx);
-
-    // Draw entities based on current viewport and layers
-    const visibleLayers = drawingLayers.filter(layer => layer.visible).map(layer => layer.id);
+    // Filter by visible layers
+    const visibleLayers = Object.values(layers).filter(layer => layer.visible);
+    const visibleLayerIds = visibleLayers.map(layer => layer.id);
     
-    // If there's an active viewport, only render entities in that viewport
-    if (activeViewportId && viewports[activeViewportId]) {
-      const viewport = viewports[activeViewportId];
-      drawViewport(ctx, viewport);
-      
-      // Draw entities within this viewport
-      viewport.entities.forEach(entityId => {
-        if (entities[entityId] && visibleLayers.includes(entities[entityId].layer)) {
-          renderEntity(ctx, entities[entityId], selectedEntityIds.includes(entityId));
-        }
-      });
-    } else {
-      // Draw all entities not in viewports
-      Object.entries(entities).forEach(([id, entity]) => {
-        // Check if entity is in any viewport
-        const isInViewport = Object.values(viewports).some(vp => 
-          vp.entities.includes(id)
-        );
+    const visibleEntities = entitiesToRender.filter(
+      entity => entity && visibleLayerIds.includes(entity.layer) && entity.visible
+    );
+    
+    // Draw entities by layer order (bottom to top)
+    visibleLayers
+      .sort((a, b) => (a.order || 0) - (b.order || 0))
+      .forEach(layer => {
+        const layerEntities = visibleEntities.filter(entity => entity.layer === layer.id);
         
-        // If not in viewport and visible, render it
-        if (!isInViewport && visibleLayers.includes(entity.layer)) {
-          renderEntity(ctx, entity, selectedEntityIds.includes(id));
-        }
+        // Draw regular entities first, then dimensions, then annotations
+        const drawingEntities = layerEntities.filter(entity => isDrawingEntity(entity));
+        const dimensionEntities = layerEntities.filter(entity => isDimension(entity));
+        const annotationEntities = layerEntities.filter(entity => isAnnotation(entity));
+        
+        [...drawingEntities, ...dimensionEntities, ...annotationEntities].forEach(entity => {
+          ctx.save();
+          // Highlight selected entities
+          const isSelected = selectedEntities.includes(entity.id);
+          renderEntity(ctx, entity as AnyEntity, isSelected);
+          ctx.restore();
+        });
       });
-    }
-    
-    // Draw dimensions
-    Object.entries(dimensions).forEach(([id, dimension]) => {
-      if (visibleLayers.includes(dimension.layer)) {
-        renderEntity(ctx, dimension as unknown as DrawingEntity, selectedEntityIds.includes(id));
-      }
-    });
-    
-    // Draw annotations
-    Object.entries(annotations).forEach(([id, annotation]) => {
-      if (visibleLayers.includes(annotation.layer)) {
-        renderEntity(ctx, annotation as unknown as DrawingEntity, selectedEntityIds.includes(id));
-      }
-    });
-    
-    // Draw snap points
-    if (snapPoints.length > 0) {
-      drawSnapPoints(ctx);
-    }
     
     ctx.restore();
   };
 
-  // Draw grid
-  const drawGrid = (ctx: CanvasRenderingContext2D) => {
-    const gridSize = 10; // Base grid size in drawing units
-    const scaledGridSize = gridSize;
-    
-    // Calculate grid boundaries based on view
-    const minX = -pan.x / zoom;
-    const minY = -pan.y / zoom;
-    const maxX = (width - pan.x) / zoom;
-    const maxY = (height - pan.y) / zoom;
-    
-    // Adjust starting points to gridSize intervals
-    const startX = Math.floor(minX / scaledGridSize) * scaledGridSize;
-    const startY = Math.floor(minY / scaledGridSize) * scaledGridSize;
-    
-    // Draw the grid
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(80, 80, 80, 0.3)';
-    ctx.lineWidth = 0.5 / zoom;
-    
-    // Draw vertical lines
-    for (let x = startX; x <= maxX; x += scaledGridSize) {
-      ctx.moveTo(x, minY);
-      ctx.lineTo(x, maxY);
-    }
-    
-    // Draw horizontal lines
-    for (let y = startY; y <= maxY; y += scaledGridSize) {
-      ctx.moveTo(minX, y);
-      ctx.lineTo(maxX, y);
-    }
-    
-    ctx.stroke();
-    
-    // Draw major grid lines (every 10 units)
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgba(100, 100, 100, 0.5)';
-    
-    // Draw major vertical lines
-    for (let x = startX; x <= maxX; x += scaledGridSize * 10) {
-      ctx.moveTo(x, minY);
-      ctx.lineTo(x, maxY);
-    }
-    
-    // Draw major horizontal lines
-    for (let y = startY; y <= maxY; y += scaledGridSize * 10) {
-      ctx.moveTo(minX, y);
-      ctx.lineTo(maxX, y);
-    }
-    
-    ctx.stroke();
-  };
-
-  // Draw sheet border
-  const drawSheetBorder = (ctx: CanvasRenderingContext2D) => {
-    ctx.beginPath();
-    ctx.strokeStyle = '#444444';
-    ctx.lineWidth = 1 / zoom;
-    ctx.rect(0, 0, sheet.width, sheet.height);
-    ctx.stroke();
-    
-    // Draw sheet title block
-    if (sheet.titleBlock) {
-      drawTitleBlock(ctx);
-    }
-  };
-
-  // Draw title block
-  const drawTitleBlock = (ctx: CanvasRenderingContext2D) => {
-    // Draw title block border
-    const blockHeight = 50;
-    const blockWidth = 180;
-    
-    ctx.beginPath();
-    ctx.strokeStyle = '#444444';
-    ctx.lineWidth = 1 / zoom;
-    ctx.rect(
-      sheet.width - blockWidth,
-      sheet.height - blockHeight,
-      blockWidth,
-      blockHeight
-    );
-    ctx.stroke();
-    
-    // Draw title block content
-    ctx.fillStyle = '#222222';
-    ctx.font = `${12 / zoom}px Arial`;
-    ctx.fillText(
-      sheet.titleBlock?.fields?.title || 'Technical Drawing',
-      sheet.width - blockWidth + 10,
-      sheet.height - blockHeight + 20
-    );
-    
-    ctx.font = `${8 / zoom}px Arial`;
-    ctx.fillText(
-      `Scale: ${sheet.scale || '1:1'}`,
-      sheet.width - blockWidth + 10,
-      sheet.height - blockHeight + 35
-    );
-    
-    ctx.fillText(
-      `Date: ${new Date().toLocaleDateString()}`,
-      sheet.width - blockWidth + 100,
-      sheet.height - blockHeight + 35
-    );
-  };
-
-  // Draw a viewport
-  const drawViewport = (ctx: CanvasRenderingContext2D, viewport: DrawingViewport) => {
-    // Draw viewport border
-    ctx.beginPath();
-    ctx.strokeStyle = '#777777';
-    ctx.lineWidth = 1 / zoom;
-    ctx.rect(
-      viewport.position.x,
-      viewport.position.y,
-      viewport.width,
-      viewport.height
-    );
-    ctx.stroke();
-    
-    // Draw viewport title
-    ctx.fillStyle = '#777777';
-    ctx.font = `${8 / zoom}px Arial`;
-    ctx.fillText(
-      viewport.name,
-      viewport.position.x + 5,
-      viewport.position.y - 5
-    );
-  };
-
-  // Draw snap points
-  const drawSnapPoints = (ctx: CanvasRenderingContext2D) => {
-    snapPoints.forEach((point: Point)  => {
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 5 / zoom, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0, 150, 255, 0.5)';
-      ctx.fill();
-      
-      ctx.beginPath();
-      ctx.arc(point.x, point.y, 2 / zoom, 0, Math.PI * 2);
-      ctx.fillStyle = '#00AAFF';
-      ctx.fill();
-    });
-  };
-
-  // Run the rendering on each frame
+  // Handle window resize
   useEffect(() => {
-    let animationFrameId: number;
-    
-    const render = () => {
-      renderCanvas();
-      animationFrameId = window.requestAnimationFrame(render);
+    const handleResize = () => {
+      if (mainCanvasRef.current && gridCanvasRef.current) {
+        drawGrid();
+        drawEntities();
+      }
     };
-    
-    // Start the animation loop
-    if (ctx) {
-      animationFrameId = window.requestAnimationFrame(render);
-    }
-    
-    // Clean up
+
+    window.addEventListener('resize', handleResize);
     return () => {
-      window.cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
     };
-  }, [ctx, entities, dimensions, annotations, viewports, activeViewportId, zoom, pan, selectedEntityIds, /*snapPoints,*/ gridEnabled, drawingLayers]);
+  }, [width, height]);
 
-  // Handle canvas tabindex and focus
+  // Redraw when relevant state changes
   useEffect(() => {
-    if (canvasRef.current) {
-      canvasRef.current.tabIndex = 1; // Make canvas focusable
+    drawGrid();
+    drawEntities();
+  }, [
+    entities, 
+    layers, 
+    activeLayer, 
+    viewports, 
+    activeViewport, 
+    zoom, 
+    pan, 
+    selectedEntities,
+    showGrid,
+    snapToGrid,
+    width,
+    height,
+    backgroundColor
+  ]);
+
+  // Event handlers
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = mainCanvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const clickPoint = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    
+    const worldPoint = screenToWorld(clickPoint);
+    const snappedPoint = snapToGridPoint(worldPoint);
+    
+    setIsDragging(true);
+    setDragStart(clickPoint);
+    
+    // TODO: Implement hit testing logic to select entities
+    
+    if (onCanvasClick) {
+      onCanvasClick(snappedPoint);
     }
-  }, []);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const rect = mainCanvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const movePoint = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+    
+    const worldPoint = screenToWorld(movePoint);
+    const snappedPoint = snapToGridPoint(worldPoint);
+    
+    setMousePosition(snappedPoint);
+    
+    if (isDragging && dragStart) {
+      // Handle dragging logic
+      // This could be panning or moving entities depending on context
+    }
+    
+    if (onCanvasMove) {
+      onCanvasMove(snappedPoint);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDragStart(null);
+  };
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={width}
-      height={height}
-      style={{ width: '100%', height: '100%' }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onKeyDown={onKeyDown}
-      onKeyUp={onKeyUp}
-      onWheel={onWheel}
-    />
+    <div 
+      className="drawing-engine-container"
+      style={{ 
+        position: 'relative', 
+        width, 
+        height, 
+        overflow: 'hidden',
+        backgroundColor: '#F5F5F5',
+        border: '1px solid #CCCCCC' 
+      }}
+    >
+      {/* Grid Canvas Layer */}
+      <canvas
+        ref={gridCanvasRef}
+        width={width}
+        height={height}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          zIndex: 1
+        }}
+      />
+      
+      {/* Main Drawing Canvas Layer */}
+      <canvas
+        ref={mainCanvasRef}
+        width={width}
+        height={height}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          zIndex: 2
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      />
+      
+      {/* Status overlay (optional) */}
+      {mousePosition && (
+        <div 
+          className="coordinates-display"
+          style={{
+            position: 'absolute',
+            bottom: 5,
+            left: 5,
+            zIndex: 3,
+            padding: '2px 5px',
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            borderRadius: 3,
+            fontSize: 12
+          }}
+        >
+          X: {mousePosition.x.toFixed(2)}, Y: {mousePosition.y.toFixed(2)}
+        </div>
+      )}
+    </div>
   );
-}; 
+};
+
+export default DrawingEngine;

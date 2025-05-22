@@ -1,320 +1,252 @@
-import { v4 as uuidv4 } from 'uuid';
-import { Point, SplineEntity, DrawingStyle } from '../../../../types/TechnicalDrawingTypes';
-import { calculateDistance } from '../../../../utils/geometry/calculations';
+// src/components/cad/technical-drawing/core/SplineTool.ts
+
+import { BaseDrawingTool, ToolsManager } from './ToolsManager';
+import { useTechnicalDrawingStore } from '../../technicalDrawingStore';
+import { DrawingEntityType, Point } from '../../TechnicalDrawingTypes';
 
 /**
- * Tool to create and manipulate spline curves
- * Implements NURBS (Non-Uniform Rational B-Splines) functionality
+ * Strumento per disegnare curve spline
  */
-export class SplineTool {
+export class SplineTool extends BaseDrawingTool {
   private points: Point[] = [];
-  private controlPoints: Point[] = [];
-  private degree: number = 3; // Default degree for cubic splines
-  private tension: number = 0.5; // Controls "tightness" of the curve
+  private tempPoint: Point | null = null;
+  private isDrawing: boolean = false;
   private isClosed: boolean = false;
-
-  /**
-   * Add a point to the spline
-   */
-  addPoint(point: Point): void {
-    this.points.push(point);
-    this.updateControlPoints();
+  
+  constructor(store: ReturnType<typeof useTechnicalDrawingStore>, toolsManager: ToolsManager) {
+    super('spline', 'Spline', store, toolsManager);
   }
-
-  /**
-   * Remove the last point
-   */
-  removeLastPoint(): Point | null {
-    if (this.points.length === 0) return null;
-    
-    const removedPoint = this.points.pop();
-    this.updateControlPoints();
-    return removedPoint || null;
+  
+  onActivate(): void {
+    this.reset();
   }
-
-  /**
-   * Set all points at once
-   */
-  setPoints(points: Point[]): void {
-    this.points = [...points];
-    this.updateControlPoints();
-  }
-
-  /**
-   * Set the degree of the spline
-   * Higher degree = smoother but more complex curve
-   */
-  setDegree(degree: number): void {
-    this.degree = Math.max(1, Math.min(degree, 5)); // Constrain to reasonable range
-    this.updateControlPoints();
-  }
-
-  /**
-   * Set the tension parameter
-   * Controls how "tight" the curve follows control points
-   */
-  setTension(tension: number): void {
-    this.tension = Math.max(0, Math.min(tension, 1)); // Constrain to [0,1]
-    this.updateControlPoints();
-  }
-
-  /**
-   * Toggle between open and closed spline
-   */
-  setClosed(closed: boolean): void {
-    this.isClosed = closed;
-    this.updateControlPoints();
-  }
-
-  /**
-   * Get the current points
-   */
-  getPoints(): Point[] {
-    return [...this.points];
-  }
-
-  /**
-   * Get the control points
-   */
-  getControlPoints(): Point[] {
-    return [...this.controlPoints];
-  }
-
-  /**
-   * Calculate the control points based on the current points
-   */
-  private updateControlPoints(): void {
-    if (this.points.length < 2) {
-      this.controlPoints = [];
-      return;
-    }
-
-    // For a simple implementation, we'll use a variation of Catmull-Rom splines
-    // which automatically generates control points
-    this.controlPoints = [];
-    
-    const n = this.points.length;
-    
-    if (this.isClosed) {
-      // For closed curves, handle wrap-around points
-      for (let i = 0; i < n; i++) {
-        const prev = this.points[(i - 1 + n) % n];
-        const curr = this.points[i];
-        const next = this.points[(i + 1) % n];
-        
-        // Calculate control points based on neighboring points and tension
-        const dx1 = (curr.x - prev.x) * this.tension;
-        const dy1 = (curr.y - prev.y) * this.tension;
-        
-        const dx2 = (next.x - curr.x) * this.tension;
-        const dy2 = (next.y - curr.y) * this.tension;
-        
-        // First control point
-        this.controlPoints.push({
-          x: curr.x - dx1 / 3,
-          y: curr.y - dy1 / 3
-        });
-        
-        // Second control point
-        this.controlPoints.push({
-          x: curr.x + dx2 / 3,
-          y: curr.y + dy2 / 3
-        });
-      }
+  
+  onMouseDown(point: Point, event: MouseEvent): void {
+    if (!this.isDrawing || this.points.length === 0) {
+      // Primo punto, inizia a disegnare
+      this.points = [point];
+      this.isDrawing = true;
     } else {
-      // For open curves
-      for (let i = 0; i < n; i++) {
-        const prev = i > 0 ? this.points[i - 1] : null;
-        const curr = this.points[i];
-        const next = i < n - 1 ? this.points[i + 1] : null;
+      // Aggiungi un nuovo punto
+      this.points.push(point);
+    }
+  }
+  
+  onMouseMove(point: Point, event: MouseEvent): void {
+    if (this.isDrawing) {
+      // Aggiorna il punto temporaneo per la preview
+      this.tempPoint = point;
+    }
+  }
+  
+  onMouseUp(point: Point, event: MouseEvent): void {
+    // Nessuna azione particolare qui, gestiamo l'aggiunta di punti in onMouseDown
+  }
+  
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      if (this.points.length > 0) {
+        // Se ci sono punti, cancella l'ultimo punto
+        this.points.pop();
         
-        if (i > 0) {
-          // Not the first point - add a control point before current point
-          const dx = (curr.x - prev!.x) * this.tension;
-          const dy = (curr.y - prev!.y) * this.tension;
-          
-          this.controlPoints.push({
-            x: curr.x - dx / 3,
-            y: curr.y - dy / 3
-          });
+        if (this.points.length === 0) {
+          this.reset();
         }
-        
-        if (i < n - 1) {
-          // Not the last point - add a control point after current point
-          const dx = (next!.x - curr.x) * this.tension;
-          const dy = (next!.y - curr.y) * this.tension;
-          
-          this.controlPoints.push({
-            x: curr.x + dx / 3,
-            y: curr.y + dy / 3
-          });
-        }
+      } else {
+        // Altrimenti annulla l'operazione
+        this.reset();
       }
+    } else if (event.key === 'Enter' && this.isDrawing && this.points.length >= 2) {
+      // Completa la spline
+      this.completeSpline();
+    } else if (event.key === 'Backspace' && this.points.length > 0) {
+      // Cancella l'ultimo punto
+      this.points.pop();
+    } else if (event.key === 'c' && this.isDrawing && this.points.length >= 3) {
+      // Chiudi la spline
+      this.isClosed = !this.isClosed;
     }
   }
-
-  /**
-   * Evaluate the spline at parameter t (from 0 to 1)
-   * Returns a point on the curve
-   */
-  evaluateAt(t: number): Point | null {
-    if (this.points.length < 2) return null;
-    
-    // Clamp t to [0,1]
-    t = Math.max(0, Math.min(t, 1));
-    
-    const n = this.points.length;
-    
-    // Special cases for t=0 and t=1
-    if (t === 0) return this.points[0];
-    if (t === 1) return this.isClosed ? this.points[0] : this.points[n - 1];
-    
-    // Calculate which segment t falls in
-    const segments = this.isClosed ? n : n - 1;
-    const segmentIndex = Math.min(Math.floor(t * segments), segments - 1);
-    
-    // Calculate t within the segment (local t)
-    const localT = (t * segments) - segmentIndex;
-    
-    // Get relevant points for this segment
-    const p0 = this.points[segmentIndex];
-    const p3 = this.isClosed ? 
-      this.points[(segmentIndex + 1) % n] : 
-      this.points[segmentIndex + 1];
-    
-    // Get control points for this segment
-    const controlIndex = this.isClosed ? 
-      segmentIndex * 2 : 
-      segmentIndex * 2 + (segmentIndex > 0 ? 1 : 0);
-    
-    const p1 = this.controlPoints[controlIndex % this.controlPoints.length];
-    
-    const nextControlIndex = this.isClosed ? 
-      ((segmentIndex + 1) * 2) % this.controlPoints.length : 
-      Math.min(controlIndex + 1, this.controlPoints.length - 1);
-    
-    const p2 = this.controlPoints[nextControlIndex];
-    
-    // Evaluate cubic Bezier
-    const t2 = localT * localT;
-    const t3 = t2 * localT;
-    const mt = 1 - localT;
-    const mt2 = mt * mt;
-    const mt3 = mt2 * mt;
-    
-    return {
-      x: mt3 * p0.x + 3 * mt2 * localT * p1.x + 3 * mt * t2 * p2.x + t3 * p3.x,
-      y: mt3 * p0.y + 3 * mt2 * localT * p1.y + 3 * mt * t2 * p2.y + t3 * p3.y
-    };
-  }
-
-  /**
-   * Generate a set of points approximating the spline curve
-   * Useful for rendering or analysis
-   */
-  generatePoints(numPoints: number = 100): Point[] {
-    if (this.points.length < 2) return [...this.points];
-    
-    const result: Point[] = [];
-    
-    for (let i = 0; i <= numPoints; i++) {
-      const t = i / numPoints;
-      const point = this.evaluateAt(t);
-      if (point) result.push(point);
-    }
-    
-    return result;
-  }
-
-  /**
-   * Create a spline entity from the current tool state
-   */
-  createSplineEntity(layer: string, style: DrawingStyle): SplineEntity {
-    return {
-      id: uuidv4(),
-      type: 'spline',
-      layer,
-      visible: true,
-      locked: false,
-      style,
-      points: [...this.points],
-      controlPoints: [...this.controlPoints],
-      closed: this.isClosed
-    };
-  }
-
-  /**
-   * Find the closest point on the spline to a given point
-   */
-  findClosestPoint(point: Point, samples: number = 100): { point: Point, t: number, distance: number } | null {
-    if (this.points.length < 2) return null;
-    
-    let closestPoint: Point | null = null;
-    let closestT = 0;
-    let minDistance = Infinity;
-    
-    // Sample points along the curve
-    for (let i = 0; i <= samples; i++) {
-      const t = i / samples;
-      const curvePoint = this.evaluateAt(t);
+  
+  renderPreview(ctx: CanvasRenderingContext2D): void {
+    if (this.isDrawing && this.points.length > 0) {
+      // Prepara array dei punti di controllo includendo il punto temporaneo
+      const previewPoints = [...this.points];
       
-      if (curvePoint) {
-        const distance = calculateDistance(point, curvePoint);
-        
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestPoint = curvePoint;
-          closestT = t;
-        }
+      if (this.tempPoint) {
+        // Aggiungi il punto temporaneo solo per la preview
+        previewPoints.push(this.tempPoint);
       }
+      
+      // Disegna i punti di controllo
+      ctx.fillStyle = '#1890ff';
+      
+      previewPoints.forEach((point, index) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Etichetta per i punti
+        ctx.font = '10px Arial';
+        ctx.fillText(`${index + 1}`, point.x + 6, point.y - 6);
+      });
+      
+      // Disegna linee di connessione tra i punti
+      ctx.strokeStyle = '#666666';
+      ctx.lineWidth = 0.5;
+      ctx.setLineDash([3, 3]);
+      
+      ctx.beginPath();
+      ctx.moveTo(previewPoints[0].x, previewPoints[0].y);
+      
+      for (let i = 1; i < previewPoints.length; i++) {
+        ctx.lineTo(previewPoints[i].x, previewPoints[i].y);
+      }
+      
+      // Chiudi il percorso se richiesto
+      if (this.isClosed && previewPoints.length > 2) {
+        ctx.lineTo(previewPoints[0].x, previewPoints[0].y);
+      }
+      
+      ctx.stroke();
+      
+      // Disegna la curva spline
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([]);
+      
+      // Calcola e disegna la spline
+      if (previewPoints.length >= 2) {
+        this.drawSpline(ctx, previewPoints, this.isClosed);
+      }
+      
+      // Mostra istruzioni
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#1890ff';
+      ctx.textAlign = 'left';
+      ctx.fillText('Click: aggiungi punto', 10, 20);
+      ctx.fillText('Enter: termina', 10, 40);
+      ctx.fillText('Backspace: cancella ultimo punto', 10, 60);
+      ctx.fillText('C: chiudi/apri curva', 10, 80);
     }
-    
-    if (closestPoint) {
-      return {
-        point: closestPoint,
-        t: closestT,
-        distance: minDistance
-      };
-    }
-    
-    return null;
   }
-
+  
+  reset(): void {
+    this.points = [];
+    this.tempPoint = null;
+    this.isDrawing = false;
+    this.isClosed = false;
+  }
+  
+  private completeSpline(): void {
+    if (!this.isDrawing || this.points.length < 2) return;
+    
+    // Calcola i punti di controllo
+    // In un'implementazione reale, potresti voler calcolare i punti di controllo
+    // in modo più sofisticato per ottenere curve più fluide
+    const controlPoints = this.calculateControlPoints(this.points);
+    
+    // Crea la nuova entità spline
+    this.store.addEntity({
+      type: DrawingEntityType.SPLINE,
+      layer: this.store.activeLayer,
+      points: [...this.points],
+      controlPoints: controlPoints,
+      closed: this.isClosed,
+      style: {
+        strokeColor: '#000000',
+        strokeWidth: 1,
+        strokeStyle: 'solid',
+        fillColor: this.isClosed ? 'none' : undefined
+      }
+    });
+    
+    // Resetta lo stato per un nuovo disegno
+    this.reset();
+  }
+  
   /**
-   * Split the spline at parameter t (0-1)
-   * Returns two new SplineTool instances
+   * Calcola i punti di controllo per la curva spline
+   * Questo è un approccio semplificato, per una spline più sofisticata
+   * potresti voler utilizzare algoritmi come Catmull-Rom o B-Spline
    */
-  splitAt(t: number): [SplineTool, SplineTool] | null {
-    if (this.points.length < 3 || t <= 0 || t >= 1) return null;
+  private calculateControlPoints(points: Point[]): Point[] {
+    if (points.length < 2) return [];
     
-    // The point at parameter t
-    const splitPoint = this.evaluateAt(t);
-    if (!splitPoint) return null;
+    const controlPoints: Point[] = [];
     
-    // Generate enough points for a good approximation
-    const curvePoints = this.generatePoints(100);
+    // Per ogni segmento di linea tra due punti, calcoliamo due punti di controllo
+    for (let i = 0; i < points.length - 1; i++) {
+      const p0 = i > 0 ? points[i - 1] : points[i];
+      const p1 = points[i];
+      const p2 = points[i + 1];
+      const p3 = i < points.length - 2 ? points[i + 2] : p2;
+      
+      // Punto di controllo 1 per il segmento corrente
+      controlPoints.push({
+        x: p1.x + (p2.x - p0.x) / 6,
+        y: p1.y + (p2.y - p0.y) / 6
+      });
+      
+      // Punto di controllo 2 per il segmento corrente
+      controlPoints.push({
+        x: p2.x - (p3.x - p1.x) / 6,
+        y: p2.y - (p3.y - p1.y) / 6
+      });
+    }
     
-    // Find the index where to split
-    const splitIndex = Math.floor(t * curvePoints.length);
+    // Per spline chiusa, aggiungi punti di controllo per il segmento finale
+    if (this.isClosed && points.length > 2) {
+      const p0 = points[points.length - 2];
+      const p1 = points[points.length - 1];
+      const p2 = points[0];
+      const p3 = points[1];
+      
+      // Punto di controllo 1 per il segmento finale
+      controlPoints.push({
+        x: p1.x + (p2.x - p0.x) / 6,
+        y: p1.y + (p2.y - p0.y) / 6
+      });
+      
+      // Punto di controllo 2 per il segmento finale
+      controlPoints.push({
+        x: p2.x - (p3.x - p1.x) / 6,
+        y: p2.y - (p3.y - p1.y) / 6
+      });
+    }
     
-    // Create the first spline with points from start to split point
-    const firstSpline = new SplineTool();
-    firstSpline.setPoints([
-      ...this.points.slice(0, Math.ceil(t * this.points.length)),
-      splitPoint
-    ]);
-    firstSpline.setDegree(this.degree);
-    firstSpline.setTension(this.tension);
-    
-    // Create the second spline with points from split point to end
-    const secondSpline = new SplineTool();
-    secondSpline.setPoints([
-      splitPoint,
-      ...this.points.slice(Math.floor(t * this.points.length))
-    ]);
-    secondSpline.setDegree(this.degree);
-    secondSpline.setTension(this.tension);
-    
-    return [firstSpline, secondSpline];
+    return controlPoints;
   }
-} 
+  
+  /**
+   * Disegna una curva spline utilizzando curve di Bezier
+   */
+  private drawSpline(ctx: CanvasRenderingContext2D, points: Point[], closed: boolean): void {
+    if (points.length < 2) return;
+    
+    const controlPoints = this.calculateControlPoints(points);
+    
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    
+    // Disegna ciascun segmento con curve di Bezier cubiche
+    for (let i = 0; i < points.length - 1; i++) {
+      const cp1 = controlPoints[i * 2];
+      const cp2 = controlPoints[i * 2 + 1];
+      const p2 = points[i + 1];
+      
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p2.x, p2.y);
+    }
+    
+    // Chiudi la spline se richiesto
+    if (closed && points.length > 2) {
+      const cp1 = controlPoints[controlPoints.length - 2];
+      const cp2 = controlPoints[controlPoints.length - 1];
+      
+      ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, points[0].x, points[0].y);
+      ctx.closePath();
+    }
+    
+    ctx.stroke();
+  }
+}

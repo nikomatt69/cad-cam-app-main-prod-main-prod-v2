@@ -1,299 +1,167 @@
-import { DrawingEntity, DrawingStyle } from '../../../../types/TechnicalDrawingTypes';
+// src/components/cad/technical-drawing/rendering/layer-system.ts
+// Sistema di gestione dei livelli per il disegno tecnico
+// Layer management system for technical drawing
 
-export interface Layer {
-  id: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  color: string;
-  lineType: 'solid' | 'dashed' | 'dotted' | 'dash-dot' | 'center';
-  lineWeight: number;
-  order: number;
-  description?: string;
+import { DrawingLayer, AnyEntity } from '../../../../types/TechnicalDrawingTypes';
+
+/**
+ * Ordina i layer in base alla loro priorità di visualizzazione
+ * Sorts layers based on their display priority
+ */
+export function sortLayersByOrder(layers: DrawingLayer[]): DrawingLayer[] {
+  return [...layers].sort((a, b) => (a.order || 0) - (b.order || 0));
 }
 
 /**
- * Layer management system for technical drawings
- * Handles creation, modification and rendering of layers
+ * Raggruppa le entità per layer
+ * Groups entities by layer
+ * 
+ * @param entities - Lista di entità da raggruppare / List of entities to group
+ * @param layers - Map di layer disponibili / Map of available layers
+ * @returns Map di entità raggruppate per ID del layer / Map of entities grouped by layer ID
  */
-export class LayerSystem {
-  private layers: Map<string, Layer> = new Map();
-  private activeLayerId: string | null = null;
+export function groupEntitiesByLayer(
+  entities: AnyEntity[],
+  layers: Record<string, DrawingLayer>
+): Map<string, AnyEntity[]> {
+  const layerMap = new Map<string, AnyEntity[]>();
   
-  /**
-   * Create a new layer system with default layers
-   */
-  constructor() {
-    this.initializeDefaultLayers();
-  }
+  // Inizializza la mappa con array vuoti per ogni layer
+  // Initialize map with empty arrays for each layer
+  Object.keys(layers).forEach(layerId => {
+    layerMap.set(layerId, []);
+  });
   
-  /**
-   * Initialize default layers
-   */
-  private initializeDefaultLayers(): void {
-    // Create default layer
-    const defaultLayer: Layer = {
-      id: 'default',
-      name: 'Default',
-      visible: true,
-      locked: false,
-      color: '#000000',
-      lineType: 'solid',
-      lineWeight: 0.5,
-      order: 0
-    };
+  // Raggruppa le entità nei rispettivi layer
+  // Group entities into their respective layers
+  entities.forEach(entity => {
+    if (!entity.layer) return;
     
-    // Add some standard technical drawing layers
-    const constructionLayer: Layer = {
-      id: 'construction',
-      name: 'Construction',
-      visible: true,
-      locked: false,
-      color: '#0088FF',
-      lineType: 'dashed',
-      lineWeight: 0.25,
-      order: 1,
-      description: 'Layer for construction lines and temporary geometry'
-    };
+    const layerEntities = layerMap.get(entity.layer) || [];
+    layerEntities.push(entity);
+    layerMap.set(entity.layer, layerEntities);
+  });
+  
+  return layerMap;
+}
+
+/**
+ * Filtra le entità in base alla visibilità dei layer
+ * Filters entities based on layer visibility
+ * 
+ * @param entities - Lista di tutte le entità / List of all entities
+ * @param layers - Map di layer disponibili / Map of available layers
+ * @returns Lista filtrata di entità visibili / Filtered list of visible entities
+ */
+export function filterVisibleEntities(
+  entities: AnyEntity[],
+  layers: Record<string, DrawingLayer>
+): AnyEntity[] {
+  // Trova i layer visibili / Find visible layers
+  const visibleLayerIds = Object.values(layers)
+    .filter(layer => layer.visible)
+    .map(layer => layer.id);
+  
+  // Filtra le entità in base all'appartenenza ai layer visibili
+  // Filter entities based on membership to visible layers
+  return entities.filter(entity => 
+    entity.visible && 
+    entity.layer && 
+    visibleLayerIds.includes(entity.layer)
+  );
+}
+
+/**
+ * Trova un layer disponibile per il tipo di entità specificato
+ * Finds an available layer for the specified entity type
+ * 
+ * @param entityType - Tipo di entità / Entity type
+ * @param layers - Map di layer disponibili / Map of available layers
+ * @returns ID del layer predefinito per il tipo di entità / Default layer ID for the entity type
+ */
+export function findLayerForEntityType(
+  entityType: string,
+  layers: Record<string, DrawingLayer>
+): string {
+  // Mappa di tipi di entità e i loro layer preferiti (esempi)
+  // Map of entity types and their preferred layers (examples)
+  const preferredLayers: Record<string, string[]> = {
+    'line': ['geometry', 'visible', 'default'],
+    'circle': ['geometry', 'visible', 'default'],
+    'rectangle': ['geometry', 'visible', 'default'],
+    'polyline': ['geometry', 'visible', 'default'],
+    'text': ['annotation', 'text', 'notes', 'default'],
+    'dimension': ['dimensions', 'annotation', 'default']
+  };
+  
+  // Layer preferiti per questo tipo
+  const preferred = preferredLayers[entityType] || ['default'];
+  
+  // Cerca tra i layer preferiti e restituisci il primo disponibile
+  // Search among preferred layers and return the first available one
+  for (const layerName of preferred) {
+    const foundLayer = Object.values(layers).find(l => 
+      l.name.toLowerCase() === layerName.toLowerCase() && l.visible
+    );
     
-    const dimensionLayer: Layer = {
-      id: 'dimension',
-      name: 'Dimensions',
-      visible: true,
-      locked: false,
-      color: '#FF4400',
-      lineType: 'solid',
-      lineWeight: 0.35,
-      order: 2,
-      description: 'Layer for dimension lines and text'
-    };
-    
-    const centerlineLayer: Layer = {
-      id: 'centerline',
-      name: 'Centerlines',
-      visible: true,
-      locked: false,
-      color: '#FF00FF',
-      lineType: 'center',
-      lineWeight: 0.25,
-      order: 3,
-      description: 'Layer for centerlines'
-    };
-    
-    const annotationLayer: Layer = {
-      id: 'annotation',
-      name: 'Annotations',
-      visible: true,
-      locked: false,
-      color: '#009933',
-      lineType: 'solid',
-      lineWeight: 0.35,
-      order: 4,
-      description: 'Layer for text annotations'
-    };
-    
-    // Add layers to the map
-    this.layers.set(defaultLayer.id, defaultLayer);
-    this.layers.set(constructionLayer.id, constructionLayer);
-    this.layers.set(dimensionLayer.id, dimensionLayer);
-    this.layers.set(centerlineLayer.id, centerlineLayer);
-    this.layers.set(annotationLayer.id, annotationLayer);
-    
-    // Set active layer
-    this.activeLayerId = defaultLayer.id;
-  }
-  
-  /**
-   * Get all layers
-   */
-  getLayers(): Layer[] {
-    return Array.from(this.layers.values()).sort((a, b) => a.order - b.order);
-  }
-  
-  /**
-   * Get a layer by ID
-   */
-  getLayer(id: string): Layer | undefined {
-    return this.layers.get(id);
-  }
-  
-  /**
-   * Get the active layer
-   */
-  getActiveLayer(): Layer | null {
-    if (!this.activeLayerId) return null;
-    return this.layers.get(this.activeLayerId) || null;
-  }
-  
-  /**
-   * Set the active layer
-   */
-  setActiveLayer(id: string): boolean {
-    if (this.layers.has(id)) {
-      this.activeLayerId = id;
-      return true;
-    }
-    return false;
-  }
-  
-  /**
-   * Create a new layer
-   */
-  createLayer(layer: Omit<Layer, 'id'>): Layer {
-    const id = `layer-${Date.now()}`;
-    const newLayer: Layer = {
-      ...layer,
-      id
-    };
-    
-    this.layers.set(id, newLayer);
-    return newLayer;
-  }
-  
-  /**
-   * Update an existing layer
-   */
-  updateLayer(id: string, updates: Partial<Layer>): boolean {
-    const layer = this.layers.get(id);
-    if (!layer) return false;
-    
-    this.layers.set(id, { ...layer, ...updates });
-    return true;
-  }
-  
-  /**
-   * Remove a layer (if it's not the default layer)
-   */
-  removeLayer(id: string): boolean {
-    if (id === 'default') return false;
-    
-    // If removing active layer, set active to default
-    if (id === this.activeLayerId) {
-      this.activeLayerId = 'default';
-    }
-    
-    return this.layers.delete(id);
-  }
-  
-  /**
-   * Set layer visibility
-   */
-  setLayerVisibility(id: string, visible: boolean): boolean {
-    const layer = this.layers.get(id);
-    if (!layer) return false;
-    
-    layer.visible = visible;
-    this.layers.set(id, layer);
-    return true;
-  }
-  
-  /**
-   * Set layer locked state
-   */
-  setLayerLocked(id: string, locked: boolean): boolean {
-    const layer = this.layers.get(id);
-    if (!layer) return false;
-    
-    layer.locked = locked;
-    this.layers.set(id, layer);
-    return true;
-  }
-  
-  /**
-   * Get the style for a specific layer
-   */
-  getLayerStyle(id: string): DrawingStyle | null {
-    const layer = this.layers.get(id);
-    if (!layer) return null;
-    
-    return {
-      strokeColor: layer.color,
-      strokeWidth: layer.lineWeight,
-      strokeStyle: layer.lineType
-    };
-  }
-  
-  /**
-   * Apply layer style to an entity
-   */
-  applyLayerStyle(entity: DrawingEntity): DrawingEntity {
-    const layer = this.layers.get(entity.layer);
-    if (!layer) return entity;
-    
-    // Only apply layer style if entity doesn't have its own style
-    if (!entity.style) {
-      return {
-        ...entity,
-        style: this.getLayerStyle(entity.layer) as DrawingStyle 
-      };
-    }
-    
-    return entity;
-  }
-  
-  /**
-   * Check if an entity is on a visible layer
-   */
-  isEntityVisible(entity: DrawingEntity): boolean {
-    const layer = this.layers.get(entity.layer);
-    return layer ? layer.visible : true;
-  }
-  
-  /**
-   * Check if an entity is on a locked layer
-   */
-  isEntityLocked(entity: DrawingEntity): boolean {
-    const layer = this.layers.get(entity.layer);
-    return layer ? layer.locked : false;
-  }
-  
-  /**
-   * Filter entities based on visible layers
-   */
-  getVisibleEntities(entities: DrawingEntity[]): DrawingEntity[] {
-    return entities.filter(entity => this.isEntityVisible(entity));
-  }
-  
-  /**
-   * Move entities to a different layer
-   */
-  moveEntitiesToLayer(entities: DrawingEntity[], targetLayerId: string): DrawingEntity[] {
-    if (!this.layers.has(targetLayerId)) return entities;
-    
-    return entities.map(entity => ({
-      ...entity,
-      layer: targetLayerId
-    }));
-  }
-  
-  /**
-   * Get the drawing line type based on layer line type
-   */
-  getLineDash(lineType: Layer['lineType']): number[] {
-    switch (lineType) {
-      case 'dashed':
-        return [5, 5];
-      case 'dotted':
-        return [2, 2];
-      case 'dash-dot':
-        return [10, 5, 2, 5];
-      case 'center':
-        return [15, 5, 5, 5];
-      case 'solid':
-      default:
-        return [];
+    if (foundLayer) {
+      return foundLayer.id;
     }
   }
   
-  /**
-   * Configure canvas context based on layer style
-   */
-  applyLayerStyleToContext(ctx: CanvasRenderingContext2D, layerId: string): void {
-    const layer = this.layers.get(layerId);
-    if (!layer) return;
-    
-    ctx.strokeStyle = layer.color;
-    ctx.lineWidth = layer.lineWeight;
-    ctx.setLineDash(this.getLineDash(layer.lineType));
+  // Se non viene trovato alcun layer preferito, restituisci il primo layer visibile
+  // If no preferred layer is found, return the first visible layer
+  const visibleLayer = Object.values(layers).find(l => l.visible);
+  
+  // Restituisci il layer visibile o il primo layer come fallback
+  // Return the visible layer or the first layer as a fallback
+  return visibleLayer 
+    ? visibleLayer.id 
+    : (Object.values(layers)[0]?.id || 'default');
+}
+
+/**
+ * Aggiorna lo stile di un'entità in base al suo layer
+ * Updates an entity's style based on its layer
+ * 
+ * @param entity - Entità da aggiornare / Entity to update
+ * @param layers - Map di layer disponibili / Map of available layers
+ * @returns Entità con stile aggiornato / Entity with updated style
+ */
+export function applyLayerStyleToEntity<T extends AnyEntity>(
+  entity: T,
+  layers: Record<string, DrawingLayer>
+): T {
+  if (!entity.layer || !layers[entity.layer]) return entity;
+  
+  const layer = layers[entity.layer];
+  
+  // Crea una copia dell'entità per non modificare l'originale
+  // Create a copy of the entity to avoid modifying the original
+  const updatedEntity = { ...entity };
+  
+  // Aggiorna lo stile solo se lo stile "usa il colore del layer"
+  // Update style only if the style "uses layer color"
+  if (updatedEntity.style.strokeColor === 'bylayer') {
+    updatedEntity.style = {
+      ...updatedEntity.style,
+      strokeColor: layer.color
+    };
   }
-} 
+  
+  // Aggiorna anche il colore di riempimento se necessario
+  // Also update fill color if necessary
+  if (updatedEntity.style.fillColor === 'bylayer') {
+    updatedEntity.style = {
+      ...updatedEntity.style,
+      fillColor: layer.color,
+      // Applica un'opacità predefinita se non specificata
+      // Apply a default opacity if not specified
+      fillOpacity: updatedEntity.style.fillOpacity !== undefined 
+        ? updatedEntity.style.fillOpacity 
+        : 0.3
+    };
+  }
+  
+  return updatedEntity;
+}

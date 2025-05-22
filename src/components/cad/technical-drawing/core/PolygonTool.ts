@@ -1,220 +1,200 @@
-import { v4 as uuidv4 } from 'uuid';
-import { Point, PolygonEntity, DrawingStyle } from '../../../../types/TechnicalDrawingTypes';
-import { rotatePoint } from '../../../../utils/geometry/transformations';
+// src/components/cad/technical-drawing/core/PolygonTool.ts
+
+import { BaseDrawingTool, ToolsManager } from './ToolsManager';
+import { useTechnicalDrawingStore } from '../../technicalDrawingStore';
+import { DrawingEntityType, Point } from '../../TechnicalDrawingTypes';
 
 /**
- * Tool to create and manipulate regular polygons
- * Supports creating polygons with specified number of sides, radius and rotation
+ * Strumento per disegnare poligoni regolari
  */
-export class PolygonTool {
-  private center: Point = { x: 0, y: 0 };
-  private radius: number = 50;
-  private sides: number = 6;
-  private rotation: number = 0;
-
-  /**
-   * Create a polygon tool with default values
-   */
-  constructor(center: Point = { x: 0, y: 0 }, radius: number = 50, sides: number = 6, rotation: number = 0) {
-    this.center = center;
-    this.radius = radius;
+export class PolygonTool extends BaseDrawingTool {
+  private centerPoint: Point | null = null;
+  private radiusPoint: Point | null = null;
+  private isDrawing: boolean = false;
+  private sides: number = 6; // Numero di lati di default
+  
+  constructor(
+    store: ReturnType<typeof useTechnicalDrawingStore>, 
+    toolsManager: ToolsManager,
+    sides: number = 6
+  ) {
+    super('polygon', 'Poligono', store, toolsManager);
     this.sides = sides;
-    this.rotation = rotation;
   }
-
-  /**
-   * Set the center point of the polygon
-   */
-  setCenter(center: Point): void {
-    this.center = center;
+  
+  onActivate(): void {
+    this.reset();
   }
-
-  /**
-   * Set the radius of the polygon
-   */
-  setRadius(radius: number): void {
-    this.radius = Math.max(0.1, radius);
-  }
-
-  /**
-   * Set the number of sides for the polygon
-   */
-  setSides(sides: number): void {
-    this.sides = Math.max(3, Math.floor(sides));
-  }
-
-  /**
-   * Set the rotation angle of the polygon (in radians)
-   */
-  setRotation(rotation: number): void {
-    this.rotation = rotation;
-  }
-
-  /**
-   * Get the center point of the polygon
-   */
-  getCenter(): Point {
-    return { ...this.center };
-  }
-
-  /**
-   * Get the radius of the polygon
-   */
-  getRadius(): number {
-    return this.radius;
-  }
-
-  /**
-   * Get the number of sides of the polygon
-   */
-  getSides(): number {
-    return this.sides;
-  }
-
-  /**
-   * Get the rotation angle of the polygon
-   */
-  getRotation(): number {
-    return this.rotation;
-  }
-
-  /**
-   * Calculate the vertices of the polygon
-   */
-  calculateVertices(): Point[] {
-    const vertices: Point[] = [];
-    const angleStep = (2 * Math.PI) / this.sides;
-
-    for (let i = 0; i < this.sides; i++) {
-      const angle = i * angleStep + this.rotation;
-      vertices.push({
-        x: this.center.x + this.radius * Math.cos(angle),
-        y: this.center.y + this.radius * Math.sin(angle)
-      });
+  
+  onMouseDown(point: Point, event: MouseEvent): void {
+    if (!this.isDrawing) {
+      // Centro del poligono
+      this.centerPoint = point;
+      this.isDrawing = true;
+    } else {
+      // Punto sul raggio, completa il disegno
+      this.radiusPoint = point;
+      this.completePolygon();
     }
-
-    return vertices;
   }
-
-  /**
-   * Create a polygon entity from the current tool state
-   */
-  createPolygonEntity(layer: string, style: DrawingStyle): PolygonEntity {
-    return {
-      id: uuidv4(),
-      type: 'polygon',
-      layer,
-      visible: true,
-      locked: false,
-      style,
-      center: { ...this.center },
-      radius: this.radius,
-      sides: this.sides,
-      rotation: this.rotation
-    };
+  
+  onMouseMove(point: Point, event: MouseEvent): void {
+    if (this.isDrawing) {
+      // Aggiorna il punto del raggio per la preview
+      this.radiusPoint = point;
+    }
   }
-
-  /**
-   * Find the closest vertex to a given point
-   */
-  findClosestVertex(point: Point): { vertex: Point, index: number, distance: number } {
-    const vertices = this.calculateVertices();
-    let minDistance = Infinity;
-    let closestVertex: Point = { x: 0, y: 0 };
-    let closestIndex = -1;
-
-    vertices.forEach((vertex, index) => {
-      const dx = vertex.x - point.x;
-      const dy = vertex.y - point.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestVertex = vertex;
-        closestIndex = index;
+  
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      // Annulla l'operazione corrente
+      this.reset();
+    } else if (event.key === 'Enter' && this.isDrawing && this.centerPoint && this.radiusPoint) {
+      // Completa il poligono con Enter
+      this.completePolygon();
+    } else if (this.isDrawing && !isNaN(parseInt(event.key))) {
+      // Cambia il numero di lati con i tasti numerici (minimo 3)
+      const newSides = parseInt(event.key);
+      if (newSides >= 3) {
+        this.sides = newSides;
       }
-    });
-
-    return {
-      vertex: closestVertex,
-      index: closestIndex,
-      distance: minDistance
-    };
-  }
-
-  /**
-   * Calculate the area of the polygon
-   */
-  calculateArea(): number {
-    const vertices = this.calculateVertices();
-    // For a regular polygon: Area = (1/2) × n × r² × sin(2π/n)
-    return 0.5 * this.sides * this.radius * this.radius * Math.sin(2 * Math.PI / this.sides);
-  }
-
-  /**
-   * Calculate the perimeter of the polygon
-   */
-  calculatePerimeter(): number {
-    // For a regular polygon: Perimeter = n × 2 × r × sin(π/n)
-    return this.sides * 2 * this.radius * Math.sin(Math.PI / this.sides);
-  }
-
-  /**
-   * Check if a point is inside the polygon
-   */
-  isPointInside(point: Point): boolean {
-    const vertices = this.calculateVertices();
-    let inside = false;
-    
-    // Ray casting algorithm
-    for (let i = 0, j = vertices.length - 1; i < vertices.length; j = i++) {
-      const xi = vertices[i].x;
-      const yi = vertices[i].y;
-      const xj = vertices[j].x;
-      const yj = vertices[j].y;
-      
-      const intersect = ((yi > point.y) !== (yj > point.y)) &&
-        (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
-        
-      if (intersect) inside = !inside;
+    } else if (event.key === 'ArrowUp' && this.isDrawing) {
+      // Aumenta il numero di lati
+      this.sides = Math.min(this.sides + 1, 12);
+    } else if (event.key === 'ArrowDown' && this.isDrawing) {
+      // Diminuisci il numero di lati
+      this.sides = Math.max(this.sides - 1, 3);
     }
+  }
+  
+  renderPreview(ctx: CanvasRenderingContext2D): void {
+    if (this.isDrawing && this.centerPoint && this.radiusPoint) {
+      // Calcola il raggio
+      const dx = this.radiusPoint.x - this.centerPoint.x;
+      const dy = this.radiusPoint.y - this.centerPoint.y;
+      const radius = Math.sqrt(dx * dx + dy * dy);
+      
+      // Calcola l'angolo di rotazione
+      const angle = Math.atan2(dy, dx);
+      
+      // Calcola i punti del poligono
+      const points = this.calculatePolygonPoints(this.centerPoint, radius, this.sides, angle);
+      
+      // Disegna l'anteprima del poligono
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      
+      ctx.closePath();
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      
+      // Disegna i punti di controllo
+      ctx.fillStyle = '#1890ff';
+      ctx.beginPath();
+      ctx.arc(this.centerPoint.x, this.centerPoint.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(this.radiusPoint.x, this.radiusPoint.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Disegna il cerchio di riferimento
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      
+      ctx.beginPath();
+      ctx.arc(this.centerPoint.x, this.centerPoint.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Disegna la linea del raggio
+      ctx.beginPath();
+      ctx.moveTo(this.centerPoint.x, this.centerPoint.y);
+      ctx.lineTo(this.radiusPoint.x, this.radiusPoint.y);
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      
+      // Mostra il numero di lati
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#1890ff';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Lati: ${this.sides}`, this.centerPoint.x, this.centerPoint.y - radius - 10);
+      ctx.fillText(`Raggio: ${radius.toFixed(2)}`, this.centerPoint.x, this.centerPoint.y - radius - 25);
+      
+      // Istruzioni per l'utente
+      ctx.fillText('↑/↓ o tasti numerici per cambiare il numero di lati', this.centerPoint.x, this.centerPoint.y + radius + 20);
+    }
+  }
+  
+  reset(): void {
+    this.centerPoint = null;
+    this.radiusPoint = null;
+    this.isDrawing = false;
+    this.sides = 6; // Ripristina il valore di default
+  }
+  
+  setSides(sides: number): void {
+    if (sides >= 3) {
+      this.sides = sides;
+    }
+  }
+  
+  private completePolygon(): void {
+    if (!this.centerPoint || !this.radiusPoint) return;
     
-    return inside;
-  }
-
-  /**
-   * Create an inscribed polygon (polygon inside a circle)
-   */
-  static createInscribed(center: Point, radius: number, sides: number, rotation: number = 0): PolygonTool {
-    return new PolygonTool(center, radius, sides, rotation);
-  }
-
-  /**
-   * Create a circumscribed polygon (polygon outside a circle)
-   */
-  static createCircumscribed(center: Point, radius: number, sides: number, rotation: number = 0): PolygonTool {
-    // For a circumscribed polygon, we need to adjust the radius
-    // The relation is: r_circumscribed = r_inscribed / cos(π/n)
-    const adjustedRadius = radius / Math.cos(Math.PI / sides);
-    return new PolygonTool(center, adjustedRadius, sides, rotation);
-  }
-
-  /**
-   * Create a polygon that passes through a specific point at a specific index
-   */
-  static createThroughPoint(center: Point, throughPoint: Point, sides: number, vertexIndex: number = 0, rotation: number = 0): PolygonTool {
-    // Calculate the radius from the center to the through point
-    const dx = throughPoint.x - center.x;
-    const dy = throughPoint.y - center.y;
+    // Calcola il raggio
+    const dx = this.radiusPoint.x - this.centerPoint.x;
+    const dy = this.radiusPoint.y - this.centerPoint.y;
     const radius = Math.sqrt(dx * dx + dy * dy);
     
-    // Calculate the angle of the through point from the center
-    const angleToPoint = Math.atan2(dy, dx);
+    // Calcola l'angolo di rotazione
+    const angle = Math.atan2(dy, dx);
     
-    // Calculate the required rotation so that a vertex is at the through point
-    const vertexAngle = (2 * Math.PI / sides) * vertexIndex;
-    const requiredRotation = angleToPoint - vertexAngle;
+    // Crea la nuova entità poligono
+    this.store.addEntity({
+      type: DrawingEntityType.POLYGON,
+      layer: this.store.activeLayer,
+      center: this.centerPoint,
+      radius,
+      sides: this.sides,
+      rotation: angle * 180 / Math.PI, // Converti radianti in gradi
+      style: {
+        strokeColor: '#000000',
+        strokeWidth: 1,
+        strokeStyle: 'solid',
+        fillColor: 'none'
+      }
+    });
     
-    return new PolygonTool(center, radius, sides, requiredRotation);
+    // Resetta lo stato per un nuovo disegno
+    this.reset();
   }
-} 
+  
+  /**
+   * Calcola i punti di un poligono regolare
+   */
+  private calculatePolygonPoints(center: Point, radius: number, sides: number, startAngle: number = 0): Point[] {
+    const points: Point[] = [];
+    const angleStep = (Math.PI * 2) / sides;
+    
+    for (let i = 0; i < sides; i++) {
+      const angle = startAngle + i * angleStep;
+      points.push({
+        x: center.x + radius * Math.cos(angle),
+        y: center.y + radius * Math.sin(angle)
+      });
+    }
+    
+    return points;
+  }
+}

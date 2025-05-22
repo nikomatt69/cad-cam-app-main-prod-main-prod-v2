@@ -1,1055 +1,957 @@
-import { v4 as uuidv4 } from 'uuid';
-import { 
-  DrawingEntity, 
-  Point, 
-  // DrawingTool, // DrawingTool is not exported, assuming string literal type based on usage
-  LineEntity,
-  CircleEntity,
-  ArcEntity,
-  RectangleEntity,
-  PolylineEntity,
-  TextAnnotation,
-  Annotation // Import Annotation type
-} from '../../../../types/TechnicalDrawingTypes';
-import { useTechnicalDrawingStore } from '../../../../store/technicalDrawingStore';
+// src/components/cad/technical-drawing/core/ToolsManager.ts
 
-// Define DrawingTool here if it's a specific set of string literals
-export type DrawingTool = 'select' | 'line' | 'circle' | 'rectangle' | 'arc' | 'polyline' | 'move' | 'pan' | 'zoom';
+import { createSnapManager, SnapManager } from './SnapManager';
+import { useTechnicalDrawingStore } from '../../technicalDrawingStore';
+import { Point, DrawingEntityType, DimensionType, AnnotationType } from '../../TechnicalDrawingTypes';
 
 /**
- * Class representing a drawing tool manager
+ * Interfaccia base per tutti gli strumenti di disegno
+ */
+export interface DrawingTool {
+  id: string;
+  name: string;
+  shortcut?: string;
+  icon?: string;
+  cursor?: string;
+  
+  // Metodi di gestione eventi
+  onActivate: () => void;
+  onDeactivate: () => void;
+  onMouseDown: (point: Point, event: MouseEvent) => void;
+  onMouseMove: (point: Point, event: MouseEvent) => void;
+  onMouseUp: (point: Point, event: MouseEvent) => void;
+  onKeyDown: (event: KeyboardEvent) => void;
+  onKeyUp: (event: KeyboardEvent) => void;
+  
+  // Metodo di rendering per preview
+  renderPreview?: (ctx: CanvasRenderingContext2D) => void;
+  
+  // Ripulisce lo stato dello strumento
+  reset: () => void;
+}
+
+/**
+ * Gestore degli strumenti di disegno
  */
 export class ToolsManager {
-  private currentTool: DrawingTool = 'select';
-  private toolState: any = {};
-  private lastPoint: Point | null = null;
-  private isDrawing: boolean = false;
-  private startPoint: Point | null = null;
-  private tempEntity: DrawingEntity | null = null;
-  private snapEnabled: boolean = true;
-  private orthoMode: boolean = false;
+  private tools: Map<string, DrawingTool> = new Map();
+  private activeTool: DrawingTool | null = null;
+  private store: ReturnType<typeof useTechnicalDrawingStore>;
+  private snapManager: SnapManager;
   
-  /**
-   * Constructor
-   */
-  constructor() {
-    this.resetToolState();
-  }
+  // Stato di input
+  private isMouseDown: boolean = false;
+  private lastMousePosition: Point = { x: 0, y: 0 };
+  private pressedKeys: Set<string> = new Set();
   
-  /**
-   * Set the current drawing tool
-   */
-  setTool(tool: DrawingTool): void {
-    this.currentTool = tool;
-    this.resetToolState();
-  }
-  
-  /**
-   * Get the current drawing tool
-   */
-  getCurrentTool(): DrawingTool {
-    return this.currentTool;
-  }
-  
-  /**
-   * Reset the tool state
-   */
-  resetToolState(): void {
-    this.toolState = {};
-    this.lastPoint = null;
-    this.isDrawing = false;
-    this.startPoint = null;
-    this.tempEntity = null;
-  }
-  
-  /**
-   * Enable or disable snap
-   */
-  setSnapEnabled(enabled: boolean): void {
-    this.snapEnabled = enabled;
-  }
-  
-  /**
-   * Enable or disable ortho mode
-   */
-  setOrthoMode(enabled: boolean): void {
-    this.orthoMode = enabled;
-  }
-  
-  /**
-   * Handle mouse down event
-   */
-  handleMouseDown(
-    e: React.MouseEvent<HTMLCanvasElement>,
-    worldPoint: Point,
-    ctxInfo: { ctx: CanvasRenderingContext2D, pan: Point, zoom: number }
-  ): void {
-    // Get the technical drawing store actions
-    const { addEntity, updateEntity, selectEntity, clearSelection, moveEntities } = useTechnicalDrawingStore.getState();
+  constructor(store: ReturnType<typeof useTechnicalDrawingStore>) {
+    this.store = store;
     
-    // Get snapped point if snap is enabled
-    const point = this.snapEnabled ? this.getSnapPoint(worldPoint) : worldPoint;
-    
-    // Handle mouse down based on current tool
-    switch (this.currentTool) {
-      case 'select':
-        // Check if clicked on an entity and select it
-        const entityId = this.getEntityAtPoint(point);
-        if (entityId) {
-          if (e.ctrlKey || e.metaKey) {
-            // Add to selection if Ctrl/Cmd is pressed
-            selectEntity(entityId, true);
-          } else {
-            // Select only this entity
-            clearSelection();
-            selectEntity(entityId);
-          }
-          
-          // Store the entity for potential movement
-          this.toolState.selectedEntityId = entityId;
-          this.toolState.moveStartPoint = { ...point };
-        } else {
-          // Clicked empty space, start selection rectangle
-          clearSelection();
-          this.toolState.selectionStart = { ...point };
-          this.toolState.selecting = true;
-        }
-        break;
-        
-      case 'line':
-        if (!this.isDrawing) {
-          // Start drawing a line
-          this.isDrawing = true;
-          this.startPoint = { ...point };
-          
-          // Create a temporary line entity
-          const tempLine: DrawingEntity = {
-            id: 'temp',
-            type: 'line',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            startPoint: { ...point },
-            endPoint: { ...point }
-          };
-          
-          this.tempEntity = tempLine;
-        } else {
-          // Finish the line
-          this.isDrawing = false;
-          
-          if (this.startPoint) {
-            // Create a permanent line entity
-            const line: DrawingEntity = {
-              id: uuidv4(),
-              type: 'line',
-              layer: 'default',
-              visible: true,
-              locked: false,
-              style: {
-                strokeColor: '#000000',
-                strokeWidth: 0.5,
-                strokeStyle: 'solid'
-              },
-              startPoint: { ...this.startPoint },
-              endPoint: { ...point }
-            };
-            
-            addEntity(line);
-            this.tempEntity = null;
-            
-            // Start a new line from this point
-            this.isDrawing = true;
-            this.startPoint = { ...point };
-            
-            const newTempLine: DrawingEntity = {
-              id: 'temp',
-              type: 'line',
-              layer: 'default',
-              visible: true,
-              locked: false,
-              style: {
-                strokeColor: '#000000',
-                strokeWidth: 0.5,
-                strokeStyle: 'solid'
-              },
-              startPoint: { ...point },
-              endPoint: { ...point }
-            };
-            
-            this.tempEntity = newTempLine;
-          }
-        }
-        break;
-        
-      case 'circle':
-        if (!this.isDrawing) {
-          // Start drawing a circle
-          this.isDrawing = true;
-          this.startPoint = { ...point };
-          
-          // Create a temporary circle entity
-          const tempCircle: DrawingEntity = {
-            id: 'temp',
-            type: 'circle',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            center: { ...point },
-            radius: 0
-          };
-          
-          this.tempEntity = tempCircle;
-        } else {
-          // Finish the circle
-          this.isDrawing = false;
-          
-          if (this.startPoint) {
-            // Calculate radius
-            const dx = point.x - this.startPoint.x;
-            const dy = point.y - this.startPoint.y;
-            const radius = Math.sqrt(dx * dx + dy * dy);
-            
-            // Create a permanent circle entity
-            const circle: DrawingEntity = {
-              id: uuidv4(),
-              type: 'circle',
-              layer: 'default',
-              visible: true,
-              locked: false,
-              style: {
-                strokeColor: '#000000',
-                strokeWidth: 0.5,
-                strokeStyle: 'solid'
-              },
-              center: { ...this.startPoint },
-              radius
-            };
-            
-            addEntity(circle);
-            this.tempEntity = null;
-          }
-        }
-        break;
-        
-      case 'rectangle':
-        if (!this.isDrawing) {
-          // Start drawing a rectangle
-          this.isDrawing = true;
-          this.startPoint = { ...point };
-          
-          // Create a temporary rectangle entity
-          const tempRect: DrawingEntity = {
-            id: 'temp',
-            type: 'rectangle',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            position: { x: point.x, y: point.y }, // Use position for RectangleEntity
-            width: 0,
-            height: 0
-          };
-          
-          this.tempEntity = tempRect;
-        } else {
-          // Finish the rectangle
-          this.isDrawing = false;
-          
-          if (this.startPoint) {
-            // Calculate width and height
-            const width = point.x - this.startPoint.x;
-            const height = point.y - this.startPoint.y;
-            
-            // Determine top-left corner
-            const x = width >= 0 ? this.startPoint.x : point.x;
-            const y = height >= 0 ? this.startPoint.y : point.y;
-            
-            // Create a permanent rectangle entity
-            const rect: DrawingEntity = {
-              id: uuidv4(),
-              type: 'rectangle',
-              layer: 'default',
-              visible: true,
-              locked: false,
-              style: {
-                strokeColor: '#000000',
-                strokeWidth: 0.5,
-                strokeStyle: 'solid'
-              },
-              position: { x, y }, // Use position for RectangleEntity
-              width: Math.abs(width),
-              height: Math.abs(height)
-            };
-            
-            addEntity(rect);
-            this.tempEntity = null;
-          }
-        }
-        break;
-      
-      case 'arc':
-        if (!this.toolState.arcStep) {
-          // First point - center
-          this.toolState.arcStep = 1;
-          this.toolState.arcCenter = { ...point };
-          
-          // Create temporary arc entity
-          const tempArc: DrawingEntity = {
-            id: 'temp',
-            type: 'arc',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            center: { ...point },
-            radius: 0,
-            startAngle: 0,
-            endAngle: Math.PI * 2
-          };
-          
-          this.tempEntity = tempArc;
-        } else if (this.toolState.arcStep === 1) {
-          // Second point - radius and start angle
-          this.toolState.arcStep = 2;
-          
-          // Calculate radius and start angle
-          const dx = point.x - this.toolState.arcCenter.x;
-          const dy = point.y - this.toolState.arcCenter.y;
-          const radius = Math.sqrt(dx * dx + dy * dy);
-          const startAngle = Math.atan2(dy, dx);
-          
-          this.toolState.arcRadius = radius;
-          this.toolState.arcStartAngle = startAngle;
-          
-          // Update temporary arc
-          if (this.tempEntity && this.tempEntity.type === 'arc') {
-            this.tempEntity.radius = radius;
-            this.tempEntity.startAngle = startAngle;
-            this.tempEntity.endAngle = startAngle;
-          }
-        } else {
-          // Third point - end angle and finish
-          // Calculate end angle
-          const dx = point.x - this.toolState.arcCenter.x;
-          const dy = point.y - this.toolState.arcCenter.y;
-          let endAngle = Math.atan2(dy, dx);
-          
-          // Create permanent arc entity
-          const arc: DrawingEntity = {
-            id: uuidv4(),
-            type: 'arc',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            center: { ...this.toolState.arcCenter },
-            radius: this.toolState.arcRadius,
-            startAngle: this.toolState.arcStartAngle,
-            endAngle: endAngle
-          };
-          
-          addEntity(arc);
-          this.tempEntity = null;
-          
-          // Reset arc drawing state
-          this.toolState.arcStep = 0;
-          this.toolState.arcCenter = null;
-          this.toolState.arcRadius = 0;
-          this.toolState.arcStartAngle = 0;
-        }
-        break;
-        
-      case 'polyline':
-        if (!this.toolState.polylinePoints) {
-          // Start a new polyline
-          this.toolState.polylinePoints = [{ ...point }];
-          
-          // Create a temporary polyline entity
-          const tempPolyline: DrawingEntity = {
-            id: 'temp',
-            type: 'polyline',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            points: [...this.toolState.polylinePoints],
-            closed: false
-          };
-          
-          this.tempEntity = tempPolyline;
-        } else {
-          // Check if this point is close to the first point to close the polyline
-          const firstPoint = this.toolState.polylinePoints[0];
-          const dx = point.x - firstPoint.x;
-          const dy = point.y - firstPoint.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          
-          if (this.toolState.polylinePoints.length > 2 && dist < 10 / ctxInfo.zoom) {
-            // Close the polyline
-            this.toolState.polylinePoints.push({ ...firstPoint });
-            
-            // Create a permanent polyline entity
-            const polyline: DrawingEntity = {
-              id: uuidv4(),
-              type: 'polyline',
-              layer: 'default',
-              visible: true,
-              locked: false,
-              style: {
-                strokeColor: '#000000',
-                strokeWidth: 0.5,
-                strokeStyle: 'solid'
-              },
-              points: [...this.toolState.polylinePoints],
-              closed: true
-            };
-            
-            addEntity(polyline);
-            this.tempEntity = null;
-            
-            // Reset polyline drawing state
-            this.toolState.polylinePoints = null;
-          } else {
-            // Add point to polyline
-            this.toolState.polylinePoints.push({ ...point });
-            
-            // Update temporary polyline
-            if (this.tempEntity && this.tempEntity.type === 'polyline') {
-              this.tempEntity.points = [...this.toolState.polylinePoints];
-            }
-          }
-        }
-        break;
-        
-      case 'move':
-        // Start moving selected entities
-        const selectedIds = useTechnicalDrawingStore.getState().selectedEntityIds;
-        if (selectedIds.length > 0) {
-          this.toolState.moveStartPoint = { ...point };
-          this.toolState.moving = true;
-          this.toolState.selectedEntities = selectedIds.map(id => ({
-            id,
-            entity: { ...useTechnicalDrawingStore.getState().entities[id] }
-          }));
-        }
-        break;
-        
-      // Add more tools as needed
-      
-      default:
-        console.warn(`Unhandled tool in mouse down: ${this.currentTool}`);
-    }
-    
-    this.lastPoint = { ...point };
-  }
-  
-  /**
-   * Handle mouse move event
-   */
-  handleMouseMove(
-    e: React.MouseEvent<HTMLCanvasElement>,
-    worldPoint: Point,
-    ctxInfo: { ctx: CanvasRenderingContext2D, pan: Point, zoom: number }
-  ): void {
-    // Get the technical drawing store actions
-    const { moveEntities } = useTechnicalDrawingStore.getState();
-    
-    // Get snapped point if snap is enabled
-    const point = this.snapEnabled ? this.getSnapPoint(worldPoint) : worldPoint;
-    
-    // Handle mouse move based on current tool
-    switch (this.currentTool) {
-      case 'select':
-        if (this.toolState.selecting) {
-          // Update selection rectangle
-          const selectionRect = {
-            x: Math.min(this.toolState.selectionStart.x, point.x),
-            y: Math.min(this.toolState.selectionStart.y, point.y),
-            width: Math.abs(point.x - this.toolState.selectionStart.x),
-            height: Math.abs(point.y - this.toolState.selectionStart.y)
-          };
-          
-          this.tempEntity = { 
-            id: 'temp', 
-            type: 'selection-rect',
-            layer: 'ui', 
-            visible: true, 
-            locked: false, 
-            style: { strokeColor: '#0088FF', strokeWidth: 1, strokeStyle: 'dashed', fillColor: 'rgba(0, 136, 255, 0.1)'},
-            position: {x: selectionRect.x, y: selectionRect.y},
-            width: selectionRect.width,
-            height: selectionRect.height
-          } as any;
-        } else if (this.toolState.selectedEntityId && this.toolState.moveStartPoint) {
-          // Move the selected entity
-          const dx = point.x - this.toolState.moveStartPoint.x;
-          const dy = point.y - this.toolState.moveStartPoint.y;
-          
-          if (dx !== 0 || dy !== 0) {
-            const selectedIds = useTechnicalDrawingStore.getState().selectedEntityIds;
-            if (selectedIds.length > 0) {
-                moveEntities(selectedIds, {x: dx, y: dy});
-            }
-            this.toolState.moveStartPoint = { ...point };
-          }
-        }
-        break;
-        
-      case 'line':
-        if (this.isDrawing && this.startPoint) {
-          // Update the temporary line
-          let endPoint = { ...point };
-          
-          // Apply ortho mode if enabled
-          if (this.orthoMode) {
-            endPoint = this.getOrthoPoint(this.startPoint, point);
-          }
-          
-          if (this.tempEntity && this.tempEntity.type === 'line') {
-            this.tempEntity.endPoint = endPoint;
-          }
-        }
-        break;
-        
-      case 'circle':
-        if (this.isDrawing && this.startPoint) {
-          // Calculate radius
-          const dx = point.x - this.startPoint.x;
-          const dy = point.y - this.startPoint.y;
-          const radius = Math.sqrt(dx * dx + dy * dy);
-          
-          if (this.tempEntity && this.tempEntity.type === 'circle') {
-            this.tempEntity.radius = radius;
-          }
-        }
-        break;
-        
-      case 'rectangle':
-        if (this.isDrawing && this.startPoint) {
-          // Calculate width and height
-          let width = point.x - this.startPoint.x;
-          let height = point.y - this.startPoint.y;
-          
-          // Apply ortho mode if enabled
-          if (this.orthoMode) {
-            // Make the rectangle a square
-            const size = Math.max(Math.abs(width), Math.abs(height));
-            width = width >= 0 ? size : -size;
-            height = height >= 0 ? size : -size;
-          }
-          
-          if (this.tempEntity && this.tempEntity.type === 'rectangle') {
-            this.tempEntity.width = width;
-            this.tempEntity.height = height;
-          }
-        }
-        break;
-        
-      case 'arc':
-        if (this.toolState.arcStep === 1) {
-          // Update arc radius and start angle
-          const dx = point.x - this.toolState.arcCenter.x;
-          const dy = point.y - this.toolState.arcCenter.y;
-          const radius = Math.sqrt(dx * dx + dy * dy);
-          const startAngle = Math.atan2(dy, dx);
-          
-          if (this.tempEntity && this.tempEntity.type === 'arc') {
-            this.tempEntity.radius = radius;
-            this.tempEntity.startAngle = startAngle;
-            this.tempEntity.endAngle = startAngle;
-          }
-        } else if (this.toolState.arcStep === 2) {
-          // Update arc end angle
-          const dx = point.x - this.toolState.arcCenter.x;
-          const dy = point.y - this.toolState.arcCenter.y;
-          const endAngle = Math.atan2(dy, dx);
-          
-          if (this.tempEntity && this.tempEntity.type === 'arc') {
-            this.tempEntity.endAngle = endAngle;
-          }
-        }
-        break;
-        
-      case 'polyline':
-        if (this.toolState.polylinePoints && this.toolState.polylinePoints.length > 0) {
-          // Get the last fixed point
-          const lastPoint = this.toolState.polylinePoints[this.toolState.polylinePoints.length - 1];
-          
-          // Apply ortho mode if enabled
-          let currentPoint = { ...point };
-          if (this.orthoMode) {
-            currentPoint = this.getOrthoPoint(lastPoint, point);
-          }
-          
-          // Create a new array of points with the last one updated
-          const points = [...this.toolState.polylinePoints, currentPoint];
-          
-          // Update the temporary polyline
-          if (this.tempEntity && this.tempEntity.type === 'polyline') {
-            this.tempEntity.points = points;
-          }
-        }
-        break;
-        
-      case 'move':
-        if (this.toolState.moving && this.toolState.moveStartPoint) {
-          // Move the selected entities
-          const dx = point.x - this.toolState.moveStartPoint.x;
-          const dy = point.y - this.toolState.moveStartPoint.y;
-          
-          if (dx !== 0 || dy !== 0) {
-            const selectedIds = useTechnicalDrawingStore.getState().selectedEntityIds;
-            if (selectedIds.length > 0) {
-                moveEntities(selectedIds, {x: dx, y: dy});
-            }
-            this.toolState.moveStartPoint = { ...point };
-          }
-        }
-        break;
-        
-      // Add more tools as needed
-      
-      default:
-        // No action for other tools
-    }
-    
-    this.lastPoint = { ...point };
-  }
-  
-  /**
-   * Handle mouse up event
-   */
-  handleMouseUp(
-    e: React.MouseEvent<HTMLCanvasElement>,
-    worldPoint: Point,
-    ctxInfo: { ctx: CanvasRenderingContext2D, pan: Point, zoom: number }
-  ): void {
-    // Get the technical drawing store actions
-    const { addEntity, selectEntity, entities: allEntitiesFromStore } = useTechnicalDrawingStore.getState();
-    
-    // Get snapped point if snap is enabled
-    const point = this.snapEnabled ? this.getSnapPoint(worldPoint) : worldPoint;
-    
-    // Handle mouse up based on current tool
-    switch (this.currentTool) {
-      case 'select':
-        if (this.toolState.selecting) {
-          // Finish selection rectangle
-          const selectionRect = {
-            x: Math.min(this.toolState.selectionStart.x, point.x),
-            y: Math.min(this.toolState.selectionStart.y, point.y),
-            width: Math.abs(point.x - this.toolState.selectionStart.x),
-            height: Math.abs(point.y - this.toolState.selectionStart.y)
-          };
-          
-          // Select entities within the rectangle
-          const allEntities = allEntitiesFromStore;
-          const idsInRect: string[] = [];
-          for (const id in allEntities) {
-            const currentEntity = allEntities[id] as DrawingEntity;
-            if (currentEntity.type === 'rectangle') { 
-                const rectEntity = currentEntity as RectangleEntity;
-                if (rectEntity.position.x < selectionRect.x + selectionRect.width &&
-                    rectEntity.position.x + rectEntity.width > selectionRect.x &&
-                    rectEntity.position.y < selectionRect.y + selectionRect.height &&
-                    rectEntity.position.y + rectEntity.height > selectionRect.y) {
-                    idsInRect.push(id);
-                }
-            } else if (currentEntity.type === 'line') {
-                const lineEntity = currentEntity as LineEntity;
-                const p1In = lineEntity.startPoint.x >= selectionRect.x && lineEntity.startPoint.x <= selectionRect.x + selectionRect.width &&
-                             lineEntity.startPoint.y >= selectionRect.y && lineEntity.startPoint.y <= selectionRect.y + selectionRect.height;
-                const p2In = lineEntity.endPoint.x >= selectionRect.x && lineEntity.endPoint.x <= selectionRect.x + selectionRect.width &&
-                             lineEntity.endPoint.y >= selectionRect.y && lineEntity.endPoint.y <= selectionRect.y + selectionRect.height;
-                if (p1In || p2In) {
-                    idsInRect.push(id);
-                }
-            } else if (currentEntity.type === 'circle') {
-                const circleEntity = currentEntity as CircleEntity;
-                if (circleEntity.center.x >= selectionRect.x && circleEntity.center.x <= selectionRect.x + selectionRect.width &&
-                    circleEntity.center.y >= selectionRect.y && circleEntity.center.y <= selectionRect.y + selectionRect.height) {
-                    idsInRect.push(id);
-                }
-            }
-          }
-          if(idsInRect.length > 0) {
-            useTechnicalDrawingStore.getState().clearSelection();
-            idsInRect.forEach(id => selectEntity(id, true));
-          }
-
-          this.tempEntity = null;
-          this.toolState.selecting = false;
-        } else if (this.toolState.moving) {
-          // Finish moving selected entities
-          this.toolState.moving = false;
-          this.toolState.selectedEntities = null;
-          this.toolState.moveStartPoint = null;
-        }
-        break;
-        
-      case 'move':
-        if (this.toolState.moving) {
-          // Finish moving selected entities
-          this.toolState.moving = false;
-          this.toolState.selectedEntities = null;
-          this.toolState.moveStartPoint = null;
-        }
-        break;
-        
-      // Most other tools are handled in mouseDown
-      // Add more tools as needed
-      
-      default:
-        // No action for other tools
-    }
-  }
-  
-  /**
-   * Handle key down event
-   */
-  handleKeyDown(e: React.KeyboardEvent<HTMLCanvasElement>): void {
-    // Get the technical drawing store actions
-    const { deleteEntity } = useTechnicalDrawingStore.getState();
-    
-    // Handle keyboard shortcuts
-    switch (e.key) {
-      case 'Escape':
-        // Cancel current operation
-        if (this.isDrawing || this.toolState.polylinePoints || this.toolState.arcStep) {
-          this.isDrawing = false;
-          this.startPoint = null;
-          this.toolState = {};
-          this.tempEntity = null;
-        }
-        break;
-        
-      case 'Delete':
-      case 'Backspace':
-        // Delete selected entities
-        const selectedIdsToDelete = useTechnicalDrawingStore.getState().selectedEntityIds;
-        selectedIdsToDelete.forEach(id => deleteEntity(id));
-        break;
-        
-      case 'Enter':
-        // Complete current operation
-        if (this.currentTool === 'polyline' && this.toolState.polylinePoints && this.toolState.polylinePoints.length > 2) {
-          // Complete the polyline
-          const polyline: DrawingEntity = {
-            id: uuidv4(),
-            type: 'polyline',
-            layer: 'default',
-            visible: true,
-            locked: false,
-            style: {
-              strokeColor: '#000000',
-              strokeWidth: 0.5,
-              strokeStyle: 'solid'
-            },
-            points: [...this.toolState.polylinePoints],
-            closed: false
-          };
-          
-          useTechnicalDrawingStore.getState().addEntity(polyline);
-          this.tempEntity = null;
-          
-          // Reset polyline drawing state
-          this.toolState.polylinePoints = null;
-        }
-        break;
-        
-      default:
-        // Handle other keys
-    }
-  }
-  
-  /**
-   * Get the ID of an entity at the given point
-   */
-  private getEntityAtPoint(point: Point): string | null {
-    const entities = useTechnicalDrawingStore.getState().entities;
-    const annotations = useTechnicalDrawingStore.getState().annotations; // Get annotations from store
-    const allSelectableItems: Record<string, DrawingEntity | Annotation> = {...entities, ...annotations};
-
-    const selectedItemIds = Object.keys(allSelectableItems).filter(id => {
-      const item = allSelectableItems[id];
-      return this.isPointOnEntity(point, item); // item can be DrawingEntity or Annotation
-    });
-    
-    return selectedItemIds.length > 0 ? selectedItemIds[0] : null;
-  }
-  
-  /**
-   * Check if a point is on an entity or annotation
-   */
-  private isPointOnEntity(point: Point, entity: DrawingEntity | Annotation): boolean { // Updated to accept Annotation
-    const tolerance = 5; // Tolerance in world units
-    
-    switch (entity.type) {
-      case 'line':
-        return this.isPointOnLine(point, entity.startPoint, entity.endPoint, tolerance);
-        
-      case 'circle':
-        const dx = point.x - entity.center.x;
-        const dy = point.y - entity.center.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        return Math.abs(distance - entity.radius) < tolerance;
-        
-      case 'rectangle':
-        // Check if point is on the border
-        const rectEntity = entity as RectangleEntity; // Cast to RectangleEntity
-        const isOnTop = Math.abs(point.y - rectEntity.position.y) < tolerance && 
-                       point.x >= rectEntity.position.x && point.x <= rectEntity.position.x + rectEntity.width;
-        const isOnBottom = Math.abs(point.y - (rectEntity.position.y + rectEntity.height)) < tolerance && 
-                          point.x >= rectEntity.position.x && point.x <= rectEntity.position.x + rectEntity.width;
-        const isOnLeft = Math.abs(point.x - rectEntity.position.x) < tolerance && 
-                        point.y >= rectEntity.position.y && point.y <= rectEntity.position.y + rectEntity.height;
-        const isOnRight = Math.abs(point.x - (rectEntity.position.x + rectEntity.width)) < tolerance && 
-                         point.y >= rectEntity.position.y && point.y <= rectEntity.position.y + rectEntity.height;
-        
-        return isOnTop || isOnBottom || isOnLeft || isOnRight;
-        
-      case 'arc':
-        // Check if point is on the arc
-        const dx2 = point.x - entity.center.x;
-        const dy2 = point.y - entity.center.y;
-        const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-        const angle = Math.atan2(dy2, dx2);
-        
-        // Normalize angles for comparison
-        let startAngle = entity.startAngle;
-        let endAngle = entity.endAngle;
-        while (endAngle < startAngle) endAngle += Math.PI * 2;
-        let pointAngle = angle;
-        while (pointAngle < startAngle) pointAngle += Math.PI * 2;
-        
-        return Math.abs(distance2 - entity.radius) < tolerance && 
-               pointAngle >= startAngle && pointAngle <= endAngle;
-        
-      case 'polyline':
-        if (!entity.points || entity.points.length < 2) return false;
-        
-        // Check if point is on any segment of the polyline
-        for (let i = 0; i < entity.points.length - 1; i++) {
-          if (this.isPointOnLine(point, entity.points[i], entity.points[i + 1], tolerance)) {
-            return true;
-          }
-        }
-        
-        // Check closing segment if polyline is closed
-        if (entity.closed && entity.points.length > 2) {
-          return this.isPointOnLine(
-            point, 
-            entity.points[entity.points.length - 1], 
-            entity.points[0], 
-            tolerance
-          );
-        }
-        
-        return false;
-        
-      case 'text-annotation': // Corrected from 'text'
-        // Simple bounding box check
-        const textEntity = entity as TextAnnotation; // Cast to TextAnnotation
-        const padding = 5;
-        return point.x >= textEntity.position.x - padding && 
-               point.x <= textEntity.position.x + (textEntity.width || 50) + padding && 
-               point.y >= textEntity.position.y - padding && 
-               point.y <= textEntity.position.y + (textEntity.height || 20) + padding;
-        
-      // Add more entity types as needed
-      
-      default:
-        return false;
-    }
-  }
-  
-  /**
-   * Check if a point is on a line segment
-   */
-  private isPointOnLine(point: Point, start: Point, end: Point, tolerance: number): boolean {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    
-    if (length === 0) return false;
-    
-    // Calculate the distance from the point to the line
-    const crossProduct = Math.abs((point.y - start.y) * dx - (point.x - start.x) * dy);
-    const distance = crossProduct / length;
-    
-    if (distance > tolerance) return false;
-    
-    // Check if the point is within the line segment
-    const dotProduct = ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy);
-    return dotProduct >= 0 && dotProduct <= 1;
-  }
-  
-  /**
-   * Get the snap point for the current position
-   */
-  private getSnapPoint(point: Point): Point {
-    // Get the technical drawing store
-    const { entities, gridEnabled } = useTechnicalDrawingStore.getState();
-    const storeSnapPoints: Point[] = []; // Assuming snapPoints are not stored globally in the store for now
-    
-    // Check if there are any snap points nearby
-    const snapTolerance = 10; // Pixels
-    for (const snapPoint of storeSnapPoints) { // Use storeSnapPoints
-      const dx = point.x - snapPoint.x;
-      const dy = point.y - snapPoint.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < snapTolerance) {
-        return { ...snapPoint };
-      }
-    }
-    
-    // Check for entity snap points (endpoints, centers, etc.)
-    const entitySnapPoints: Point[] = [];
-    
-    Object.values(entities).forEach(entity => {
-      switch (entity.type) {
-        case 'line':
-          entitySnapPoints.push(entity.startPoint, entity.endPoint);
-          // Add midpoint
-          entitySnapPoints.push({
-            x: (entity.startPoint.x + entity.endPoint.x) / 2,
-            y: (entity.startPoint.y + entity.endPoint.y) / 2
-          });
-          break;
-          
-        case 'circle':
-          entitySnapPoints.push(entity.center);
-          // Add quadrant points
-          entitySnapPoints.push(
-            { x: entity.center.x + entity.radius, y: entity.center.y },
-            { x: entity.center.x, y: entity.center.y + entity.radius },
-            { x: entity.center.x - entity.radius, y: entity.center.y },
-            { x: entity.center.x, y: entity.center.y - entity.radius }
-          );
-          break;
-          
-        case 'arc':
-          const arcEntity = entity as ArcEntity; // Cast to ArcEntity
-          entitySnapPoints.push(arcEntity.center);
-          // Calculate startPoint and endPoint for snapping as they are not stored
-          const arcStartPoint = { x: arcEntity.center.x + arcEntity.radius * Math.cos(arcEntity.startAngle), y: arcEntity.center.y + arcEntity.radius * Math.sin(arcEntity.startAngle) };
-          const arcEndPoint = { x: arcEntity.center.x + arcEntity.radius * Math.cos(arcEntity.endAngle), y: arcEntity.center.y + arcEntity.radius * Math.sin(arcEntity.endAngle) };
-          entitySnapPoints.push(arcStartPoint, arcEndPoint);
-          break;
-          
-        case 'rectangle':
-          const rectSnapEntity = entity as RectangleEntity; // Cast to RectangleEntity
-          // Add corners
-          entitySnapPoints.push(
-            { x: rectSnapEntity.position.x, y: rectSnapEntity.position.y },
-            { x: rectSnapEntity.position.x + rectSnapEntity.width, y: rectSnapEntity.position.y },
-            { x: rectSnapEntity.position.x + rectSnapEntity.width, y: rectSnapEntity.position.y + rectSnapEntity.height },
-            { x: rectSnapEntity.position.x, y: rectSnapEntity.position.y + rectSnapEntity.height }
-          );
-          // Add midpoints
-          entitySnapPoints.push(
-            { x: rectSnapEntity.position.x + rectSnapEntity.width / 2, y: rectSnapEntity.position.y },
-            { x: rectSnapEntity.position.x + rectSnapEntity.width, y: rectSnapEntity.position.y + rectSnapEntity.height / 2 },
-            { x: rectSnapEntity.position.x + rectSnapEntity.width / 2, y: rectSnapEntity.position.y + rectSnapEntity.height },
-            { x: rectSnapEntity.position.x, y: rectSnapEntity.position.y + rectSnapEntity.height / 2 }
-          );
-          break;
-          
-        case 'polyline':
-          if (entity.points) {
-            // Add all points
-            entitySnapPoints.push(...entity.points);
-            
-            // Add midpoints for all segments
-            for (let i = 0; i < entity.points.length - 1; i++) {
-              entitySnapPoints.push({
-                x: (entity.points[i].x + entity.points[i + 1].x) / 2,
-                y: (entity.points[i].y + entity.points[i + 1].y) / 2
-              });
-            }
-            
-            // Add midpoint for closing segment if closed
-            if (entity.closed && entity.points.length > 2) {
-              entitySnapPoints.push({
-                x: (entity.points[0].x + entity.points[entity.points.length - 1].x) / 2,
-                y: (entity.points[0].y + entity.points[entity.points.length - 1].y) / 2
-              });
-            }
-          }
-          break;
-          
-        // Add more entity types as needed
+    // Inizializza lo snap manager
+    this.snapManager = createSnapManager({
+      entities: this.store.entities,
+      dimensions: this.store.dimensions,
+      annotations: this.store.annotations,
+      gridSize: this.store.gridSize,
+      snapRadius: 10,
+      snapOptions: {
+        endpoint: true,
+        midpoint: true,
+        center: true,
+        quadrant: true,
+        intersection: true,
+        grid: true,
+        nearest: false,
+        perpendicular: false,
+        tangent: false,
+        extension: false,
+        parallel: false,
+        polar: false
       }
     });
-    
-    // Check for snapping to entity points
-    for (const snapPoint of entitySnapPoints) {
-      const dx = point.x - snapPoint.x;
-      const dy = point.y - snapPoint.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      if (distance < snapTolerance) {
-        return { ...snapPoint };
-      }
-    }
-    
-    // Check for grid snapping
-    if (gridEnabled) {
-      const gridSize = 10; // Grid size in world units
-      return {
-        x: Math.round(point.x / gridSize) * gridSize,
-        y: Math.round(point.y / gridSize) * gridSize
-      };
-    }
-    
-    // No snap point found, return the original point
-    return { ...point };
   }
   
   /**
-   * Get the ortho point for the current position
+   * Registra un nuovo strumento
    */
-  private getOrthoPoint(start: Point, end: Point): Point {
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    
-    if (Math.abs(dx) > Math.abs(dy)) {
-      // Horizontal line
-      return { x: end.x, y: start.y };
-    } else {
-      // Vertical line
-      return { x: start.x, y: end.y };
+  public registerTool(tool: DrawingTool): void {
+    if (this.tools.has(tool.id)) {
+      console.warn(`Lo strumento "${tool.id}" è già registrato e sarà sovrascritto.`);
     }
+    
+    this.tools.set(tool.id, tool);
+  }
+  
+  /**
+   * Imposta lo strumento attivo
+   */
+  public setActiveTool(toolId: string): boolean {
+    if (!this.tools.has(toolId)) {
+      console.warn(`Strumento "${toolId}" non trovato.`);
+      return false;
+    }
+    
+    // Disattiva lo strumento corrente
+    if (this.activeTool) {
+      this.activeTool.onDeactivate();
+    }
+    
+    // Attiva il nuovo strumento
+    this.activeTool = this.tools.get(toolId)!;
+    this.activeTool.onActivate();
+    
+    // Aggiorna il toolId nello store
+    this.store.setActiveTool(toolId);
+    
+    return true;
+  }
+  
+  /**
+   * Ottiene lo strumento attualmente attivo
+   */
+  public getActiveTool(): DrawingTool | null {
+    return this.activeTool;
+  }
+  
+  /**
+   * Ottiene tutti gli strumenti registrati
+   */
+  public getAllTools(): DrawingTool[] {
+    return Array.from(this.tools.values());
+  }
+  
+  /**
+   * Gestisce l'evento mousedown sul canvas
+   */
+  public handleMouseDown(point: Point, event: MouseEvent): void {
+    this.isMouseDown = true;
+    this.lastMousePosition = point;
+    
+    // Aggiorna il punto con il miglior punto di snap, se disponibile
+    let finalPoint = point;
+    
+    if (this.store.snappingEnabled) {
+      const bestSnapPoint = this.snapManager.findBestSnapPoint(point);
+      if (bestSnapPoint) {
+        finalPoint = { x: bestSnapPoint.x, y: bestSnapPoint.y };
+      }
+    }
+    
+    // Delega allo strumento attivo
+    if (this.activeTool) {
+      this.activeTool.onMouseDown(finalPoint, event);
+    }
+  }
+  
+  /**
+   * Gestisce l'evento mousemove sul canvas
+   */
+  public handleMouseMove(point: Point, event: MouseEvent): void {
+    this.lastMousePosition = point;
+    
+    // Aggiorna il punto con il miglior punto di snap, se disponibile
+    let finalPoint = point;
+    
+    if (this.store.snappingEnabled) {
+      const bestSnapPoint = this.snapManager.findBestSnapPoint(point);
+      if (bestSnapPoint) {
+        finalPoint = { x: bestSnapPoint.x, y: bestSnapPoint.y };
+      }
+    }
+    
+    // Delega allo strumento attivo
+    if (this.activeTool) {
+      this.activeTool.onMouseMove(finalPoint, event);
+    }
+  }
+  
+  /**
+   * Gestisce l'evento mouseup sul canvas
+   */
+  public handleMouseUp(point: Point, event: MouseEvent): void {
+    this.isMouseDown = false;
+    
+    // Aggiorna il punto con il miglior punto di snap, se disponibile
+    let finalPoint = point;
+    
+    if (this.store.snappingEnabled) {
+      const bestSnapPoint = this.snapManager.findBestSnapPoint(point);
+      if (bestSnapPoint) {
+        finalPoint = { x: bestSnapPoint.x, y: bestSnapPoint.y };
+      }
+    }
+    
+    // Delega allo strumento attivo
+    if (this.activeTool) {
+      this.activeTool.onMouseUp(finalPoint, event);
+    }
+  }
+  
+  /**
+   * Gestisce l'evento keydown
+   */
+  public handleKeyDown(event: KeyboardEvent): void {
+    this.pressedKeys.add(event.key);
+    
+    // Gestisci scorciatoie da tastiera per il cambio strumento
+    if (event.ctrlKey || event.metaKey) {
+      // Ctrl+... shortcuts
+    }
+    
+    // Gestisci Escape per cancellare l'operazione corrente
+    if (event.key === 'Escape') {
+      if (this.activeTool) {
+        this.activeTool.reset();
+      }
+    }
+    
+    // Delega allo strumento attivo
+    if (this.activeTool) {
+      this.activeTool.onKeyDown(event);
+    }
+  }
+  
+  /**
+   * Gestisce l'evento keyup
+   */
+  public handleKeyUp(event: KeyboardEvent): void {
+    this.pressedKeys.delete(event.key);
+    
+    // Delega allo strumento attivo
+    if (this.activeTool) {
+      this.activeTool.onKeyUp(event);
+    }
+  }
+  
+  /**
+   * Disegna l'anteprima dello strumento attivo
+   */
+  public renderPreview(ctx: CanvasRenderingContext2D): void {
+    if (this.activeTool && this.activeTool.renderPreview) {
+      this.activeTool.renderPreview(ctx);
+    }
+  }
+  
+  /**
+   * Verifica se un tasto è premuto
+   */
+  public isKeyPressed(key: string): boolean {
+    return this.pressedKeys.has(key);
+  }
+  
+  /**
+   * Ottiene la posizione corrente del mouse
+   */
+  public getCurrentMousePosition(): Point {
+    return { ...this.lastMousePosition };
+  }
+  
+  /**
+   * Ottiene lo stato di mousedown
+   */
+  public isMouseButtonDown(): boolean {
+    return this.isMouseDown;
+  }
+  
+  /**
+   * Aggiorna lo snap manager con lo stato corrente
+   */
+  public updateSnapManager(): void {
+    this.snapManager.updateParams({
+      entities: this.store.entities,
+      dimensions: this.store.dimensions,
+      annotations: this.store.annotations,
+      gridSize: this.store.gridSize,
+      snapOptions: {
+        endpoint: this.store.objectSnap.endpoint,
+        midpoint: this.store.objectSnap.midpoint,
+        center: this.store.objectSnap.center,
+        quadrant: this.store.objectSnap.quadrant || false,
+        intersection: this.store.objectSnap.intersection,
+        grid: this.store.gridEnabled,
+        nearest: this.store.objectSnap.nearest || false,
+        perpendicular: false,
+        tangent: false,
+        extension: false,
+        parallel: false,
+        polar: this.store.polarTracking
+      }
+    });
+  }
+  
+  /**
+   * Ottiene lo snap manager
+   */
+  public getSnapManager(): SnapManager {
+    return this.snapManager;
   }
 }
 
-// Create and export a singleton instance
-export const toolsManager = new ToolsManager(); 
+/**
+ * Implementazione base per gli strumenti di disegno
+ */
+export abstract class BaseDrawingTool implements DrawingTool {
+  id: string;
+  name: string;
+  shortcut?: string;
+  icon?: string;
+  cursor: string = 'crosshair';
+  
+  protected store: ReturnType<typeof useTechnicalDrawingStore>;
+  protected toolsManager: ToolsManager;
+  
+  constructor(id: string, name: string, store: ReturnType<typeof useTechnicalDrawingStore>, toolsManager: ToolsManager) {
+    this.id = id;
+    this.name = name;
+    this.store = store;
+    this.toolsManager = toolsManager;
+  }
+  
+  onActivate(): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  onDeactivate(): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  onMouseDown(point: Point, event: MouseEvent): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  onMouseMove(point: Point, event: MouseEvent): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  onMouseUp(point: Point, event: MouseEvent): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  onKeyDown(event: KeyboardEvent): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  onKeyUp(event: KeyboardEvent): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  renderPreview?(ctx: CanvasRenderingContext2D): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  reset(): void {
+    // Da sovrascrivere nelle classi figlie
+  }
+  
+  protected getSnapPoint(point: Point): Point {
+    if (!this.store.snappingEnabled) {
+      return point;
+    }
+    
+    const snapManager = this.toolsManager.getSnapManager();
+    const bestSnapPoint = snapManager.findBestSnapPoint(point);
+    
+    if (bestSnapPoint) {
+      return { x: bestSnapPoint.x, y: bestSnapPoint.y };
+    }
+    
+    return point;
+  }
+}
+
+/**
+ * Strumento Select
+ */
+export class SelectTool extends BaseDrawingTool {
+  private selectionStart: Point | null = null;
+  private selectionBox: { x: number, y: number, width: number, height: number } | null = null;
+  private isDragging: boolean = false;
+  private draggedEntityIds: string[] = [];
+  private lastDragPoint: Point | null = null;
+  
+  constructor(store: ReturnType<typeof useTechnicalDrawingStore>, toolsManager: ToolsManager) {
+    super('select', 'Seleziona', store, toolsManager);
+    this.cursor = 'default';
+  }
+  
+  onActivate(): void {
+    this.reset();
+  }
+  
+  onMouseDown(point: Point, event: MouseEvent): void {
+    this.selectionStart = point;
+    this.selectionBox = null;
+    
+    // Verifica se il click è su un'entità
+    const entityId = this.hitTest(point);
+    
+    if (entityId) {
+      // Se l'entità non è già selezionata, selezionala
+      if (!this.store.selectedEntityIds.includes(entityId)) {
+        this.store.selectEntity(entityId, event.shiftKey);
+      }
+      
+      // Prepara per il drag & drop
+      this.isDragging = true;
+      this.draggedEntityIds = [...this.store.selectedEntityIds];
+      this.lastDragPoint = point;
+    } else {
+      // Click su un'area vuota, inizia selezione rettangolare
+      if (!event.shiftKey) {
+        this.store.clearSelection();
+      }
+    }
+  }
+  
+  onMouseMove(point: Point, event: MouseEvent): void {
+    if (this.isDragging && this.lastDragPoint) {
+      // Calcola l'offset per il drag
+      const dx = point.x - this.lastDragPoint.x;
+      const dy = point.y - this.lastDragPoint.y;
+      
+      if (dx !== 0 || dy !== 0) {
+        this.store.moveEntities(this.draggedEntityIds, { x: dx, y: dy });
+        this.lastDragPoint = point;
+      }
+    } else if (this.selectionStart) {
+      // Aggiorna il rettangolo di selezione
+      this.selectionBox = {
+        x: Math.min(this.selectionStart.x, point.x),
+        y: Math.min(this.selectionStart.y, point.y),
+        width: Math.abs(point.x - this.selectionStart.x),
+        height: Math.abs(point.y - this.selectionStart.y)
+      };
+    }
+  }
+  
+  onMouseUp(point: Point, event: MouseEvent): void {
+    if (this.isDragging) {
+      // Fine del drag
+      this.isDragging = false;
+      this.draggedEntityIds = [];
+      this.lastDragPoint = null;
+    } else if (this.selectionBox && this.selectionBox.width > 3 && this.selectionBox.height > 3) {
+      // Selezione rettangolare completata, trova entità nel rettangolo
+      this.selectEntitiesInBox(this.selectionBox, event.shiftKey);
+    } else if (this.selectionStart && 
+               Math.abs(point.x - this.selectionStart.x) < 3 && 
+               Math.abs(point.y - this.selectionStart.y) < 3) {
+      // È un click semplice, gestito in onMouseDown
+    }
+    
+    this.selectionStart = null;
+    this.selectionBox = null;
+  }
+  
+  renderPreview(ctx: CanvasRenderingContext2D): void {
+    if (this.selectionBox) {
+      // Disegna il rettangolo di selezione
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(
+        this.selectionBox.x, 
+        this.selectionBox.y, 
+        this.selectionBox.width, 
+        this.selectionBox.height
+      );
+      ctx.setLineDash([]);
+      
+      // Riempimento semitrasparente
+      ctx.fillStyle = 'rgba(24, 144, 255, 0.1)';
+      ctx.fillRect(
+        this.selectionBox.x, 
+        this.selectionBox.y, 
+        this.selectionBox.width, 
+        this.selectionBox.height
+      );
+    }
+  }
+  
+  reset(): void {
+    this.selectionStart = null;
+    this.selectionBox = null;
+    this.isDragging = false;
+    this.draggedEntityIds = [];
+    this.lastDragPoint = null;
+  }
+  
+  private hitTest(point: Point): string | null {
+    // Versione semplificata del hit testing
+    // In un'implementazione reale, dovresti implementare un algoritmo più robusto
+    // che controlli correttamente l'intersezione con ogni tipo di entità
+    
+    // Ottieni tutte le entità
+    const allEntities = [
+      ...Object.entries(this.store.entities),
+      ...Object.entries(this.store.dimensions),
+      ...Object.entries(this.store.annotations)
+    ];
+    
+    // Verifica l'hit per ogni entità
+    for (const [id, entity] of allEntities) {
+      if (!entity.visible) continue;
+      
+      let hit = false;
+      
+      switch (entity.type) {
+        case 'line':
+          // Hit test semplificato per una linea
+          const line = entity as any;
+          hit = this.pointToLineDistance(
+            point, 
+            line.startPoint, 
+            line.endPoint
+          ) < 5;
+          break;
+          
+        case 'circle':
+          // Hit test per un cerchio
+          const circle = entity as any;
+          const dx = point.x - circle.center.x;
+          const dy = point.y - circle.center.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          hit = Math.abs(distance - circle.radius) < 5;
+          break;
+          
+        case 'rectangle':
+          // Hit test per un rettangolo
+          const rect = entity as any;
+          hit = point.x >= rect.position.x && 
+                point.x <= rect.position.x + rect.width &&
+                point.y >= rect.position.y && 
+                point.y <= rect.position.y + rect.height;
+          break;
+          
+        // Altri tipi di entità...
+      }
+      
+      if (hit) {
+        return id;
+      }
+    }
+    
+    return null;
+  }
+  
+  private pointToLineDistance(point: Point, lineStart: Point, lineEnd: Point): number {
+    const A = point.x - lineStart.x;
+    const B = point.y - lineStart.y;
+    const C = lineEnd.x - lineStart.x;
+    const D = lineEnd.y - lineStart.y;
+    
+    const dot = A * C + B * D;
+    const len_sq = C * C + D * D;
+    let param = -1;
+    
+    if (len_sq !== 0) {
+      param = dot / len_sq;
+    }
+    
+    let xx, yy;
+    
+    if (param < 0) {
+      xx = lineStart.x;
+      yy = lineStart.y;
+    } else if (param > 1) {
+      xx = lineEnd.x;
+      yy = lineEnd.y;
+    } else {
+      xx = lineStart.x + param * C;
+      yy = lineStart.y + param * D;
+    }
+    
+    const dx = point.x - xx;
+    const dy = point.y - yy;
+    
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  
+  private selectEntitiesInBox(box: { x: number, y: number, width: number, height: number }, addToSelection: boolean): void {
+    if (!addToSelection) {
+      this.store.clearSelection();
+    }
+    
+    // Ottieni tutte le entità
+    const allEntities = [
+      ...Object.entries(this.store.entities),
+      ...Object.entries(this.store.dimensions),
+      ...Object.entries(this.store.annotations)
+    ];
+    
+    // Seleziona le entità che intersecano il box
+    for (const [id, entity] of allEntities) {
+      if (!entity.visible) continue;
+      
+      let inBox = false;
+      
+      switch (entity.type) {
+        case 'line':
+          // Verifica se la linea interseca il box
+          const line = entity as any;
+          inBox = this.lineIntersectsBox(line.startPoint, line.endPoint, box);
+          break;
+          
+        case 'circle':
+          // Verifica se il cerchio interseca il box
+          const circle = entity as any;
+          inBox = this.circleIntersectsBox(circle.center, circle.radius, box);
+          break;
+          
+        case 'rectangle':
+          // Verifica se il rettangolo interseca il box
+          const rect = entity as any;
+          inBox = this.rectangleIntersectsBox(
+            { x: rect.position.x, y: rect.position.y, width: rect.width, height: rect.height },
+            box
+          );
+          break;
+          
+        // Altri tipi di entità...
+      }
+      
+      if (inBox) {
+        this.store.selectEntity(id, true);
+      }
+    }
+  }
+  
+  private lineIntersectsBox(p1: Point, p2: Point, box: { x: number, y: number, width: number, height: number }): boolean {
+    // Verifica se uno dei punti finali è all'interno del box
+    const p1InBox = p1.x >= box.x && p1.x <= box.x + box.width && 
+                    p1.y >= box.y && p1.y <= box.y + box.height;
+                    
+    const p2InBox = p2.x >= box.x && p2.x <= box.x + box.width && 
+                    p2.y >= box.y && p2.y <= box.y + box.height;
+    
+    if (p1InBox || p2InBox) {
+      return true;
+    }
+    
+    // Verifica se la linea interseca uno dei lati del box
+    const boxLines = [
+      { p1: { x: box.x, y: box.y }, p2: { x: box.x + box.width, y: box.y } },
+      { p1: { x: box.x + box.width, y: box.y }, p2: { x: box.x + box.width, y: box.y + box.height } },
+      { p1: { x: box.x + box.width, y: box.y + box.height }, p2: { x: box.x, y: box.y + box.height } },
+      { p1: { x: box.x, y: box.y + box.height }, p2: { x: box.x, y: box.y } }
+    ];
+    
+    for (const boxLine of boxLines) {
+      if (this.linesIntersect(p1, p2, boxLine.p1, boxLine.p2)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  private linesIntersect(p1: Point, p2: Point, p3: Point, p4: Point): boolean {
+    // Implementazione dell'algoritmo di intersezione tra due segmenti di linea
+    const d1x = p2.x - p1.x;
+    const d1y = p2.y - p1.y;
+    const d2x = p4.x - p3.x;
+    const d2y = p4.y - p3.y;
+    
+    const determinant = d1x * d2y - d1y * d2x;
+    
+    if (determinant === 0) {
+      return false; // Linee parallele
+    }
+    
+    const dx = p3.x - p1.x;
+    const dy = p3.y - p1.y;
+    
+    const t1 = (dx * d2y - dy * d2x) / determinant;
+    const t2 = (dx * d1y - dy * d1x) / determinant;
+    
+    return t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1;
+  }
+  
+  private circleIntersectsBox(center: Point, radius: number, box: { x: number, y: number, width: number, height: number }): boolean {
+    // Find the closest point to the circle within the rectangle
+    const closestX = Math.max(box.x, Math.min(center.x, box.x + box.width));
+    const closestY = Math.max(box.y, Math.min(center.y, box.y + box.height));
+    
+    // Calculate the distance between the circle's center and this closest point
+    const distanceX = center.x - closestX;
+    const distanceY = center.y - closestY;
+    
+    // If the distance is less than the circle's radius, an intersection occurs
+    const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+    return distanceSquared <= (radius * radius);
+  }
+  
+  private rectangleIntersectsBox(rect1: { x: number, y: number, width: number, height: number }, 
+                                rect2: { x: number, y: number, width: number, height: number }): boolean {
+    // Verifica se un rettangolo interseca l'altro
+    return !(rect2.x > rect1.x + rect1.width || 
+           rect2.x + rect2.width < rect1.x || 
+           rect2.y > rect1.y + rect1.height ||
+           rect2.y + rect2.height < rect1.y);
+  }
+}
+
+/**
+ * Strumento LineTool
+ */
+export class LineTool extends BaseDrawingTool {
+  private startPoint: Point | null = null;
+  private endPoint: Point | null = null;
+  private isDrawing: boolean = false;
+  
+  constructor(store: ReturnType<typeof useTechnicalDrawingStore>, toolsManager: ToolsManager) {
+    super('line', 'Linea', store, toolsManager);
+  }
+  
+  onActivate(): void {
+    this.reset();
+  }
+  
+  onMouseDown(point: Point, event: MouseEvent): void {
+    if (!this.isDrawing) {
+      // Primo punto della linea
+      this.startPoint = point;
+      this.isDrawing = true;
+    } else {
+      // Secondo punto della linea, completa il disegno
+      this.endPoint = point;
+      this.completeLine();
+    }
+  }
+  
+  onMouseMove(point: Point, event: MouseEvent): void {
+    if (this.isDrawing) {
+      // Aggiorna il punto finale per la preview
+      this.endPoint = point;
+    }
+  }
+  
+  onMouseUp(point: Point, event: MouseEvent): void {
+    // Nessuna azione particolare qui, gestiamo il disegno in onMouseDown
+  }
+  
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      // Annulla l'operazione corrente
+      this.reset();
+    } else if (event.key === 'Enter' && this.isDrawing && this.startPoint && this.endPoint) {
+      // Completa la linea con Enter
+      this.completeLine();
+    }
+  }
+  
+  renderPreview(ctx: CanvasRenderingContext2D): void {
+    if (this.isDrawing && this.startPoint && this.endPoint) {
+      // Disegna l'anteprima della linea
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      
+      ctx.beginPath();
+      ctx.moveTo(this.startPoint.x, this.startPoint.y);
+      ctx.lineTo(this.endPoint.x, this.endPoint.y);
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      
+      // Disegna i punti di controllo
+      ctx.fillStyle = '#1890ff';
+      ctx.beginPath();
+      ctx.arc(this.startPoint.x, this.startPoint.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(this.endPoint.x, this.endPoint.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Mostra la lunghezza
+      const dx = this.endPoint.x - this.startPoint.x;
+      const dy = this.endPoint.y - this.startPoint.y;
+      const length = Math.sqrt(dx * dx + dy * dy);
+      
+      const midX = (this.startPoint.x + this.endPoint.x) / 2;
+      const midY = (this.startPoint.y + this.endPoint.y) / 2;
+      
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#1890ff';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${length.toFixed(2)}`, midX, midY - 10);
+    }
+  }
+  
+  reset(): void {
+    this.startPoint = null;
+    this.endPoint = null;
+    this.isDrawing = false;
+  }
+  
+  private completeLine(): void {
+    if (!this.startPoint || !this.endPoint) return;
+    
+    // Crea la nuova entità linea
+    this.store.addEntity({
+      type: DrawingEntityType.LINE,
+      layer: this.store.activeLayer,
+      startPoint: this.startPoint,
+      endPoint: this.endPoint,
+      style: {
+        strokeColor: '#000000',
+        strokeWidth: 1,
+        strokeStyle: 'solid'
+      }
+    });
+    
+    // Resetta lo stato per un nuovo disegno
+    this.reset();
+  }
+}
+
+/**
+ * Strumento CircleTool
+ */
+export class CircleTool extends BaseDrawingTool {
+  private centerPoint: Point | null = null;
+  private radiusPoint: Point | null = null;
+  private isDrawing: boolean = false;
+  
+  constructor(store: ReturnType<typeof useTechnicalDrawingStore>, toolsManager: ToolsManager) {
+    super('circle', 'Cerchio', store, toolsManager);
+  }
+  
+  onActivate(): void {
+    this.reset();
+  }
+  
+  onMouseDown(point: Point, event: MouseEvent): void {
+    if (!this.isDrawing) {
+      // Centro del cerchio
+      this.centerPoint = point;
+      this.isDrawing = true;
+    } else {
+      // Punto sul raggio, completa il disegno
+      this.radiusPoint = point;
+      this.completeCircle();
+    }
+  }
+  
+  onMouseMove(point: Point, event: MouseEvent): void {
+    if (this.isDrawing) {
+      // Aggiorna il punto del raggio per la preview
+      this.radiusPoint = point;
+    }
+  }
+  
+  onKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      // Annulla l'operazione corrente
+      this.reset();
+    } else if (event.key === 'Enter' && this.isDrawing && this.centerPoint && this.radiusPoint) {
+      // Completa il cerchio con Enter
+      this.completeCircle();
+    }
+  }
+  
+  renderPreview(ctx: CanvasRenderingContext2D): void {
+    if (this.isDrawing && this.centerPoint && this.radiusPoint) {
+      // Calcola il raggio
+      const dx = this.radiusPoint.x - this.centerPoint.x;
+      const dy = this.radiusPoint.y - this.centerPoint.y;
+      const radius = Math.sqrt(dx * dx + dy * dy);
+      
+      // Disegna l'anteprima del cerchio
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      
+      ctx.beginPath();
+      ctx.arc(this.centerPoint.x, this.centerPoint.y, radius, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      
+      // Disegna i punti di controllo
+      ctx.fillStyle = '#1890ff';
+      ctx.beginPath();
+      ctx.arc(this.centerPoint.x, this.centerPoint.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.beginPath();
+      ctx.arc(this.radiusPoint.x, this.radiusPoint.y, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Disegna la linea del raggio
+      ctx.strokeStyle = '#1890ff';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      
+      ctx.beginPath();
+      ctx.moveTo(this.centerPoint.x, this.centerPoint.y);
+      ctx.lineTo(this.radiusPoint.x, this.radiusPoint.y);
+      ctx.stroke();
+      
+      ctx.setLineDash([]);
+      
+      // Mostra il raggio e il diametro
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#1890ff';
+      ctx.textAlign = 'center';
+      
+      // Raggio
+      const midX = (this.centerPoint.x + this.radiusPoint.x) / 2;
+      const midY = (this.centerPoint.y + this.radiusPoint.y) / 2;
+      ctx.fillText(`R=${radius.toFixed(2)}`, midX, midY - 5);
+      
+      // Diametro
+      ctx.fillText(`Ø=${(radius * 2).toFixed(2)}`, this.centerPoint.x, this.centerPoint.y - radius - 10);
+    }
+  }
+  
+  reset(): void {
+    this.centerPoint = null;
+    this.radiusPoint = null;
+    this.isDrawing = false;
+  }
+  
+  private completeCircle(): void {
+    if (!this.centerPoint || !this.radiusPoint) return;
+    
+    // Calcola il raggio
+    const dx = this.radiusPoint.x - this.centerPoint.x;
+    const dy = this.radiusPoint.y - this.centerPoint.y;
+    const radius = Math.sqrt(dx * dx + dy * dy);
+    
+    // Crea la nuova entità cerchio
+    this.store.addEntity({
+      type: DrawingEntityType.CIRCLE,
+      layer: this.store.activeLayer,
+      center: this.centerPoint,
+      radius,
+      style: {
+        strokeColor: '#000000',
+        strokeWidth: 1,
+        strokeStyle: 'solid',
+        fillColor: 'none'
+      }
+    });
+    
+    // Resetta lo stato per un nuovo disegno
+    this.reset();
+  }
+}
+
+/**
+ * Factory per creare un'istanza di ToolsManager con strumenti di base
+ */
+export function createToolsManager(store: ReturnType<typeof useTechnicalDrawingStore>): ToolsManager {
+  const toolsManager = new ToolsManager(store);
+  
+  // Registra gli strumenti di base
+  toolsManager.registerTool(new SelectTool(store, toolsManager));
+  toolsManager.registerTool(new LineTool(store, toolsManager));
+  toolsManager.registerTool(new CircleTool(store, toolsManager));
+  
+  // Imposta lo strumento di selezione come default
+  toolsManager.setActiveTool('select');
+  
+  return toolsManager;
+}

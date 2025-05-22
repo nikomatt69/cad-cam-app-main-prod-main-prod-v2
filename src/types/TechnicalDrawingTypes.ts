@@ -181,6 +181,16 @@ export interface ChainDimension extends BaseDrawingEntity {
   dimensionIds: string[]; // IDs of individual dimensions in the chain
 }
 
+// Unified dimension entity used by DimensionTool
+export interface DimensionEntity extends BaseDrawingEntity {
+  type: 'dimension';
+  dimensionType: DimensionType;
+  points: Point[];
+  extensionDistance: number;
+  offsetDistance: number;
+  text: string;
+}
+
 // Annotations
 export interface TextAnnotation extends BaseDrawingEntity {
   type: 'text-annotation';
@@ -372,7 +382,9 @@ export const DrawingEntityType = {
   SPLINE: 'spline',
   POLYGON: 'polygon',
   PATH: 'path',
-  HATCH: 'hatch'
+  HATCH: 'hatch',
+  TEXT: 'text',
+  DIMENSION: 'dimension'
 } as const;
 
 export const DimensionType = {
@@ -380,8 +392,15 @@ export const DimensionType = {
   ALIGNED: 'aligned-dimension',
   ANGULAR: 'angular-dimension',
   RADIAL: 'radial-dimension',
-  DIAMETRAL: 'diametral-dimension'
+  DIAMETRICAL: 'diametrical-dimension'
 } as const;
+
+// Text alignment options
+export enum TextAlignment {
+  LEFT = 'left',
+  CENTER = 'center',
+  RIGHT = 'right'
+}
 
 export const AnnotationType = {
   TEXT: 'text-annotation',
@@ -396,20 +415,23 @@ export type DimensionType = typeof DimensionType[keyof typeof DimensionType];
 export type AnnotationType = typeof AnnotationType[keyof typeof AnnotationType];
 
 // Snap Modes for CAD functionality
-export type SnapMode = 
-  | 'endpoint' 
-  | 'midpoint' 
-  | 'center' 
-  | 'quadrant' 
-  | 'intersection' 
-  | 'grid' 
-  | 'nearest'
-  | 'tangent'
-  | 'perpendicular'
-  | 'extension'
-  | 'parallel'
-  | 'node' // Snap to points/nodes in entities like polylines or splines
-  | 'polar'; // For polar tracking lines
+export enum SnapType {
+  ENDPOINT = 'endpoint',
+  MIDPOINT = 'midpoint',
+  CENTER = 'center',
+  QUADRANT = 'quadrant',
+  INTERSECTION = 'intersection',
+  GRID = 'grid',
+  NEAREST = 'nearest',
+  TANGENT = 'tangent',
+  PERPENDICULAR = 'perpendicular',
+  EXTENSION = 'extension',
+  PARALLEL = 'parallel',
+  NODE = 'node', // Snap to points/nodes in entities like polylines or splines
+  POLAR = 'polar' // For polar tracking lines
+}
+
+export type SnapMode = keyof typeof SnapType;
 
 export type EntityType = DrawingEntityType | DimensionType | AnnotationType;
 
