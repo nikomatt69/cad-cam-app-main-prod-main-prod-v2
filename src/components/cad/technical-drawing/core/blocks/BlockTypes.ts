@@ -1,124 +1,126 @@
 // src/components/cad/technical-drawing/core/blocks/BlockTypes.ts
-// Sistema di blocchi/simboli riutilizzabili per CAD professionale
+// Sistema di blocchi e simboli per CAD professionale
 
-import { Point, DrawingEntity, DrawingStyle } from '../../TechnicalDrawingTypes';
+import { DrawingEntity, Dimension, Annotation, Point } from '../../TechnicalDrawingTypes';
 
 export interface BlockDefinition {
   id: string;
   name: string;
   description?: string;
-  category: BlockCategory;
-  entities: BlockEntity[];
-  insertionPoint: Point;
-  boundingBox: {
+  category: string;
+  tags: string[];
+  
+  // Geometric data
+  entities: DrawingEntity[];
+  dimensions: Dimension[];
+  annotations: Annotation[];
+  
+  // Block properties
+  basePoint: Point; // Insertion point
+  bounds: {
     minX: number;
     minY: number;
     maxX: number;
     maxY: number;
   };
-  attributes: BlockAttribute[];
-  tags: string[];
-  created: number;
-  modified: number;
-  version: string;
+  
+  // Visual properties
+  thumbnail?: string; // Base64 encoded SVG or image
+  previewPath?: string; // SVG path for quick preview
+  
+  // Metadata
   author?: string;
-  thumbnail?: string; // Base64 encoded image
-  metadata?: Record<string, any>;
+  version: string;
+  createdDate: Date;
+  modifiedDate: Date;
+  usage: number; // How many times it's been used
+  
+  // Technical properties
+  scalable: boolean;
+  rotatable: boolean;
+  mirrorable: boolean;
+  parametric: boolean;
+  
+  // Custom properties for parametric blocks
+  parameters?: BlockParameter[];
 }
 
-export interface BlockEntity {
-  id: string;
-  type: string;
-  geometry: any; // Specific geometry based on entity type
-  style: DrawingStyle;
-  layer: string;
-  locked: boolean;
-  visible: boolean;
-  metadata?: Record<string, any>;
-}
-
-export interface BlockAttribute {
+export interface BlockParameter {
   id: string;
   name: string;
-  tag: string;
-  value: string;
-  position: Point;
-  visible: boolean;
-  editable: boolean;
-  prompt?: string;
-  defaultValue?: string;
-  validation?: {
-    required: boolean;
-    pattern?: string;
-    minLength?: number;
-    maxLength?: number;
-  };
+  type: 'number' | 'string' | 'boolean' | 'point' | 'angle';
+  defaultValue: any;
+  minValue?: number;
+  maxValue?: number;
+  description?: string;
+  formula?: string; // For calculated parameters
 }
 
 export interface BlockInstance {
   id: string;
   blockDefinitionId: string;
-  insertionPoint: Point;
-  scale: {
-    x: number;
-    y: number;
-  };
+  name?: string;
+  
+  // Transformation
+  position: Point;
   rotation: number; // in radians
-  attributes: Record<string, string>; // attribute tag -> value
+  scaleX: number;
+  scaleY: number;
+  mirrored: boolean;
+  
+  // Layer and style
   layer: string;
   visible: boolean;
   locked: boolean;
-  exploded: boolean; // if true, entities are independent
-  metadata?: Record<string, any>;
+  
+  // Parameter values (for parametric blocks)
+  parameterValues?: Record<string, any>;
+  
+  // Metadata
+  insertedDate: Date;
+  lastModified: Date;
 }
 
 export interface BlockLibrary {
   id: string;
   name: string;
   description?: string;
+  version: string;
+  
+  // Categories organization
   categories: BlockCategory[];
   blocks: BlockDefinition[];
-  created: number;
-  modified: number;
-  version: string;
-  isDefault: boolean;
-  readOnly: boolean;
-  shared: boolean;
+  
+  // Library metadata
   author?: string;
-  metadata?: Record<string, any>;
+  createdDate: Date;
+  modifiedDate: Date;
+  isSystem: boolean; // Built-in vs user library
+  
+  // Settings
+  readOnly: boolean;
+  iconPath?: string;
 }
 
 export interface BlockCategory {
   id: string;
   name: string;
   description?: string;
-  icon?: string;
+  parentId?: string; // For nested categories
+  iconPath?: string;
   color?: string;
-  parentId?: string;
   order: number;
-  visible: boolean;
 }
 
-export interface BlockTemplate {
-  id: string;
-  name: string;
-  description?: string;
-  entities: Partial<DrawingEntity>[];
-  attributes: Omit<BlockAttribute, 'id'>[];
-  category: string;
-  tags: string[];
-}
-
-export enum StandardBlockCategory {
-  MECHANICAL = 'mechanical',
-  ELECTRICAL = 'electrical',
-  ARCHITECTURAL = 'architectural',
-  CIVIL = 'civil',
-  SYMBOLS = 'symbols',
-  ANNOTATIONS = 'annotations',
-  FASTENERS = 'fasteners',
-  FIXTURES = 'fixtures',
-  CUSTOM = 'custom'
+export interface BlockInsertionOptions {
+  position: Point;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+  mirrored?: boolean;
+  layer?: string;
+  parameterValues?: Record<string, any>;
+  explode?: boolean; // Insert as individual entities
 }
 
 export interface BlockSearchCriteria {
@@ -126,375 +128,111 @@ export interface BlockSearchCriteria {
   category?: string;
   tags?: string[];
   author?: string;
-  dateRange?: {
-    start: number;
-    end: number;
-  };
-  hasAttributes?: boolean;
+  scalable?: boolean;
+  parametric?: boolean;
+  sortBy?: 'name' | 'usage' | 'date' | 'category';
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
 }
 
-export interface BlockImportOptions {
-  mergeCategories: boolean;
-  overwriteExisting: boolean;
-  importAttributes: boolean;
-  preserveIds: boolean;
+export interface BlockValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  suggestions: string[];
 }
 
-export interface BlockExportOptions {
-  includeCategories: boolean;
-  includeMetadata: boolean;
-  format: 'json' | 'dxf' | 'dwg';
-  compression: boolean;
-}
-
-// Standard block templates
-export const STANDARD_BLOCK_TEMPLATES: BlockTemplate[] = [
-  // Mechanical symbols
-  {
-    id: 'bearing-ball',
-    name: 'Ball Bearing',
-    description: 'Standard ball bearing symbol',
-    category: StandardBlockCategory.MECHANICAL,
-    tags: ['bearing', 'mechanical', 'rotation'],
-    entities: [
-      {
-        type: 'circle',
-        center: { x: 0, y: 0 },
-        radius: 20,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid',
-          fillColor: 'none'
-        }
-      },
-      {
-        type: 'circle',
-        center: { x: 0, y: 0 },
-        radius: 12,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid',
-          fillColor: 'none'
-        }
-      }
-    ],
-    attributes: [
-      {
-        name: 'Size',
-        tag: 'SIZE',
-        value: '20mm',
-        position: { x: 0, y: -30 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter bearing size'
-      }
-    ]
-  },
-
-  // Electrical symbols
-  {
-    id: 'resistor',
-    name: 'Resistor',
-    description: 'Standard resistor symbol (IEEE)',
-    category: StandardBlockCategory.ELECTRICAL,
-    tags: ['resistor', 'electrical', 'component'],
-    entities: [
-      {
-        type: 'rectangle',
-        position: { x: -15, y: -5 },
-        width: 30,
-        height: 10,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid',
-          fillColor: 'none'
-        }
-      },
-      {
-        type: 'line',
-        startPoint: { x: -25, y: 0 },
-        endPoint: { x: -15, y: 0 },
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid'
-        }
-      },
-      {
-        type: 'line',
-        startPoint: { x: 15, y: 0 },
-        endPoint: { x: 25, y: 0 },
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid'
-        }
-      }
-    ],
-    attributes: [
-      {
-        name: 'Value',
-        tag: 'VALUE',
-        value: '1kΩ',
-        position: { x: 0, y: 15 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter resistance value'
-      },
-      {
-        name: 'Reference',
-        tag: 'REF',
-        value: 'R1',
-        position: { x: 0, y: -15 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter reference designator'
-      }
-    ]
-  },
-
-  // Architectural symbols
-  {
-    id: 'door-single',
-    name: 'Single Door',
-    description: 'Standard single door symbol',
-    category: StandardBlockCategory.ARCHITECTURAL,
-    tags: ['door', 'architectural', 'opening'],
-    entities: [
-      {
-        type: 'line',
-        startPoint: { x: 0, y: 0 },
-        endPoint: { x: 30, y: 0 },
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 2,
-          strokeStyle: 'solid'
-        }
-      },
-      {
-        type: 'arc',
-        center: { x: 0, y: 0 },
-        radius: 30,
-        startAngle: 0,
-        endAngle: Math.PI / 2,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'dashed'
-        }
-      }
-    ],
-    attributes: [
-      {
-        name: 'Width',
-        tag: 'WIDTH',
-        value: '800mm',
-        position: { x: 15, y: -10 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter door width'
-      }
-    ]
-  },
-
-  // Annotation symbols
-  {
-    id: 'section-marker',
-    name: 'Section Marker',
-    description: 'Standard section view marker',
-    category: StandardBlockCategory.ANNOTATIONS,
-    tags: ['section', 'annotation', 'view'],
-    entities: [
-      {
-        type: 'circle',
-        center: { x: 0, y: 0 },
-        radius: 15,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 2,
-          strokeStyle: 'solid',
-          fillColor: 'none'
-        }
-      },
-      {
-        type: 'line',
-        startPoint: { x: -10, y: 0 },
-        endPoint: { x: 10, y: 0 },
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid'
-        }
-      }
-    ],
-    attributes: [
-      {
-        name: 'Section',
-        tag: 'SECTION',
-        value: 'A',
-        position: { x: 0, y: 5 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter section identifier'
-      },
-      {
-        name: 'Sheet',
-        tag: 'SHEET',
-        value: '1',
-        position: { x: 0, y: -5 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter sheet number'
-      }
-    ]
-  },
-
-  // Fastener symbols
-  {
-    id: 'bolt-hex',
-    name: 'Hex Bolt',
-    description: 'Standard hexagonal bolt',
-    category: StandardBlockCategory.FASTENERS,
-    tags: ['bolt', 'fastener', 'hex'],
-    entities: [
-      {
-        type: 'circle',
-        center: { x: 0, y: 0 },
-        radius: 8,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid',
-          fillColor: 'none'
-        }
-      },
-      {
-        type: 'polygon',
-        center: { x: 0, y: 0 },
-        radius: 6,
-        sides: 6,
-        style: {
-          strokeColor: '#000000',
-          strokeWidth: 1,
-          strokeStyle: 'solid',
-          fillColor: 'none'
-        }
-      }
-    ],
-    attributes: [
-      {
-        name: 'Size',
-        tag: 'SIZE',
-        value: 'M8',
-        position: { x: 12, y: 0 },
-        visible: true,
-        editable: true,
-        prompt: 'Enter bolt size'
-      }
-    ]
-  }
-];
-
-// Default categories
-export const DEFAULT_BLOCK_CATEGORIES: BlockCategory[] = [
-  {
+// Standard block categories
+export const STANDARD_CATEGORIES = {
+  MECHANICAL: {
     id: 'mechanical',
     name: 'Mechanical',
-    description: 'Mechanical components and symbols',
-    icon: '⚙️',
-    color: '#1890ff',
-    order: 1,
-    visible: true
+    subcategories: [
+      'fasteners', 'bearings', 'gears', 'springs', 'valves', 'pipes', 'fittings'
+    ]
   },
-  {
+  ELECTRICAL: {
     id: 'electrical',
     name: 'Electrical',
-    description: 'Electrical components and symbols',
-    icon: '⚡',
-    color: '#faad14',
-    order: 2,
-    visible: true
+    subcategories: [
+      'symbols', 'connectors', 'switches', 'motors', 'transformers', 'circuits'
+    ]
   },
-  {
+  ARCHITECTURAL: {
     id: 'architectural',
     name: 'Architectural',
-    description: 'Architectural elements and symbols',
-    icon: '🏠',
-    color: '#52c41a',
-    order: 3,
-    visible: true
+    subcategories: [
+      'doors', 'windows', 'furniture', 'fixtures', 'stairs', 'elevations'
+    ]
   },
-  {
-    id: 'civil',
-    name: 'Civil',
-    description: 'Civil engineering symbols',
-    icon: '🏗️',
-    color: '#722ed1',
-    order: 4,
-    visible: true
+  STRUCTURAL: {
+    id: 'structural',
+    name: 'Structural',
+    subcategories: [
+      'beams', 'columns', 'connections', 'foundations', 'reinforcement'
+    ]
   },
-  {
+  SYMBOLS: {
     id: 'symbols',
     name: 'Symbols',
-    description: 'General symbols and markers',
-    icon: '🔣',
-    color: '#eb2f96',
-    order: 5,
-    visible: true
+    subcategories: [
+      'welding', 'surface-finish', 'geometric-tolerance', 'general', 'standards'
+    ]
   },
-  {
+  ANNOTATIONS: {
     id: 'annotations',
     name: 'Annotations',
-    description: 'Annotation and markup symbols',
-    icon: '📝',
-    color: '#13c2c2',
-    order: 6,
-    visible: true
-  },
-  {
-    id: 'fasteners',
-    name: 'Fasteners',
-    description: 'Bolts, screws, and fasteners',
-    icon: '🔩',
-    color: '#f759ab',
-    order: 7,
-    visible: true
-  },
-  {
-    id: 'fixtures',
-    name: 'Fixtures',
-    description: 'Fixtures and fittings',
-    icon: '🔧',
-    color: '#36cfc9',
-    order: 8,
-    visible: true
-  },
-  {
-    id: 'custom',
-    name: 'Custom',
-    description: 'User-defined blocks',
-    icon: '✨',
-    color: '#ff7a45',
-    order: 9,
-    visible: true
+    subcategories: [
+      'title-blocks', 'revision-clouds', 'leaders', 'callouts', 'notes'
+    ]
   }
-];
+};
+
+// Common block templates
+export const BLOCK_TEMPLATES = {
+  SIMPLE_SYMBOL: {
+    name: 'Simple Symbol',
+    description: 'Basic symbol with single geometry',
+    scalable: true,
+    rotatable: true,
+    mirrorable: true,
+    parametric: false
+  },
+  PARAMETRIC_PART: {
+    name: 'Parametric Part',
+    description: 'Configurable part with parameters',
+    scalable: false,
+    rotatable: true,
+    mirrorable: false,
+    parametric: true
+  },
+  TITLE_BLOCK: {
+    name: 'Title Block',
+    description: 'Drawing title block with text fields',
+    scalable: false,
+    rotatable: false,
+    mirrorable: false,
+    parametric: true
+  },
+  STANDARD_PART: {
+    name: 'Standard Part',
+    description: 'Fixed size standard component',
+    scalable: false,
+    rotatable: true,
+    mirrorable: true,
+    parametric: false
+  }
+};
 
 export default {
   BlockDefinition,
-  BlockEntity,
-  BlockAttribute,
+  BlockParameter,
   BlockInstance,
   BlockLibrary,
   BlockCategory,
-  BlockTemplate,
-  StandardBlockCategory,
+  BlockInsertionOptions,
   BlockSearchCriteria,
-  BlockImportOptions,
-  BlockExportOptions,
-  STANDARD_BLOCK_TEMPLATES,
-  DEFAULT_BLOCK_CATEGORIES
+  BlockValidationResult,
+  STANDARD_CATEGORIES,
+  BLOCK_TEMPLATES
 };

@@ -1,290 +1,316 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
- 
-  Pencil, 
-  Square, 
+// src/components/cad/technical-drawing/ui/panels/ToolsPanel.tsx
+
+import React from 'react';
+import { useTechnicalDrawingStore } from '../../enhancedTechnicalDrawingStore';
+import { 
+  MousePointer, 
+  Minus, 
   Circle, 
+  Square, 
+  Pencil, 
+  Type, 
   Ruler,
-  Type,
-
-  Pentagon,
-  Spline,
-
+  Move3D,
+  RotateCw,
   Scissors,
-  Move,
   Copy,
- 
-  HelpCircle,
-  Edit,
   Trash2,
-  Layers,
+  ZoomIn,
+  ZoomOut,
   Grid,
-  Hash,
-  Compass,
-  Settings,
-  ChevronDown,
-  ChevronRight,
-  Pointer,
-  EllipsisIcon,
-  BeanIcon,
-  RotateCw
+  Magnet,
+  Lock,
+  Eye
 } from 'lucide-react';
 
-interface ToolsPanelProps {
-  activeTool: string;
-  onToolSelect: (tool: string) => void;
-  defaultPosition?: 'left' | 'right';
+interface ToolButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  shortcut?: string;
 }
 
-const ToolsPanel: React.FC<ToolsPanelProps> = ({
-  activeTool,
-  onToolSelect,
-  defaultPosition = 'left'
-}) => {
-  const [expandedCategory, setExpandedCategory] = useState<string>('drawing');
-  
-  const toggleCategory = (category: string) => {
-    setExpandedCategory(prevCategory => 
-      prevCategory === category ? '' : category
-    );
-  };
-  
-  // Definiamo le categorie di strumenti
-  const toolCategories = [
-    {
-      id: 'selection',
-      name: 'Selezione',
-      icon: <Pointer size={18} />,
-      tools: [
-        { id: 'select', name: 'Seleziona', icon: <Pointer size={18} /> },
-        { id: 'move', name: 'Sposta', icon: <Move size={18} /> },
-        { id: 'copy', name: 'Copia', icon: <Copy size={18} /> },
-        { id: 'rotate', name: 'Ruota', icon: <RotateCw size={18} /> }
-      ]
+const ToolButton: React.FC<ToolButtonProps> = ({ icon, label, isActive, onClick, shortcut }) => (
+  <button
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+      isActive
+        ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
+        : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'
+    }`}
+    title={shortcut ? `${label} (${shortcut})` : label}
+  >
+    <div className="mb-1">{icon}</div>
+    <span className="text-xs font-medium">{label}</span>
+  </button>
+);
+
+const ToolsPanel: React.FC = () => {
+  const {
+    activeTool,
+    setActiveTool,
+    selectedEntityIds,
+    moveEntities,
+    rotateEntities,
+    scaleEntities,
+    copyEntity,
+    deleteEntity,
+    clearSelection,
+    zoomToFit,
+    setZoom,
+    zoom,
+    toggleGrid,
+    toggleSnapping,
+    gridEnabled,
+    snappingEnabled
+  } = useTechnicalDrawingStore();
+
+  const drawingTools = [
+    { id: 'select', icon: <MousePointer size={20} />, label: 'Select', shortcut: 'S' },
+    { id: 'line', icon: <Minus size={20} />, label: 'Line', shortcut: 'L' },
+    { id: 'circle', icon: <Circle size={20} />, label: 'Circle', shortcut: 'C' },
+    { id: 'rectangle', icon: <Square size={20} />, label: 'Rectangle', shortcut: 'R' },
+    { id: 'polyline', icon: <Pencil size={20} />, label: 'Polyline', shortcut: 'P' },
+    { id: 'text', icon: <Type size={20} />, label: 'Text', shortcut: 'T' },
+    { id: 'dimension', icon: <Ruler size={20} />, label: 'Dimension', shortcut: 'D' }
+  ];
+
+  const transformTools = [
+    { 
+      id: 'move', 
+      icon: <Move3D size={18} />, 
+      label: 'Move', 
+      action: () => {
+        if (selectedEntityIds.length > 0) {
+          // In a real implementation, this would start move mode
+          console.log('Move tool activated');
+        }
+      },
+      disabled: selectedEntityIds.length === 0
     },
-    {
-      id: 'drawing',
-      name: 'Disegno',
-      icon: <Pencil size={18} />,
-      tools: [
-        { id: 'line', name: 'Linea', icon: <Pencil size={18} /> },
-        { id: 'rectangle', name: 'Rettangolo', icon: <Square size={18} /> },
-        { id: 'circle', name: 'Cerchio', icon: <Circle size={18} /> },
-        { id: 'ellipse', name: 'Ellisse', icon: <EllipsisIcon size={18} /> },
-        { id: 'arc', name: 'Arco', icon: <Compass size={18} /> },
-        { id: 'polyline', name: 'Polilinea', icon: <Hash size={18} /> },
-        { id: 'polygon', name: 'Poligono', icon: <Pentagon size={18} /> },
-        { id: 'spline', name: 'Spline', icon: <Spline size={18} /> },
-        { id: 'bezier', name: 'Bezier', icon: <BeanIcon size={18} /> }
-      ]
+    { 
+      id: 'rotate', 
+      icon: <RotateCw size={18} />, 
+      label: 'Rotate', 
+      action: () => {
+        if (selectedEntityIds.length > 0) {
+          // In a real implementation, this would start rotate mode
+          console.log('Rotate tool activated');
+        }
+      },
+      disabled: selectedEntityIds.length === 0
     },
-    {
-      id: 'modification',
-      name: 'Modifica',
-      icon: <Edit size={18} />,
-      tools: [
-        { id: 'trim', name: 'Taglia', icon: <Scissors size={18} /> },
-        { id: 'extend', name: 'Estendi', icon: <Edit size={18} /> },
-        { id: 'fillet', name: 'Raccordo', icon: <Edit size={18} /> },
-        { id: 'chamfer', name: 'Smusso', icon: <Edit size={18} /> },
-        { id: 'offset', name: 'Offset', icon: <Edit size={18} /> },
-        { id: 'delete', name: 'Elimina', icon: <Trash2 size={18} /> }
-      ]
+    { 
+      id: 'copy', 
+      icon: <Copy size={18} />, 
+      label: 'Copy', 
+      action: () => {
+        selectedEntityIds.forEach(id => {
+          copyEntity(id, { x: 10, y: 10 });
+        });
+      },
+      disabled: selectedEntityIds.length === 0
     },
-    {
-      id: 'annotation',
-      name: 'Annotazioni',
-      icon: <Type size={18} />,
-      tools: [
-        { id: 'text', name: 'Testo', icon: <Type size={18} /> },
-        { id: 'dimension-linear', name: 'Quota lineare', icon: <Ruler size={18} /> },
-        { id: 'dimension-aligned', name: 'Quota allineata', icon: <Ruler size={18} /> },
-        { id: 'dimension-angle', name: 'Quota angolare', icon: <Ruler size={18} /> },
-        { id: 'dimension-radius', name: 'Quota raggio', icon: <Circle size={18} /> },
-        { id: 'dimension-diameter', name: 'Quota diametro', icon: <Circle size={18} /> }
-      ]
-    },
-    {
-      id: 'settings',
-      name: 'Impostazioni',
-      icon: <Settings size={18} />,
-      tools: [
-        { id: 'layers', name: 'Livelli', icon: <Layers size={18} /> },
-        { id: 'grid', name: 'Griglia', icon: <Grid size={18} /> },
-        { id: 'settings', name: 'Preferenze', icon: <Settings size={18} /> },
-        { id: 'help', name: 'Aiuto', icon: <HelpCircle size={18} /> }
-      ]
+    { 
+      id: 'delete', 
+      icon: <Trash2 size={18} />, 
+      label: 'Delete', 
+      action: () => {
+        selectedEntityIds.forEach(id => deleteEntity(id));
+        clearSelection();
+      },
+      disabled: selectedEntityIds.length === 0
     }
   ];
-  
+
+  const viewTools = [
+    { 
+      id: 'zoom-in', 
+      icon: <ZoomIn size={18} />, 
+      label: 'Zoom In', 
+      action: () => setZoom(Math.min(zoom * 1.25, 10))
+    },
+    { 
+      id: 'zoom-out', 
+      icon: <ZoomOut size={18} />, 
+      label: 'Zoom Out', 
+      action: () => setZoom(Math.max(zoom * 0.8, 0.1))
+    },
+    { 
+      id: 'zoom-fit', 
+      icon: <Eye size={18} />, 
+      label: 'Fit All', 
+      action: () => zoomToFit()
+    }
+  ];
+
+  const settingTools = [
+    { 
+      id: 'grid', 
+      icon: <Grid size={18} />, 
+      label: 'Grid', 
+      action: toggleGrid,
+      active: gridEnabled
+    },
+    { 
+      id: 'snap', 
+      icon: <Magnet size={18} />, 
+      label: 'Snap', 
+      action: toggleSnapping,
+      active: snappingEnabled
+    }
+  ];
+
   return (
-    <motion.div
-      className="tools-panel"
-      style={{
-        width: '250px',
-        height: '100%',
-        overflowY: 'auto',
-        backgroundColor: '#f8f9fa',
-        borderRight: defaultPosition === 'left' ? '1px solid #e0e0e0' : 'none',
-        borderLeft: defaultPosition === 'right' ? '1px solid #e0e0e0' : 'none',
-        padding: '8px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
-      }}
-      initial={{ opacity: 0, x: defaultPosition === 'left' ? -20 : 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div 
-        className="tools-panel-header"
-        style={{
-          fontWeight: 'bold',
-          fontSize: '16px',
-          padding: '8px',
-          borderBottom: '1px solid #e0e0e0',
-          marginBottom: '8px'
-        }}
-      >
-        Strumenti
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Tools
+        </h3>
       </div>
-      
-      {toolCategories.map(category => (
-        <div key={category.id} className="tools-category">
-          <motion.div
-            className="category-header"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '8px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: expandedCategory === category.id ? '#e6f7ff' : 'transparent',
-              color: expandedCategory === category.id ? '#1890ff' : '#333'
-            }}
-            onClick={() => toggleCategory(category.id)}
-            whileHover={{ backgroundColor: expandedCategory === category.id ? '#e6f7ff' : '#f0f0f0' }}
+
+      {/* Drawing Tools */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Drawing
+        </h4>
+        <div className="grid grid-cols-2 gap-2">
+          {drawingTools.map(tool => (
+            <ToolButton
+              key={tool.id}
+              icon={tool.icon}
+              label={tool.label}
+              isActive={activeTool === tool.id}
+              onClick={() => setActiveTool(tool.id)}
+              shortcut={tool.shortcut}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Transform Tools */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Modify
+        </h4>
+        <div className="grid grid-cols-2 gap-2">
+          {transformTools.map(tool => (
+            <button
+              key={tool.id}
+              onClick={tool.action}
+              disabled={tool.disabled}
+              className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                tool.disabled
+                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                  : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'
+              }`}
+              title={tool.label}
+            >
+              <div className="mb-1">{tool.icon}</div>
+              <span className="text-xs font-medium">{tool.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* View Tools */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          View
+        </h4>
+        <div className="grid grid-cols-3 gap-2">
+          {viewTools.map(tool => (
+            <button
+              key={tool.id}
+              onClick={tool.action}
+              className="flex flex-col items-center justify-center p-2 rounded-lg border bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 transition-all dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
+              title={tool.label}
+            >
+              <div className="mb-1">{tool.icon}</div>
+              <span className="text-xs font-medium">{tool.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Settings Tools */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Settings
+        </h4>
+        <div className="grid grid-cols-2 gap-2">
+          {settingTools.map(tool => (
+            <button
+              key={tool.id}
+              onClick={tool.action}
+              className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                tool.active
+                  ? 'bg-green-600 text-white border-green-600 shadow-lg'
+                  : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'
+              }`}
+              title={tool.label}
+            >
+              <div className="mb-1">{tool.icon}</div>
+              <span className="text-xs font-medium">{tool.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tool Information */}
+      {selectedEntityIds.length > 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
+          <div className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>{selectedEntityIds.length}</strong> entities selected
+          </div>
+          <div className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+            Use modify tools to transform selected entities
+          </div>
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+          Quick Actions
+        </h4>
+        <div className="space-y-2">
+          <button
+            onClick={clearSelection}
+            className="w-full px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300"
           >
-            <div style={{ marginRight: '8px' }}>
-              {category.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              {category.name}
-            </div>
-            <div>
-              {expandedCategory === category.id ? (
-                <ChevronDown size={16} />
-              ) : (
-                <ChevronRight size={16} />
-              )}
-            </div>
-          </motion.div>
-          
-          <AnimatePresence>
-            {expandedCategory === category.id && (
-              <motion.div
-                className="tools-list"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '8px',
-                  padding: '8px'
-                }}
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                {category.tools.map(tool => (
-                  <motion.div
-                    key={tool.id}
-                    className="tool-item"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      backgroundColor: activeTool === tool.id ? '#1890ff' : 'transparent',
-                      color: activeTool === tool.id ? 'white' : '#333'
-                    }}
-                    onClick={() => onToolSelect(tool.id)}
-                    whileHover={{ 
-                      backgroundColor: activeTool === tool.id ? '#1890ff' : '#f0f0f0',
-                      scale: 1.05
-                    }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <div style={{ marginBottom: '4px' }}>
-                      {tool.icon}
-                    </div>
-                    <div style={{ 
-                      fontSize: '12px',
-                      textAlign: 'center',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      width: '100%'
-                    }}>
-                      {tool.name}
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
+            Clear Selection
+          </button>
+          <button
+            onClick={() => setZoom(1)}
+            className="w-full px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-300"
+          >
+            Reset Zoom (100%)
+          </button>
         </div>
-      ))}
-      
-      {/* Tooltip per lo strumento attivo */}
-      <motion.div
-        style={{
-          marginTop: 'auto',
-          padding: '12px',
-          backgroundColor: '#e6f7ff',
-          borderRadius: '4px',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-        }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.3 }}
-      >
-        <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-          {toolCategories
-            .flatMap(category => category.tools)
-            .find(tool => tool.id === activeTool)?.name || 'Strumento'}
+      </div>
+
+      {/* Current Tool Info */}
+      <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+        <div className="text-sm font-medium text-gray-900 dark:text-white">
+          Active Tool
         </div>
-        <div style={{ fontSize: '12px', color: '#666' }}>
-          {getToolDescription(activeTool)}
+        <div className="text-lg font-bold text-blue-600 dark:text-blue-400 capitalize">
+          {activeTool}
         </div>
-      </motion.div>
-    </motion.div>
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          {activeTool === 'select' && 'Click to select entities'}
+          {activeTool === 'line' && 'Click two points to draw a line'}
+          {activeTool === 'circle' && 'Click center, then drag for radius'}
+          {activeTool === 'rectangle' && 'Click and drag to draw rectangle'}
+          {activeTool === 'text' && 'Click to place text'}
+          {activeTool === 'dimension' && 'Click two points to dimension'}
+        </div>
+      </div>
+    </div>
   );
 };
-
-function getToolDescription(toolId: string): string {
-  switch(toolId) {
-    case 'select':
-      return 'Seleziona oggetti singoli o multipli. Tieni premuto Shift per una selezione multipla.';
-    case 'line':
-      return 'Disegna una linea retta. Fai clic per impostare il punto iniziale, poi fai clic di nuovo per il punto finale.';
-    case 'rectangle':
-      return 'Disegna un rettangolo. Fai clic e trascina per definire gli angoli opposti.';
-    case 'circle':
-      return 'Disegna un cerchio. Fai clic per impostare il centro, poi trascina per definire il raggio.';
-    case 'ellipse':
-      return 'Disegna un\'ellisse. Fai clic per impostare il centro, poi trascina per definire i raggi.';
-    case 'polyline':
-      return 'Disegna una polilinea. Fai clic per aggiungere vertici, doppio clic per terminare.';
-    case 'dimension-linear':
-      return 'Aggiungi una quota lineare. Seleziona due punti da quotare, poi posiziona la linea di quota.';
-    case 'text':
-      return 'Aggiungi un\'annotazione testuale. Fai clic per posizionare, poi digita il testo.';
-    default:
-      return 'Strumento di disegno. Consulta la documentazione per maggiori dettagli.';
-  }
-}
 
 export default ToolsPanel;

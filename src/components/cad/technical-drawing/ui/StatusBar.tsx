@@ -1,141 +1,160 @@
+// src/components/cad/technical-drawing/ui/StatusBar.tsx
+
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Point } from '../TechnicalDrawingTypes';
+import { useTechnicalDrawingStore } from '../enhancedTechnicalDrawingStore';
 
 interface StatusBarProps {
-  cursorPosition: Point;
+  height: number;
+  activeTool: string;
   zoom: number;
-  tool: string;
+  entitiesCount: number;
   selectedCount: number;
-  gridEnabled: boolean;
-  snapEnabled: boolean;
-  orthoEnabled: boolean;
 }
 
 const StatusBar: React.FC<StatusBarProps> = ({
-  cursorPosition,
+  height,
+  activeTool,
   zoom,
-  tool,
-  selectedCount,
-  gridEnabled,
-  snapEnabled,
-  orthoEnabled
+  entitiesCount,
+  selectedCount
 }) => {
+  const {
+    pan,
+    gridEnabled,
+    snappingEnabled,
+    orthoMode,
+    polarTracking,
+    getSystemCapabilities
+  } = useTechnicalDrawingStore();
+
+  const capabilities = getSystemCapabilities();
+
+  const formatCoordinate = (value: number): string => {
+    return value.toFixed(2);
+  };
+
+  const formatZoom = (zoomValue: number): string => {
+    return `${Math.round(zoomValue * 100)}%`;
+  };
+
   return (
-    <motion.div
-      className="status-bar"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        width: '100%',
-        height: '30px',
-        fontSize: '12px',
-        color: '#555',
-        backgroundColor: '#f8f9fa'
-      }}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, delay: 0.2 }}
+    <div 
+      className="bg-gray-800 text-white text-xs flex items-center justify-between px-4 border-t border-gray-600"
+      style={{ height: `${height}px` }}
     >
-      {/* Coordinate */}
-      <div className="status-item coordinates"
-        style={{
-          padding: '0 10px',
-          display: 'flex',
-          alignItems: 'center',
-          borderRight: '1px solid #e0e0e0'
-        }}
-      >
-        <span>X: {cursorPosition.x.toFixed(2)}</span>
-        <span style={{ margin: '0 5px' }}>|</span>
-        <span>Y: {cursorPosition.y.toFixed(2)}</span>
-      </div>
-      
-      {/* Zoom */}
-      <div className="status-item zoom"
-        style={{
-          padding: '0 10px',
-          display: 'flex',
-          alignItems: 'center',
-          borderRight: '1px solid #e0e0e0'
-        }}
-      >
-        <span>Zoom: {(zoom * 100).toFixed(0)}%</span>
-      </div>
-      
-      {/* Tool */}
-      <div className="status-item tool"
-        style={{
-          padding: '0 10px',
-          display: 'flex',
-          alignItems: 'center',
-          borderRight: '1px solid #e0e0e0'
-        }}
-      >
-        <span>Strumento: {tool.charAt(0).toUpperCase() + tool.slice(1)}</span>
-      </div>
-      
-      {/* Objects Selected */}
-      <div className="status-item selection"
-        style={{
-          padding: '0 10px',
-          display: 'flex',
-          alignItems: 'center',
-          borderRight: '1px solid #e0e0e0'
-        }}
-      >
-        <span>Selezionati: {selectedCount}</span>
-      </div>
-      
-      {/* Toggle States */}
-      <div className="status-item toggles"
-        style={{
-          padding: '0 10px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
-        }}
-      >
-        <div 
-          className={`toggle-indicator ${gridEnabled ? 'active' : ''}`}
-          style={{
-            backgroundColor: gridEnabled ? '#91d5ff' : '#e0e0e0',
-            padding: '2px 6px',
-            borderRadius: '10px',
-            fontSize: '10px',
-            color: gridEnabled ? '#1890ff' : '#666'
-          }}
-        >
-          GRIGLIA
+      {/* Left side - Tool and mode indicators */}
+      <div className="flex items-center space-x-4">
+        {/* Active Tool */}
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-300">Tool:</span>
+          <span className="bg-blue-600 px-2 py-1 rounded text-white font-medium">
+            {activeTool?.toUpperCase()}
+          </span>
         </div>
-        
-        <div 
-          className={`toggle-indicator ${snapEnabled ? 'active' : ''}`}
-          style={{
-            backgroundColor: snapEnabled ? '#91d5ff' : '#e0e0e0',
-            padding: '2px 6px',
-            borderRadius: '10px',
-            fontSize: '10px',
-            color: snapEnabled ? '#1890ff' : '#666'
-          }}
-        >
-          SNAP
+
+        {/* Mode Indicators */}
+        <div className="flex items-center space-x-2">
+          {gridEnabled && (
+            <span className="bg-green-600 px-2 py-1 rounded text-white text-xs">
+              GRID
+            </span>
+          )}
+          {snappingEnabled && (
+            <span className="bg-green-600 px-2 py-1 rounded text-white text-xs">
+              SNAP
+            </span>
+          )}
+          {orthoMode && (
+            <span className="bg-yellow-600 px-2 py-1 rounded text-white text-xs">
+              ORTHO
+            </span>
+          )}
+          {polarTracking && (
+            <span className="bg-purple-600 px-2 py-1 rounded text-white text-xs">
+              POLAR
+            </span>
+          )}
         </div>
-        
-        <div 
-          className={`toggle-indicator ${orthoEnabled ? 'active' : ''}`}
-          style={{
-            backgroundColor: orthoEnabled ? '#91d5ff' : '#e0e0e0',
-            padding: '2px 6px',
-            borderRadius: '10px',
-            fontSize: '10px',
-            color: orthoEnabled ? '#1890ff' : '#666'
-          }}
-        >
-          ORTO
+
+        {/* Professional Features Indicators */}
+        <div className="flex items-center space-x-1">
+          {capabilities.constraintsCount > 0 && (
+            <span className="bg-indigo-600 px-2 py-1 rounded text-white text-xs">
+              C:{capabilities.constraintsCount}
+            </span>
+          )}
+          {capabilities.associativeRelationshipsCount > 0 && (
+            <span className="bg-teal-600 px-2 py-1 rounded text-white text-xs">
+              A:{capabilities.associativeRelationshipsCount}
+            </span>
+          )}
+          {capabilities.blockDefinitionsCount > 0 && (
+            <span className="bg-orange-600 px-2 py-1 rounded text-white text-xs">
+              B:{capabilities.blockDefinitionsCount}
+            </span>
+          )}
         </div>
       </div>
-    </motion.div>
+
+      {/* Center - Coordinates and cursor info */}
+      <div className="flex items-center space-x-6">
+        {/* Pan Position */}
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-300">Pan:</span>
+          <span className="font-mono">
+            X:{formatCoordinate(pan.x)} Y:{formatCoordinate(pan.y)}
+          </span>
+        </div>
+
+        {/* Zoom Level */}
+        <div className="flex items-center space-x-2">
+          <span className="text-gray-300">Zoom:</span>
+          <span className="font-mono font-medium">
+            {formatZoom(zoom)}
+          </span>
+        </div>
+      </div>
+
+      {/* Right side - Counts and system info */}
+      <div className="flex items-center space-x-4">
+        {/* Entity Counts */}
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1">
+            <span className="text-gray-300">Entities:</span>
+            <span className="font-medium">{entitiesCount}</span>
+          </div>
+          
+          {selectedCount > 0 && (
+            <div className="flex items-center space-x-1">
+              <span className="text-gray-300">Selected:</span>
+              <span className="font-medium text-yellow-400">{selectedCount}</span>
+            </div>
+          )}
+        </div>
+
+        {/* System Status */}
+        <div className="flex items-center space-x-2">
+          {capabilities.professionalFeaturesEnabled && (
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-green-400 text-xs font-medium">PRO</span>
+            </div>
+          )}
+          
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+            <span className="text-blue-400 text-xs">
+              READY
+            </span>
+          </div>
+        </div>
+
+        {/* Units */}
+        <div className="text-gray-300 text-xs">
+          Units: mm
+        </div>
+      </div>
+    </div>
   );
 };
 

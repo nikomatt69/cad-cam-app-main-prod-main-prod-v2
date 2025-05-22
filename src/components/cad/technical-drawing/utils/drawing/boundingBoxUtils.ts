@@ -14,7 +14,7 @@ import {
   PolylineEntity,
   TextAnnotation,
   LeaderAnnotation
-} from 'src/types/TechnicalDrawingTypes';
+} from '../../TechnicalDrawingTypes';
 
 // Generate bounding box for a collection of entities
 export function generateBoundsFromEntities(

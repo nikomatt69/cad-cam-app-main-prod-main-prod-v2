@@ -13,7 +13,7 @@ import {
   SplineEntity,
   PolygonEntity,
   AnyEntity
-} from '../../TechnicalDrawingTypes';
+} from '../TechnicalDrawingTypes';
 
 export interface SnapPoint {
   x: number;

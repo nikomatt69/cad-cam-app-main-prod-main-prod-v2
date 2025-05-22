@@ -1,553 +1,284 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ConstraintType, 
-  Constraint, 
-  ConstraintCreationParams 
-} from '../../core/constraints/ConstraintTypes';
-import ConstraintManager from '../../core/constraints/ConstraintManager';
-import { useTechnicalDrawingStore } from '../../technicalDrawingStore';
-import {
-  Link,
-  Unlink,
-  Lock,
-  Unlock,
-  Move,
-  RotateCw,
-  Ruler,
-  Circle,
-  Square,
-  Triangle,
-  Minus,
-  Plus,
-  Eye,
-  EyeOff,
-  Settings,
-  Zap,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Play,
-  Pause
-} from 'lucide-react';
+// src/components/cad/technical-drawing/ui/constraints/ConstraintsPanel.tsx
 
-interface ConstraintsPanel {
-  constraintManager: ConstraintManager;
-  onConstraintChange?: (constraints: Constraint[]) => void;
-}
+import React, { useState } from 'react';
+import { useTechnicalDrawingStore } from '../../enhancedTechnicalDrawingStore';
+import { ConstraintType } from '../../core/constraints/ConstraintTypes';
+import DockPanel from '../panels/DockPanel';
+import { Link, Move, Square, Circle, Ruler, Lock, Eye, EyeOff, Trash2, Play, Pause } from 'lucide-react';
 
-/**
- * 🔗 Constraints Panel - Pannello Vincoli Parametrici
- * 
- * Interfaccia utente professionale per gestire tutti i vincoli parametrici:
- * - Creazione vincoli geometrici (parallel, perpendicular, tangent, etc.)
- * - Creazione vincoli dimensionali (distance, angle, radius, etc.)
- * - Visualizzazione stato vincoli
- * - Controllo solver automatico
- * - Gestione priorità vincoli
- */
-const ConstraintsPanel: React.FC<ConstraintsPanel> = ({
-  constraintManager,
-  onConstraintChange
-}) => {
-  const [constraints, setConstraints] = useState<Constraint[]>([]);
-  const [selectedConstraintId, setSelectedConstraintId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'geometric' | 'dimensional' | 'management'>('geometric');
-  const [autoSolve, setAutoSolve] = useState(true);
-  const [solverRunning, setSolverRunning] = useState(false);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [createConstraintType, setCreateConstraintType] = useState<ConstraintType>(ConstraintType.PARALLEL);
-  
-  const store = useTechnicalDrawingStore();
-  const solverTimeoutRef = useRef<NodeJS.Timeout>();
+const ConstraintsPanel: React.FC = () => {
+  const [selectedConstraintType, setSelectedConstraintType] = useState<ConstraintType>(ConstraintType.DISTANCE);
+  const [constraintValue, setConstraintValue] = useState<string>('');
 
-  // Constraint type definitions
-  const GEOMETRIC_CONSTRAINTS = [
-    { type: ConstraintType.PARALLEL, name: 'Parallel', icon: <Link size={16} />, description: 'Make lines parallel' },
-    { type: ConstraintType.PERPENDICULAR, name: 'Perpendicular', icon: <Plus size={16} />, description: 'Make lines perpendicular' },
-    { type: ConstraintType.HORIZONTAL, name: 'Horizontal', icon: <Minus size={16} />, description: 'Make line horizontal' },
-    { type: ConstraintType.VERTICAL, name: 'Vertical', icon: <Square size={16} />, description: 'Make line vertical' },
-    { type: ConstraintType.TANGENT, name: 'Tangent', icon: <Circle size={16} />, description: 'Make line tangent to circle' },
-    { type: ConstraintType.CONCENTRIC, name: 'Concentric', icon: <Circle size={16} />, description: 'Make circles concentric' },
-    { type: ConstraintType.COINCIDENT, name: 'Coincident', icon: <Move size={16} />, description: 'Make points coincident' },
-    { type: ConstraintType.COLLINEAR, name: 'Collinear', icon: <Link size={16} />, description: 'Make lines collinear' },
-    { type: ConstraintType.EQUAL_LENGTH, name: 'Equal Length', icon: <Ruler size={16} />, description: 'Make lines equal length' },
-    { type: ConstraintType.EQUAL_RADIUS, name: 'Equal Radius', icon: <Circle size={16} />, description: 'Make circles equal radius' },
-    { type: ConstraintType.SYMMETRIC, name: 'Symmetric', icon: <RotateCw size={16} />, description: 'Make entities symmetric' },
-    { type: ConstraintType.MIDPOINT, name: 'Midpoint', icon: <Move size={16} />, description: 'Point at line midpoint' }
+  const {
+    selectedEntityIds,
+    createConstraint,
+    removeConstraint,
+    toggleConstraint,
+    getConstraintsForEntity,
+    solveConstraints,
+    createAutoConstraints,
+    autoSolveConstraints,
+    setAutoSolveConstraints
+  } = useTechnicalDrawingStore();
+
+  // Get all constraints for selected entities
+  const relevantConstraints = selectedEntityIds.flatMap(id => 
+    getConstraintsForEntity(id)
+  ).filter((constraint, index, self) => 
+    self.findIndex(c => c.id === constraint.id) === index
+  );
+
+  const constraintTypes = [
+    { type: ConstraintType.DISTANCE, label: 'Distance', icon: <Ruler size={16} />, requiresValue: true },
+    { type: ConstraintType.PARALLEL, label: 'Parallel', icon: <Move size={16} />, requiresValue: false },
+    { type: ConstraintType.PERPENDICULAR, label: 'Perpendicular', icon: <Square size={16} />, requiresValue: false },
+    { type: ConstraintType.HORIZONTAL, label: 'Horizontal', icon: <Move size={16} />, requiresValue: false },
+    { type: ConstraintType.VERTICAL, label: 'Vertical', icon: <Move size={16} />, requiresValue: false },
+    { type: ConstraintType.COINCIDENT, label: 'Coincident', icon: <Circle size={16} />, requiresValue: false },
+    { type: ConstraintType.CONCENTRIC, label: 'Concentric', icon: <Circle size={16} />, requiresValue: false },
+    { type: ConstraintType.TANGENT, label: 'Tangent', icon: <Circle size={16} />, requiresValue: false },
+    { type: ConstraintType.FIX, label: 'Fix', icon: <Lock size={16} />, requiresValue: false }
   ];
 
-  const DIMENSIONAL_CONSTRAINTS = [
-    { type: ConstraintType.DISTANCE, name: 'Distance', icon: <Ruler size={16} />, description: 'Set distance between entities', needsValue: true },
-    { type: ConstraintType.ANGLE, name: 'Angle', icon: <Triangle size={16} />, description: 'Set angle between lines', needsValue: true },
-    { type: ConstraintType.RADIUS, name: 'Radius', icon: <Circle size={16} />, description: 'Set circle radius', needsValue: true },
-    { type: ConstraintType.DIAMETER, name: 'Diameter', icon: <Circle size={16} />, description: 'Set circle diameter', needsValue: true },
-    { type: ConstraintType.LENGTH, name: 'Length', icon: <Ruler size={16} />, description: 'Set line length', needsValue: true }
-  ];
+  const currentConstraintType = constraintTypes.find(ct => ct.type === selectedConstraintType);
 
-  // Initialize constraint manager listener
-  useEffect(() => {
-    const handleConstraintChange = (updatedConstraints: Constraint[]) => {
-      setConstraints(updatedConstraints);
-      if (onConstraintChange) {
-        onConstraintChange(updatedConstraints);
-      }
-    };
+  const handleCreateConstraint = () => {
+    if (selectedEntityIds.length === 0) return;
 
-    constraintManager.addChangeListener(handleConstraintChange);
+    const parameters: Record<string, any> = {};
     
-    // Initial load
-    setConstraints(constraintManager.getAllConstraints());
-
-    return () => {
-      constraintManager.removeChangeListener(handleConstraintChange);
-    };
-  }, [constraintManager, onConstraintChange]);
-
-  // Update entities in constraint manager when store changes
-  useEffect(() => {
-    const allEntities = {
-      ...store.entities,
-      ...store.dimensions,
-      ...store.annotations
-    };
-    constraintManager.updateEntities(allEntities as any);
-  }, [store.entities, store.dimensions, store.annotations, constraintManager]);
-
-  // Auto-solve when constraints change
-  useEffect(() => {
-    if (autoSolve && constraints.length > 0) {
-      // Debounce solver execution
-      if (solverTimeoutRef.current) {
-        clearTimeout(solverTimeoutRef.current);
-      }
-      
-      solverTimeoutRef.current = setTimeout(() => {
-        runSolver();
-      }, 500);
-    }
-  }, [constraints, autoSolve]);
-
-  const runSolver = async () => {
-    if (solverRunning) return;
-    
-    setSolverRunning(true);
-    try {
-      const solutions = await constraintManager.solveConstraints();
-      
-      // Apply solutions to store
-      solutions.forEach(solution => {
-        if (solution.satisfied) {
-          Object.entries(solution.entityUpdates).forEach(([entityId, updates]) => {
-            if (store.entities[entityId]) {
-              store.updateEntity(entityId, updates);
-            } else if (store.dimensions[entityId]) {
-              store.updateDimension(entityId, updates);
-            } else if (store.annotations[entityId]) {
-              store.updateAnnotation(entityId, updates);
-            }
-          });
+    if (currentConstraintType?.requiresValue && constraintValue) {
+      const numValue = parseFloat(constraintValue);
+      if (!isNaN(numValue)) {
+        if (selectedConstraintType === ConstraintType.DISTANCE) {
+          parameters.distance = numValue;
+        } else if (selectedConstraintType === ConstraintType.ANGLE) {
+          parameters.angle = numValue;
         }
-      });
-      
-      console.log(`✅ Solver completed: ${solutions.filter(s => s.satisfied).length}/${solutions.length} satisfied`);
-    } catch (error) {
-      console.error('Solver error:', error);
-    } finally {
-      setSolverRunning(false);
-    }
-  };
-
-  const handleCreateConstraint = (type: ConstraintType, needsValue: boolean = false) => {
-    const selectedEntities = store.selectedEntityIds;
-    
-    if (selectedEntities.length === 0) {
-      alert('Please select entities first');
-      return;
-    }
-
-    if (needsValue) {
-      const value = prompt(`Enter value for ${type} constraint:`);
-      if (!value || isNaN(Number(value))) {
-        return;
       }
-
-      const params: ConstraintCreationParams = {
-        type,
-        entityIds: selectedEntities,
-        value: Number(value),
-        description: `${type} constraint`
-      };
-
-      constraintManager.createConstraint(params);
-    } else {
-      const params: ConstraintCreationParams = {
-        type,
-        entityIds: selectedEntities,
-        description: `${type} constraint`
-      };
-
-      constraintManager.createConstraint(params);
     }
-    
-    // Deselect entities after creating constraint
-    store.clearSelection();
+
+    const constraintId = createConstraint({
+      type: selectedConstraintType,
+      entityIds: selectedEntityIds,
+      parameters
+    });
+
+    if (constraintId) {
+      setConstraintValue('');
+      console.log(`✅ Constraint created: ${selectedConstraintType}`);
+    }
   };
 
-  const handleToggleConstraint = (constraintId: string) => {
-    constraintManager.toggleConstraint(constraintId);
+  const handleRemoveConstraint = (constraintId: string) => {
+    removeConstraint(constraintId);
   };
 
-  const handleDeleteConstraint = (constraintId: string) => {
-    constraintManager.removeConstraint(constraintId);
+  const handleToggleConstraint = (constraintId: string, active: boolean) => {
+    toggleConstraint(constraintId, active);
+  };
+
+  const handleSolveConstraints = async () => {
+    try {
+      const solutions = await solveConstraints();
+      console.log(`🔧 Solved ${solutions.length} constraints`);
+    } catch (error) {
+      console.error('Failed to solve constraints:', error);
+    }
   };
 
   const handleCreateAutoConstraints = () => {
-    const selectedEntities = store.selectedEntityIds;
-    if (selectedEntities.length < 2) {
-      alert('Please select at least 2 entities for auto-constraints');
-      return;
-    }
-
-    const createdIds = constraintManager.createAutoConstraints(selectedEntities);
-    console.log(`Created ${createdIds.length} auto-constraints`);
+    if (selectedEntityIds.length < 2) return;
+    
+    const createdConstraints = createAutoConstraints(selectedEntityIds);
+    console.log(`🤖 Auto-created ${createdConstraints.length} constraints`);
   };
 
-  const getConstraintStatus = (constraint: Constraint) => {
-    if (!constraint.active) {
-      return { icon: <Pause size={14} />, color: '#d9d9d9', text: 'Inactive' };
-    } else if (constraint.satisfied) {
-      return { icon: <CheckCircle size={14} />, color: '#52c41a', text: 'Satisfied' };
-    } else {
-      return { icon: <XCircle size={14} />, color: '#ff4d4f', text: 'Unsatisfied' };
+  const canCreateConstraint = () => {
+    if (selectedEntityIds.length === 0) return false;
+    
+    switch (selectedConstraintType) {
+      case ConstraintType.HORIZONTAL:
+      case ConstraintType.VERTICAL:
+      case ConstraintType.FIX:
+        return selectedEntityIds.length === 1;
+      case ConstraintType.DISTANCE:
+      case ConstraintType.PARALLEL:
+      case ConstraintType.PERPENDICULAR:
+      case ConstraintType.TANGENT:
+      case ConstraintType.CONCENTRIC:
+        return selectedEntityIds.length === 2;
+      case ConstraintType.COINCIDENT:
+        return selectedEntityIds.length >= 2;
+      default:
+        return selectedEntityIds.length > 0;
     }
-  };
-
-  const getConstraintDescription = (constraint: Constraint) => {
-    const entityNames = constraint.entityIds.map(id => {
-      const entity = store.entities[id] || store.dimensions[id] || store.annotations[id];
-      return entity ? `${entity.type}(${id.substring(0, 8)})` : 'Unknown';
-    }).join(', ');
-
-    return `${constraint.type} | ${entityNames}`;
   };
 
   return (
-    <motion.div
-      className="constraints-panel"
-      style={{
-        width: '300px',
-        height: '100%',
-        backgroundColor: '#f8f9fa',
-        borderRight: '1px solid #e0e0e0',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}
-      initial={{ x: -300, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Header */}
-      <div style={{
-        padding: '16px',
-        borderBottom: '1px solid #e0e0e0',
-        backgroundColor: 'white'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-          <Link size={20} color="#1890ff" />
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
-            Parametric Constraints
-          </h3>
+    <DockPanel title="Parametric Constraints" collapsible={true} resizable={true}>
+      <div className="space-y-4">
+        {/* Auto-Solve Toggle */}
+        <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
+          <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            Auto-Solve Constraints
+          </span>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={autoSolveConstraints}
+              onChange={(e) => setAutoSolveConstraints(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-sm text-blue-800 dark:text-blue-200">
+              {autoSolveConstraints ? 'On' : 'Off'}
+            </span>
+          </label>
         </div>
-        
-        {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <motion.button
-            style={{
-              padding: '6px 12px',
-              backgroundColor: autoSolve ? '#52c41a' : '#d9d9d9',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onClick={() => setAutoSolve(!autoSolve)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {autoSolve ? <Zap size={12} /> : <Pause size={12} />}
-            Auto-solve
-          </motion.button>
-          
-          <motion.button
-            style={{
-              padding: '6px 12px',
-              backgroundColor: solverRunning ? '#faad14' : '#1890ff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onClick={runSolver}
-            disabled={solverRunning}
-            whileHover={{ scale: solverRunning ? 1 : 1.05 }}
-            whileTap={{ scale: solverRunning ? 1 : 0.95 }}
-          >
-            {solverRunning ? <Settings size={12} className="animate-spin" /> : <Play size={12} />}
-            Solve
-          </motion.button>
-        </div>
-      </div>
 
-      {/* Tab Navigation */}
-      <div style={{
-        display: 'flex',
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e0e0e0'
-      }}>
-        {[
-          { id: 'geometric', label: 'Geometric', icon: <Link size={14} /> },
-          { id: 'dimensional', label: 'Dimensional', icon: <Ruler size={14} /> },
-          { id: 'management', label: 'Manage', icon: <Settings size={14} /> }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            style={{
-              flex: 1,
-              padding: '8px 4px',
-              border: 'none',
-              backgroundColor: activeTab === tab.id ? '#e6f7ff' : 'transparent',
-              color: activeTab === tab.id ? '#1890ff' : '#666',
-              cursor: 'pointer',
-              fontSize: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '2px'
-            }}
-            onClick={() => setActiveTab(tab.id as any)}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
-      </div>
+        {/* Constraint Creation */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+            Create Constraint
+          </h4>
 
-      {/* Tab Content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
-        {activeTab === 'geometric' && (
-          <div>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#333' }}>
-              Geometric Constraints
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-              {GEOMETRIC_CONSTRAINTS.map(constraint => (
-                <motion.button
-                  key={constraint.type}
-                  style={{
-                    padding: '8px',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '11px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '4px',
-                    textAlign: 'center'
-                  }}
-                  onClick={() => handleCreateConstraint(constraint.type)}
-                  whileHover={{ scale: 1.05, backgroundColor: '#f0f8ff' }}
-                  whileTap={{ scale: 0.95 }}
-                  title={constraint.description}
-                >
-                  {constraint.icon}
-                  {constraint.name}
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'dimensional' && (
-          <div>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#333' }}>
-              Dimensional Constraints
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '6px' }}>
-              {DIMENSIONAL_CONSTRAINTS.map(constraint => (
-                <motion.button
-                  key={constraint.type}
-                  style={{
-                    padding: '12px',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    textAlign: 'left'
-                  }}
-                  onClick={() => handleCreateConstraint(constraint.type, constraint.needsValue)}
-                  whileHover={{ scale: 1.02, backgroundColor: '#f0f8ff' }}
-                  whileTap={{ scale: 0.98 }}
-                  title={constraint.description}
-                >
-                  {constraint.icon}
-                  <div>
-                    <div style={{ fontWeight: 'bold' }}>{constraint.name}</div>
-                    <div style={{ fontSize: '10px', color: '#666' }}>{constraint.description}</div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'management' && (
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <h4 style={{ margin: 0, fontSize: '14px', color: '#333' }}>
-                Active Constraints ({constraints.length})
-              </h4>
-              <motion.button
-                style={{
-                  padding: '4px 8px',
-                  backgroundColor: '#52c41a',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '11px'
-                }}
-                onClick={handleCreateAutoConstraints}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+          {/* Constraint Type Selection */}
+          <div className="grid grid-cols-3 gap-2">
+            {constraintTypes.map(ct => (
+              <button
+                key={ct.type}
+                onClick={() => setSelectedConstraintType(ct.type)}
+                className={`flex flex-col items-center p-2 rounded-lg border text-xs transition-all ${
+                  selectedConstraintType === ct.type
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+                title={ct.label}
               >
-                Auto
-              </motion.button>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {constraints.map(constraint => {
-                const status = getConstraintStatus(constraint);
-                const isSelected = selectedConstraintId === constraint.id;
-                
-                return (
-                  <motion.div
-                    key={constraint.id}
-                    style={{
-                      padding: '8px',
-                      border: `1px solid ${isSelected ? '#1890ff' : '#e0e0e0'}`,
-                      borderRadius: '4px',
-                      backgroundColor: isSelected ? '#e6f7ff' : 'white',
-                      cursor: 'pointer',
-                      fontSize: '11px'
-                    }}
-                    onClick={() => setSelectedConstraintId(isSelected ? null : constraint.id)}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                      <div style={{ color: status.color }}>
-                        {status.icon}
-                      </div>
-                      <span style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>
-                        {constraint.type.replace('_', ' ')}
-                      </span>
-                      <div style={{ marginLeft: 'auto', display: 'flex', gap: '2px' }}>
-                        <button
-                          style={{
-                            padding: '2px',
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            cursor: 'pointer',
-                            color: constraint.active ? '#52c41a' : '#d9d9d9'
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleConstraint(constraint.id);
-                          }}
-                          title={constraint.active ? 'Disable' : 'Enable'}
-                        >
-                          {constraint.active ? <Eye size={12} /> : <EyeOff size={12} />}
-                        </button>
-                        <button
-                          style={{
-                            padding: '2px',
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            cursor: 'pointer',
-                            color: '#ff4d4f'
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteConstraint(constraint.id);
-                          }}
-                          title="Delete"
-                        >
-                          <XCircle size={12} />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div style={{ color: '#666', fontSize: '10px' }}>
-                      {getConstraintDescription(constraint)}
-                    </div>
-                    
-                    {constraint.description && (
-                      <div style={{ color: '#999', fontSize: '10px', marginTop: '2px' }}>
-                        {constraint.description}
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-              
-              {constraints.length === 0 && (
-                <div style={{
-                  padding: '24px',
-                  textAlign: 'center',
-                  color: '#999',
-                  fontSize: '12px'
-                }}>
-                  <AlertTriangle size={32} style={{ marginBottom: '8px', opacity: 0.5 }} />
-                  <div>No constraints defined</div>
-                  <div>Select entities and add constraints</div>
-                </div>
-              )}
-            </div>
+                <div className="mb-1">{ct.icon}</div>
+                <span>{ct.label}</span>
+              </button>
+            ))}
           </div>
-        )}
-      </div>
 
-      {/* Statistics */}
-      <div style={{
-        padding: '12px 16px',
-        borderTop: '1px solid #e0e0e0',
-        backgroundColor: 'white',
-        fontSize: '11px',
-        color: '#666'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span>Active: {constraints.filter(c => c.active).length}</span>
-          <span>Satisfied: {constraints.filter(c => c.satisfied).length}</span>
-          <span>Selected: {store.selectedEntityIds.length}</span>
+          {/* Constraint Value Input */}
+          {currentConstraintType?.requiresValue && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                {selectedConstraintType === ConstraintType.DISTANCE ? 'Distance' : 'Value'}
+              </label>
+              <input
+                type="number"
+                value={constraintValue}
+                onChange={(e) => setConstraintValue(e.target.value)}
+                placeholder="Enter value"
+                step="0.1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+            </div>
+          )}
+
+          {/* Create Constraint Button */}
+          <div className="flex space-x-2">
+            <button
+              onClick={handleCreateConstraint}
+              disabled={!canCreateConstraint()}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+            >
+              Create Constraint
+            </button>
+            <button
+              onClick={handleCreateAutoConstraints}
+              disabled={selectedEntityIds.length < 2}
+              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              title="Auto-create constraints"
+            >
+              Auto
+            </button>
+          </div>
+
+          {/* Selection Info */}
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            {selectedEntityIds.length === 0 && 'Select entities to create constraints'}
+            {selectedEntityIds.length === 1 && 'Selected: 1 entity'}
+            {selectedEntityIds.length > 1 && `Selected: ${selectedEntityIds.length} entities`}
+          </div>
+        </div>
+
+        {/* Active Constraints */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
+              Active Constraints
+            </h4>
+            <button
+              onClick={handleSolveConstraints}
+              className="px-3 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700"
+            >
+              Solve All
+            </button>
+          </div>
+
+          {relevantConstraints.length === 0 ? (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+              No constraints for selected entities
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {relevantConstraints.map(constraint => (
+                <div
+                  key={constraint.id}
+                  className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                >
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      constraint.active ? 'bg-green-500' : 'bg-gray-400'
+                    }`} />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                      {constraint.type.replace('_', ' ')}
+                    </span>
+                    {constraint.parameters.distance && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        ({constraint.parameters.distance})
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-1">
+                    <button
+                      onClick={() => handleToggleConstraint(constraint.id, !constraint.active)}
+                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                      title={constraint.active ? 'Disable constraint' : 'Enable constraint'}
+                    >
+                      {constraint.active ? (
+                        <Pause size={14} className="text-orange-600" />
+                      ) : (
+                        <Play size={14} className="text-green-600" />
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => handleRemoveConstraint(constraint.id)}
+                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                      title="Remove constraint"
+                    >
+                      <Trash2 size={14} className="text-red-600" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Help Text */}
+        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-2 rounded">
+          <strong>Tip:</strong> Select entities first, then choose a constraint type. 
+          Constraints will automatically solve when enabled.
         </div>
       </div>
-    </motion.div>
+    </DockPanel>
   );
 };
 

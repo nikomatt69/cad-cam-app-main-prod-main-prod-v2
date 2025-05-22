@@ -1,4 +1,4 @@
-import { Point } from '../../types/TechnicalDrawingTypes';
+import { Point } from '../../TechnicalDrawingTypes';
 
 /**
  * Geometry calculations utility

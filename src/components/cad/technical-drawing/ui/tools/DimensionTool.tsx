@@ -3,9 +3,9 @@
 // Tool for adding dimensions and measurements
 
 import React, { useEffect, useRef, useState } from 'react';
-import { useTechnicalDrawingStore } from '../../../store/technicalDrawingStore';
-import { BaseTool } from '../technical-drawing/core/ToolsManager';
-import { DrawingEntityType, Point, DimensionType } from '../../../types/TechnicalDrawingTypes';
+import { useTechnicalDrawingStore } from '../../enhancedTechnicalDrawingStore';
+import { BaseTool } from '../../core/ToolsManager';
+import { DrawingEntityType, Point, DimensionType } from '../../TechnicalDrawingTypes';
 
 /**
  * DimensionTool - Strumento per creare quote nel disegno tecnico

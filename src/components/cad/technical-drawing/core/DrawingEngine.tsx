@@ -2,7 +2,7 @@
 // Main drawing engine for the technical drawing system
 
 import React, { useRef, useEffect, useState } from 'react';
-import { useTechnicalDrawingStore } from '../../../../store/technicalDrawingStore';
+import { useTechnicalDrawingStore } from '../technicalDrawingStore';
 import { Point, AnyEntity, isDrawingEntity, isDimension, isAnnotation } from '../../../../types/TechnicalDrawingTypes';
 import { renderEntity } from '../rendering/entity-renderers';
 

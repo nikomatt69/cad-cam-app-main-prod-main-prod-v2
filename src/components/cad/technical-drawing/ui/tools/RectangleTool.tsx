@@ -3,9 +3,9 @@
 // Tool for drawing rectangles
 
 import React, { useEffect, useRef } from 'react';
-import { useTechnicalDrawingStore } from '../../../store/technicalDrawingStore';
-import { BaseTool } from '../technical-drawing/core/ToolsManager';
-import { DrawingEntityType, Point } from '../../../types/TechnicalDrawingTypes';
+import { useTechnicalDrawingStore } from '../../enhancedTechnicalDrawingStore';
+import { BaseTool } from '../../core/ToolsManager';
+import { DrawingEntityType, Point } from '../../TechnicalDrawingTypes';
 
 /**
  * RectangleTool - Strumento per creare entità rettangolari

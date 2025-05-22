@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
-import { DrawingToolType } from 'src/components/cam/DrawingToolbar';
+// Drawing tool types
+type DrawingToolType = 'select' | 'line' | 'circle' | 'rectangle' | 'polyline' | 'arc' | 'ellipse' | 'text' | 'dimension' | 'pen' | 'eraser' | 'highlighter';
 
 export interface DrawingToolState {
   activeTool: DrawingToolType;

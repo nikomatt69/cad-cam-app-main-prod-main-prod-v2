@@ -438,7 +438,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({ onComplete }) 
           <label className="block text-xs text-gray-600 mb-1">Unità:</label>
           <select
             value={units}
-            onChange={(e) => setUnits(e.target.value)}
+            onChange={(e) => setUnits(e.target.value as any)}
             className="w-full p-1 border rounded text-sm"
           >
             <option value="mm">mm</option>

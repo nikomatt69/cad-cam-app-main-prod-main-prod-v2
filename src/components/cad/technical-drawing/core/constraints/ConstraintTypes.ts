@@ -1,249 +1,119 @@
 // src/components/cad/technical-drawing/core/constraints/ConstraintTypes.ts
-// Sistema di vincoli parametrici per CAD professionale
-
-import { Point } from '../../TechnicalDrawingTypes';
-
-export interface BaseConstraint {
-  id: string;
-  type: ConstraintType;
-  entityIds: string[];
-  active: boolean;
-  satisfied: boolean;
-  priority: number;
-  description?: string;
-  metadata?: Record<string, any>;
-}
 
 export enum ConstraintType {
-  // Geometric Constraints
+  // Geometric constraints
+  DISTANCE = 'distance',
+  ANGLE = 'angle',
   PARALLEL = 'parallel',
   PERPENDICULAR = 'perpendicular',
   HORIZONTAL = 'horizontal',
   VERTICAL = 'vertical',
   TANGENT = 'tangent',
   CONCENTRIC = 'concentric',
-  COLLINEAR = 'collinear',
   COINCIDENT = 'coincident',
-  EQUAL_LENGTH = 'equal_length',
-  EQUAL_RADIUS = 'equal_radius',
+  COLLINEAR = 'collinear',
+  
+  // Dimensional constraints
+  LENGTH = 'length',
+  RADIUS = 'radius',
+  DIAMETER = 'diameter',
+  
+  // Positional constraints
+  FIX = 'fix',
   SYMMETRIC = 'symmetric',
   MIDPOINT = 'midpoint',
   
-  // Dimensional Constraints
-  DISTANCE = 'distance',
-  ANGLE = 'angle',
-  RADIUS = 'radius',
-  DIAMETER = 'diameter',
-  LENGTH = 'length',
-  
-  // Advanced Constraints
-  PATTERN = 'pattern',
-  OFFSET_DISTANCE = 'offset_distance'
+  // Advanced constraints
+  EQUAL = 'equal',
+  SMOOTH = 'smooth',
+  OFFSET = 'offset'
 }
 
-// Geometric Constraints
-export interface ParallelConstraint extends BaseConstraint {
-  type: ConstraintType.PARALLEL;
-  line1Id: string;
-  line2Id: string;
+export interface Constraint {
+  id: string;
+  type: ConstraintType;
+  entityIds: string[];
+  active: boolean;
+  parameters: Record<string, any>;
+  metadata: {
+    created: number;
+    modified: number;
+    description?: string;
+    priority?: number;
+  };
 }
 
-export interface PerpendicularConstraint extends BaseConstraint {
-  type: ConstraintType.PERPENDICULAR;
-  line1Id: string;
-  line2Id: string;
-}
-
-export interface HorizontalConstraint extends BaseConstraint {
-  type: ConstraintType.HORIZONTAL;
-  lineId: string;
-}
-
-export interface VerticalConstraint extends BaseConstraint {
-  type: ConstraintType.VERTICAL;
-  lineId: string;
-}
-
-export interface TangentConstraint extends BaseConstraint {
-  type: ConstraintType.TANGENT;
-  circleId: string;
-  lineId: string;
-  touchPoint?: Point;
-}
-
-export interface ConcentricConstraint extends BaseConstraint {
-  type: ConstraintType.CONCENTRIC;
-  circle1Id: string;
-  circle2Id: string;
-}
-
-export interface CollinearConstraint extends BaseConstraint {
-  type: ConstraintType.COLLINEAR;
-  line1Id: string;
-  line2Id: string;
-}
-
-export interface CoincidentConstraint extends BaseConstraint {
-  type: ConstraintType.COINCIDENT;
-  entity1Id: string;
-  entity2Id: string;
-  point1?: Point;
-  point2?: Point;
-}
-
-export interface EqualLengthConstraint extends BaseConstraint {
-  type: ConstraintType.EQUAL_LENGTH;
-  line1Id: string;
-  line2Id: string;
-}
-
-export interface EqualRadiusConstraint extends BaseConstraint {
-  type: ConstraintType.EQUAL_RADIUS;
-  circle1Id: string;
-  circle2Id: string;
-}
-
-export interface SymmetricConstraint extends BaseConstraint {
-  type: ConstraintType.SYMMETRIC;
-  entity1Id: string;
-  entity2Id: string;
-  symmetryLineId: string;
-}
-
-export interface MidpointConstraint extends BaseConstraint {
-  type: ConstraintType.MIDPOINT;
-  pointEntityId: string;
-  lineId: string;
-}
-
-// Dimensional Constraints
-export interface DistanceConstraint extends BaseConstraint {
-  type: ConstraintType.DISTANCE;
-  entity1Id: string;
-  entity2Id: string;
-  distance: number;
-  point1?: Point;
-  point2?: Point;
-}
-
-export interface AngleConstraint extends BaseConstraint {
-  type: ConstraintType.ANGLE;
-  line1Id: string;
-  line2Id: string;
-  angle: number; // in radians
-  vertex?: Point;
-}
-
-export interface RadiusConstraint extends BaseConstraint {
-  type: ConstraintType.RADIUS;
-  circleId: string;
-  radius: number;
-}
-
-export interface DiameterConstraint extends BaseConstraint {
-  type: ConstraintType.DIAMETER;
-  circleId: string;
-  diameter: number;
-}
-
-export interface LengthConstraint extends BaseConstraint {
-  type: ConstraintType.LENGTH;
-  lineId: string;
-  length: number;
-}
-
-// Advanced Constraints
-export interface PatternConstraint extends BaseConstraint {
-  type: ConstraintType.PATTERN;
-  seedEntityIds: string[];
-  patternType: 'rectangular' | 'circular' | 'linear';
-  count: number;
-  spacing?: number;
-  angle?: number;
-}
-
-export interface OffsetDistanceConstraint extends BaseConstraint {
-  type: ConstraintType.OFFSET_DISTANCE;
-  sourceEntityId: string;
-  targetEntityId: string;
-  distance: number;
-}
-
-// Union type for all constraints
-export type Constraint = 
-  | ParallelConstraint
-  | PerpendicularConstraint
-  | HorizontalConstraint
-  | VerticalConstraint
-  | TangentConstraint
-  | ConcentricConstraint
-  | CollinearConstraint
-  | CoincidentConstraint
-  | EqualLengthConstraint
-  | EqualRadiusConstraint
-  | SymmetricConstraint
-  | MidpointConstraint
-  | DistanceConstraint
-  | AngleConstraint
-  | RadiusConstraint
-  | DiameterConstraint
-  | LengthConstraint
-  | PatternConstraint
-  | OffsetDistanceConstraint;
-
-// Constraint satisfaction result
-export interface ConstraintSolution {
-  constraintId: string;
-  satisfied: boolean;
-  entityUpdates: Record<string, Partial<any>>;
-  error?: string;
-  iterations?: number;
-}
-
-// Constraint solver configuration
-export interface ConstraintSolverConfig {
-  maxIterations: number;
-  tolerance: number;
-  dampingFactor: number;
-  prioritizeConstraints: boolean;
-  debugMode: boolean;
-}
-
-// Constraint visualization
-export interface ConstraintVisual {
-  constraintId: string;
-  type: 'icon' | 'line' | 'arc' | 'symbol';
-  position: Point;
-  size: number;
-  color: string;
-  visible: boolean;
-  symbol?: string;
-}
-
-// Constraint creation parameters
 export interface ConstraintCreationParams {
   type: ConstraintType;
   entityIds: string[];
-  value?: number; // For dimensional constraints
-  point?: Point; // For point-based constraints
-  priority?: number;
-  description?: string;
+  parameters?: Record<string, any>;
+  metadata?: {
+    description?: string;
+    priority?: number;
+  };
 }
 
-// Constraint validation result
-export interface ConstraintValidation {
-  valid: boolean;
-  reason?: string;
-  suggestions?: string[];
+export interface ConstraintVisual {
+  id: string;
+  constraintId: string;
+  type: 'icon' | 'line' | 'arc' | 'symbol';
+  position: { x: number; y: number };
+  size: number;
+  color: string;
+  visible: boolean;
 }
 
-export default {
-  ConstraintType,
-  BaseConstraint,
-  Constraint,
-  ConstraintSolution,
-  ConstraintSolverConfig,
-  ConstraintVisual,
-  ConstraintCreationParams,
-  ConstraintValidation
+// Constraint validation functions
+export const validateConstraintParams = (type: ConstraintType, entityIds: string[], parameters: Record<string, any>): boolean => {
+  switch (type) {
+    case ConstraintType.DISTANCE:
+      return entityIds.length === 2 && typeof parameters.distance === 'number' && parameters.distance > 0;
+    
+    case ConstraintType.ANGLE:
+      return entityIds.length === 2 && typeof parameters.angle === 'number';
+    
+    case ConstraintType.PARALLEL:
+    case ConstraintType.PERPENDICULAR:
+      return entityIds.length === 2;
+    
+    case ConstraintType.HORIZONTAL:
+    case ConstraintType.VERTICAL:
+    case ConstraintType.FIX:
+      return entityIds.length === 1;
+    
+    case ConstraintType.COINCIDENT:
+      return entityIds.length >= 2;
+    
+    case ConstraintType.LENGTH:
+    case ConstraintType.RADIUS:
+    case ConstraintType.DIAMETER:
+      return entityIds.length === 1 && typeof parameters.value === 'number' && parameters.value > 0;
+    
+    default:
+      return entityIds.length > 0;
+  }
 };
+
+// Constraint priority levels
+export enum ConstraintPriority {
+  LOW = 1,
+  NORMAL = 5,
+  HIGH = 10,
+  CRITICAL = 20
+}
+
+// Constraint solver status
+export enum ConstraintStatus {
+  SATISFIED = 'satisfied',
+  UNSATISFIED = 'unsatisfied',
+  CONFLICTING = 'conflicting',
+  DISABLED = 'disabled'
+}
+
+export interface ConstraintSolverResult {
+  constraintId: string;
+  status: ConstraintStatus;
+  iterations: number;
+  error?: string;
+  entityChanges: Record<string, any>;
+}

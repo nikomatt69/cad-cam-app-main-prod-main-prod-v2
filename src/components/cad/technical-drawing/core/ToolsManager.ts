@@ -1,8 +1,8 @@
 // src/components/cad/technical-drawing/core/ToolsManager.ts
 
 import { createSnapManager, SnapManager } from './SnapManager';
-import { useTechnicalDrawingStore } from '../../technicalDrawingStore';
-import { Point, DrawingEntityType, DimensionType, AnnotationType } from '../../TechnicalDrawingTypes';
+import { useTechnicalDrawingStore } from '../technicalDrawingStore';
+import { Point, DrawingEntityType, DimensionType, AnnotationType } from '../TechnicalDrawingTypes';
 
 /**
  * Interfaccia base per tutti gli strumenti di disegno

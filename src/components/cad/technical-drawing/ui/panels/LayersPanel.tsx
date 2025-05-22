@@ -1,29 +1,14 @@
+// src/components/cad/technical-drawing/ui/panels/LayersPanel.tsx
+
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTechnicalDrawingStore } from '../../technicalDrawingStore';
-import {
-  Layers,
-  Plus,
-  Trash2,
-  Edit,
-  Eye,
-  EyeOff,
-  Lock,
-  Unlock,
-  Check,
-  X,
-  ChevronDown,
-  ChevronRight,
-  MoveVertical
-} from 'lucide-react';
+import { useTechnicalDrawingStore } from '../../enhancedTechnicalDrawingStore';
+import { DrawingLayer } from '../../TechnicalDrawingTypes';
+import { Eye, EyeOff, Lock, Unlock, Plus, Trash2, Edit3 } from 'lucide-react';
 
-interface LayersPanelProps {
-  defaultPosition?: 'left' | 'right';
-}
+const LayersPanel: React.FC = () => {
+  const [editingLayer, setEditingLayer] = useState<string | null>(null);
+  const [newLayerName, setNewLayerName] = useState('');
 
-const LayersPanel: React.FC<LayersPanelProps> = ({
-  defaultPosition = 'right'
-}) => {
   const {
     drawingLayers,
     activeLayer,
@@ -32,432 +17,193 @@ const LayersPanel: React.FC<LayersPanelProps> = ({
     deleteLayer,
     setActiveLayer
   } = useTechnicalDrawingStore();
-  
-  const [isAddingLayer, setIsAddingLayer] = useState(false);
-  const [newLayerName, setNewLayerName] = useState('');
-  const [newLayerColor, setNewLayerColor] = useState('#000000');
-  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-  const [editingColor, setEditingColor] = useState('');
-  const [isExpanded, setIsExpanded] = useState(true);
 
-  const handleAddLayer = () => {
-    if (newLayerName.trim() === '') return;
-    
-    addLayer({
-      name: newLayerName.trim(),
-      color: newLayerColor,
-      visible: true,
-      locked: false,
-      order: drawingLayers.length
-    });
-    
-    setNewLayerName('');
-    setNewLayerColor('#000000');
-    setIsAddingLayer(false);
-  };
-  
-  const handleCancelAdd = () => {
-    setNewLayerName('');
-    setNewLayerColor('#000000');
-    setIsAddingLayer(false);
-  };
-  
-  const handleEditLayer = (layerId: string) => {
-    const layer = drawingLayers.find(l => l.id === layerId);
-    if (!layer) return;
-    
-    setEditingLayerId(layerId);
-    setEditingName(layer.name);
-    setEditingColor(layer.color);
-  };
-  
-  const handleSaveEdit = () => {
-    if (!editingLayerId || editingName.trim() === '') return;
-    
-    updateLayer(editingLayerId, {
-      name: editingName.trim(),
-      color: editingColor
-    });
-    
-    setEditingLayerId(null);
-    setEditingName('');
-    setEditingColor('');
-  };
-  
-  const handleCancelEdit = () => {
-    setEditingLayerId(null);
-    setEditingName('');
-    setEditingColor('');
-  };
-  
-  const handleToggleVisibility = (layerId: string, visible: boolean) => {
-    updateLayer(layerId, { visible: !visible });
-  };
-  
-  const handleToggleLocked = (layerId: string, locked: boolean) => {
-    updateLayer(layerId, { locked: !locked });
-  };
-  
-  const handleDeleteLayer = (layerId: string) => {
-    if (drawingLayers.length <= 1) return; // Mantieni almeno un livello
-    
-    const layer = drawingLayers.find(l => l.id === layerId);
-    
-    // Non eliminare il livello di default
-    if (layer?.name === 'default') return;
-    
-    if (window.confirm(`Sei sicuro di voler eliminare il livello "${layer?.name}"?`)) {
-      deleteLayer(layerId);
+  const handleCreateLayer = () => {
+    if (newLayerName.trim()) {
+      addLayer({
+        name: newLayerName.trim(),
+        color: '#000000',
+        visible: true,
+        locked: false,
+        order: drawingLayers.length
+      });
+      setNewLayerName('');
     }
   };
-  
-  const handleSetActiveLayer = (layerId: string) => {
-    const layer = drawingLayers.find(l => l.id === layerId);
-    if (layer) {
-      setActiveLayer(layer.name);
+
+  const handleDeleteLayer = (layer: DrawingLayer) => {
+    if (layer.name !== 'default' && drawingLayers.length > 1) {
+      deleteLayer(layer.id);
     }
   };
-  
-  // Varianti per animazioni
-  const containerVariants = {
-    expanded: { height: 'auto', opacity: 1 },
-    collapsed: { height: 0, opacity: 0 }
+
+  const handleToggleVisibility = (layer: DrawingLayer) => {
+    updateLayer(layer.id, { visible: !layer.visible });
   };
-  
+
+  const handleToggleLock = (layer: DrawingLayer) => {
+    updateLayer(layer.id, { locked: !layer.locked });
+  };
+
+  const handleColorChange = (layer: DrawingLayer, color: string) => {
+    updateLayer(layer.id, { color });
+  };
+
+  const handleNameChange = (layer: DrawingLayer, name: string) => {
+    if (name.trim() && name !== layer.name) {
+      updateLayer(layer.id, { name: name.trim() });
+    }
+    setEditingLayer(null);
+  };
+
+  const sortedLayers = [...drawingLayers].sort((a, b) => (a.order || 0) - (b.order || 0));
+
   return (
-    <motion.div
-      className="layers-panel"
-      style={{
-        width: '100%',
-        backgroundColor: '#f8f9fa',
-        padding: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '12px'
-      }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div 
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          borderBottom: '1px solid #e0e0e0',
-          paddingBottom: '8px',
-          marginBottom: '8px'
-        }}
-      >
-        <Layers size={18} style={{ marginRight: '8px' }} />
-        <div
-          style={{
-            fontWeight: 'bold',
-            fontSize: '16px',
-            flex: 1
-          }}
-        >
-          Livelli
-        </div>
-        <motion.button
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px'
-          }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-        </motion.button>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+          Layers
+        </h3>
+        <span className="text-sm text-gray-500">
+          {drawingLayers.length} layer{drawingLayers.length !== 1 ? 's' : ''}
+        </span>
       </div>
-      
-      <AnimatePresence>
-        {isExpanded && (
-          <motion.div
-            initial='collapsed'
-            animate='expanded'
-            exit='collapsed'
-            variants={containerVariants}
-            transition={{ duration: 0.3 }}
-            style={{ overflow: 'hidden' }}
+
+      {/* New Layer Input */}
+      <div className="flex space-x-2">
+        <input
+          type="text"
+          value={newLayerName}
+          onChange={(e) => setNewLayerName(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleCreateLayer()}
+          placeholder="New layer name"
+          className="flex-1 px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+        />
+        <button
+          onClick={handleCreateLayer}
+          disabled={!newLayerName.trim()}
+          className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+
+      {/* Layers List */}
+      <div className="space-y-2 max-h-96 overflow-y-auto">
+        {sortedLayers.map((layer) => (
+          <div
+            key={layer.id}
+            className={`flex items-center space-x-2 p-2 rounded-md border transition-colors ${
+              activeLayer === layer.name
+                ? 'bg-blue-50 border-blue-200 dark:bg-blue-900 dark:border-blue-700'
+                : 'bg-gray-50 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600'
+            }`}
           >
-            {/* Lista dei livelli */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {drawingLayers
-                .sort((a, b) => (a.order || 0) - (b.order || 0))
-                .map(layer => (
-                  <div
-                    key={layer.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      backgroundColor: layer.name === activeLayer ? '#e6f7ff' : 'white',
-                      border: layer.name === activeLayer ? '1px solid #91d5ff' : '1px solid #e0e0e0'
-                    }}
-                  >
-                    {editingLayerId === layer.id ? (
-                      // Modalità di modifica
-                      <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                        <input
-                          type="color"
-                          value={editingColor}
-                          onChange={e => setEditingColor(e.target.value)}
-                          style={{ marginRight: '8px', width: '24px', height: '24px' }}
-                        />
-                        <input
-                          type="text"
-                          value={editingName}
-                          onChange={e => setEditingName(e.target.value)}
-                          autoFocus
-                          style={{
-                            flex: 1,
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #d9d9d9'
-                          }}
-                        />
-                        <div style={{ display: 'flex', marginLeft: '8px' }}>
-                          <motion.button
-                            onClick={handleSaveEdit}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              color: '#52c41a'
-                            }}
-                          >
-                            <Check size={16} />
-                          </motion.button>
-                          <motion.button
-                            onClick={handleCancelEdit}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              color: '#ff4d4f'
-                            }}
-                          >
-                            <X size={16} />
-                          </motion.button>
-                        </div>
-                      </div>
-                    ) : (
-                      // Visualizzazione normale
-                      <>
-                        <div
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            backgroundColor: layer.color,
-                            border: '1px solid #d9d9d9',
-                            borderRadius: '3px',
-                            marginRight: '8px'
-                          }}
-                        />
-                        <div
-                          style={{
-                            cursor: 'pointer',
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            opacity: layer.visible ? 1 : 0.5
-                          }}
-                          onClick={() => handleSetActiveLayer(layer.id)}
-                        >
-                          {layer.name}
-                        </div>
-                        <div style={{ display: 'flex', gap: '2px' }}>
-                          {/* Visibilità */}
-                          <motion.button
-                            onClick={() => handleToggleVisibility(layer.id, layer.visible)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              color: layer.visible ? '#1890ff' : '#d9d9d9'
-                            }}
-                          >
-                            {layer.visible ? <Eye size={16} /> : <EyeOff size={16} />}
-                          </motion.button>
-                          
-                          {/* Blocco */}
-                          <motion.button
-                            onClick={() => handleToggleLocked(layer.id, layer.locked)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              color: layer.locked ? '#ff4d4f' : '#d9d9d9'
-                            }}
-                          >
-                            {layer.locked ? <Lock size={16} /> : <Unlock size={16} />}
-                          </motion.button>
-                          
-                          {/* Modifica */}
-                          <motion.button
-                            onClick={() => handleEditLayer(layer.id)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              padding: '4px',
-                              color: '#666'
-                            }}
-                          >
-                            <Edit size={16} />
-                          </motion.button>
-                          
-                          {/* Elimina (disabilitato per il livello di default) */}
-                          <motion.button
-                            onClick={() => handleDeleteLayer(layer.id)}
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: layer.name === 'default' ? 'not-allowed' : 'pointer',
-                              padding: '4px',
-                              color: layer.name === 'default' ? '#d9d9d9' : '#ff4d4f',
-                              opacity: layer.name === 'default' ? 0.5 : 1
-                            }}
-                            disabled={layer.name === 'default'}
-                          >
-                            <Trash2 size={16} />
-                          </motion.button>
-                          
-                          {/* Ordine (drag handle) */}
-                          <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.9 }}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'grab',
-                              padding: '4px',
-                              color: '#666'
-                            }}
-                          >
-                            <MoveVertical size={16} />
-                          </motion.button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ))}
+            {/* Color Swatch */}
+            <div className="relative">
+              <input
+                type="color"
+                value={layer.color}
+                onChange={(e) => handleColorChange(layer, e.target.value)}
+                className="w-6 h-6 rounded border border-gray-300 cursor-pointer"
+                title="Change layer color"
+              />
             </div>
-            
-            {/* Nuovo livello form */}
-            {isAddingLayer ? (
-              <motion.div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginTop: '12px',
-                  padding: '8px',
-                  backgroundColor: 'white',
-                  borderRadius: '4px',
-                  border: '1px solid #e0e0e0'
-                }}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
-                <input
-                  type="color"
-                  value={newLayerColor}
-                  onChange={e => setNewLayerColor(e.target.value)}
-                  style={{ marginRight: '8px', width: '24px', height: '24px' }}
-                />
+
+            {/* Layer Name */}
+            <div className="flex-1 min-w-0">
+              {editingLayer === layer.id ? (
                 <input
                   type="text"
-                  value={newLayerName}
-                  onChange={e => setNewLayerName(e.target.value)}
-                  placeholder="Nome del livello"
-                  autoFocus
-                  style={{
-                    flex: 1,
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    border: '1px solid #d9d9d9'
+                  defaultValue={layer.name}
+                  onBlur={(e) => handleNameChange(layer, e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleNameChange(layer, e.currentTarget.value);
+                    }
                   }}
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
+                  autoFocus
                 />
-                <div style={{ display: 'flex', marginLeft: '8px' }}>
-                  <motion.button
-                    onClick={handleAddLayer}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      color: '#52c41a'
-                    }}
-                  >
-                    <Check size={16} />
-                  </motion.button>
-                  <motion.button
-                    onClick={handleCancelAdd}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '4px',
-                      color: '#ff4d4f'
-                    }}
-                  >
-                    <X size={16} />
-                  </motion.button>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.button
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: '12px',
-                  padding: '8px',
-                  backgroundColor: '#e6f7ff',
-                  border: '1px dashed #91d5ff',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  color: '#1890ff',
-                  width: '100%'
-                }}
-                whileHover={{ backgroundColor: '#bae7ff' }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setIsAddingLayer(true)}
+              ) : (
+                <button
+                  onClick={() => setActiveLayer(layer.name)}
+                  className="w-full text-left"
+                >
+                  <div className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                    {layer.name}
+                    {activeLayer === layer.name && (
+                      <span className="ml-2 text-xs text-blue-600 dark:text-blue-400">
+                        (Active)
+                      </span>
+                    )}
+                  </div>
+                  {layer.description && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      {layer.description}
+                    </div>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="flex items-center space-x-1">
+              {/* Visibility Toggle */}
+              <button
+                onClick={() => handleToggleVisibility(layer)}
+                className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${
+                  layer.visible ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400'
+                }`}
+                title={layer.visible ? 'Hide layer' : 'Show layer'}
               >
-                <Plus size={16} style={{ marginRight: '8px' }} />
-                Aggiungi nuovo livello
-              </motion.button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </motion.div>
+                {layer.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+              </button>
+
+              {/* Lock Toggle */}
+              <button
+                onClick={() => handleToggleLock(layer)}
+                className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 ${
+                  layer.locked ? 'text-red-600' : 'text-gray-700 dark:text-gray-300'
+                }`}
+                title={layer.locked ? 'Unlock layer' : 'Lock layer'}
+              >
+                {layer.locked ? <Lock size={14} /> : <Unlock size={14} />}
+              </button>
+
+              {/* Edit Name */}
+              <button
+                onClick={() => setEditingLayer(layer.id)}
+                className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300"
+                title="Edit layer name"
+              >
+                <Edit3 size={14} />
+              </button>
+
+              {/* Delete Layer */}
+              {layer.name !== 'default' && drawingLayers.length > 1 && (
+                <button
+                  onClick={() => handleDeleteLayer(layer)}
+                  className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900 text-red-600 hover:text-red-700"
+                  title="Delete layer"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Layer Statistics */}
+      <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+          <div>Visible: {drawingLayers.filter(l => l.visible).length}</div>
+          <div>Locked: {drawingLayers.filter(l => l.locked).length}</div>
+        </div>
+      </div>
+    </div>
   );
 };
 

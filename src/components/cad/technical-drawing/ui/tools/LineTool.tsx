@@ -3,9 +3,8 @@
 // Tool for drawing lines
 
 import React, { useEffect, useRef } from 'react';
-import { useTechnicalDrawingStore } from '../../../store/technicalDrawingStore';
-import { BaseTool } from '../technical-drawing/core/ToolsManager';
-import { DrawingEntityType, Point } from '../../../types/TechnicalDrawingTypes';
+import { useTechnicalDrawingStore } from '../../enhancedTechnicalDrawingStore';
+import { BaseTool, DrawingEntityType, Point } from '../../TechnicalDrawingTypes';
 
 /**
  * LineTool - Strumento per creare entità lineari
@@ -14,22 +13,17 @@ import { DrawingEntityType, Point } from '../../../types/TechnicalDrawingTypes';
  * Permette di disegnare linee cliccando su due punti.
  * Allows drawing lines by clicking on two points.
  */
-export class LineTool extends BaseTool {
-  constructor() {
-    super(
-      'line',             // Tool ID
-      'Linea',            // Tool name in Italian
-      'straighten',       // Material icon name
-      'crosshair',        // Cursor type
-      {                   // Default style
-        strokeColor: '#000000',
-        strokeWidth: 1,
-        strokeStyle: 'solid'
-      },
-      2                   // Required points
-    );
-  }
-  
+export class LineTool implements BaseTool {
+  private tempPoints: Point[] = [];
+  private defaultStyle: {
+    strokeColor: string;
+    strokeWidth: number;
+    strokeStyle: string;
+  } = { 
+    strokeColor: '#000000',
+    strokeWidth: 1,
+    strokeStyle: 'solid'
+  };
   onMouseDown(point: Point, event: React.MouseEvent): void {
     // Se è il primo punto, aggiungerlo ai punti temporanei
     // If it's the first point, add it to temp points

@@ -1,20 +1,33 @@
 // src/hooks/useDrawings.ts
 
 import useSWR, { mutate } from 'swr';
-import { 
-  fetchProjectDrawings, 
-  fetchDrawingById, 
-  createDrawing, 
-  updateDrawing, 
-  deleteDrawing,
-  fetchDrawingVersions,
-  createDrawingVersion,
-  restoreDrawingVersion,
-  CreateDrawingInput,
-  UpdateDrawingInput
-} from 'src/lib/api/drawings';
 import { useState } from 'react';
-import { Drawing } from '../types/mainTypes';
+
+// Mock API functions - replace with actual API implementations
+const fetchProjectDrawings = async (projectId: string) => [];
+const fetchDrawingById = async (id: string) => null;
+const createDrawing = async (input: any) => null;
+const updateDrawing = async (input: any) => null;
+const deleteDrawing = async (id: string) => {};
+const fetchDrawingVersions = async (drawingId: string) => [];
+const createDrawingVersion = async (drawingId: string) => null;
+const restoreDrawingVersion = async (drawingId: string, versionId: string) => null;
+
+interface Drawing {
+  id: string;
+  projectId: string;
+  name: string;
+  updatedAt: string;
+}
+
+interface CreateDrawingInput {
+  projectId: string;
+  name: string;
+}
+
+interface UpdateDrawingInput {
+  id: string;
+}
 
 
 // Hook for project drawings

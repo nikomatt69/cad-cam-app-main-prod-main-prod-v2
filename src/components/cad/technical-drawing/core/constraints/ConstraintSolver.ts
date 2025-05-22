@@ -1,741 +1,420 @@
 // src/components/cad/technical-drawing/core/constraints/ConstraintSolver.ts
-// Advanced Constraint Solver per sistema CAD parametrico
 
-import { 
-  Constraint, 
-  ConstraintType, 
-  ConstraintSolution, 
-  ConstraintSolverConfig,
-  ParallelConstraint,
-  PerpendicularConstraint,
-  HorizontalConstraint,
-  VerticalConstraint,
-  TangentConstraint,
-  ConcentricConstraint,
-  DistanceConstraint,
-  AngleConstraint,
-  RadiusConstraint,
-  LengthConstraint
-} from './ConstraintTypes';
-import { Point, DrawingEntity, LineEntity, CircleEntity } from '../../TechnicalDrawingTypes';
+import { Constraint, ConstraintType, ConstraintStatus, ConstraintSolverResult } from './ConstraintTypes';
+import { AnyEntity, Point } from '../../TechnicalDrawingTypes';
 
-/**
- * 🧠 Advanced Constraint Solver
- * 
- * Utilizza algoritmi numerici per risolvere sistemi di vincoli geometrici e dimensionali.
- * Implementa il metodo Newton-Raphson per sistemi non lineari.
- */
-export class ConstraintSolver {
-  private config: ConstraintSolverConfig;
-  private entities: Record<string, DrawingEntity>;
-  private constraints: Constraint[];
-  private debugMode: boolean;
+export default class ConstraintSolver {
+  private maxIterations: number = 100;
+  private tolerance: number = 0.001;
 
-  constructor(config: Partial<ConstraintSolverConfig> = {}) {
-    this.config = {
-      maxIterations: 100,
-      tolerance: 1e-6,
-      dampingFactor: 0.5,
-      prioritizeConstraints: true,
-      debugMode: false,
-      ...config
-    };
-    this.entities = {};
-    this.constraints = [];
-    this.debugMode = this.config.debugMode;
+  constructor(maxIterations: number = 100, tolerance: number = 0.001) {
+    this.maxIterations = maxIterations;
+    this.tolerance = tolerance;
   }
 
-  /**
-   * Imposta le entità per il solver
-   */
-  setEntities(entities: Record<string, DrawingEntity>) {
-    this.entities = { ...entities };
-  }
-
-  /**
-   * Imposta i vincoli da risolvere
-   */
-  setConstraints(constraints: Constraint[]) {
-    this.constraints = [...constraints];
-    if (this.config.prioritizeConstraints) {
-      this.constraints.sort((a, b) => b.priority - a.priority);
-    }
-  }
-
-  /**
-   * Risolve tutti i vincoli attivi
-   */
-  async solve(): Promise<ConstraintSolution[]> {
-    const solutions: ConstraintSolution[] = [];
+  async solve(constraints: Constraint[], entities: Map<string, AnyEntity>): Promise<ConstraintSolverResult[]> {
+    const results: ConstraintSolverResult[] = [];
     
-    this.log('🔧 Starting constraint solver...');
-    this.log(`📊 Constraints: ${this.constraints.length}, Entities: ${Object.keys(this.entities).length}`);
+    // Sort constraints by priority
+    const sortedConstraints = [...constraints].sort((a, b) => 
+      (b.metadata.priority || 5) - (a.metadata.priority || 5)
+    );
 
-    // Itera su tutti i vincoli attivi
-    for (const constraint of this.constraints.filter(c => c.active)) {
-      try {
-        const solution = await this.solveConstraint(constraint);
-        solutions.push(solution);
-        
-        if (solution.satisfied) {
-          // Applica gli aggiornamenti alle entità
-          this.applyEntityUpdates(solution.entityUpdates);
-          this.log(`✅ Constraint ${constraint.id} satisfied in ${solution.iterations} iterations`);
-        } else {
-          this.log(`❌ Constraint ${constraint.id} failed: ${solution.error}`);
-        }
-      } catch (error) {
-        this.log(`💥 Error solving constraint ${constraint.id}: ${error.message}`);
-        solutions.push({
+    for (const constraint of sortedConstraints) {
+      if (!constraint.active) {
+        results.push({
           constraintId: constraint.id,
-          satisfied: false,
-          entityUpdates: {},
-          error: error.message
+          status: ConstraintStatus.DISABLED,
+          iterations: 0,
+          entityChanges: {}
+        });
+        continue;
+      }
+
+      try {
+        const result = await this.solveConstraint(constraint, entities);
+        results.push(result);
+      } catch (error) {
+        results.push({
+          constraintId: constraint.id,
+          status: ConstraintStatus.UNSATISFIED,
+          iterations: 0,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          entityChanges: {}
         });
       }
     }
 
-    this.log(`🎯 Solver completed: ${solutions.filter(s => s.satisfied).length}/${solutions.length} satisfied`);
-    return solutions;
+    return results;
   }
 
-  /**
-   * Risolve un singolo vincolo
-   */
-  private async solveConstraint(constraint: Constraint): Promise<ConstraintSolution> {
-    this.log(`🔍 Solving constraint: ${constraint.type} (${constraint.id})`);
+  private async solveConstraint(constraint: Constraint, entities: Map<string, AnyEntity>): Promise<ConstraintSolverResult> {
+    const constraintEntities = constraint.entityIds
+      .map(id => entities.get(id))
+      .filter(Boolean) as AnyEntity[];
 
+    if (constraintEntities.length !== constraint.entityIds.length) {
+      throw new Error('Not all entities found for constraint');
+    }
+
+    let iterations = 0;
+    let satisfied = false;
+    const entityChanges: Record<string, any> = {};
+
+    while (iterations < this.maxIterations && !satisfied) {
+      const result = this.applyConstraint(constraint, constraintEntities);
+      
+      if (result.satisfied) {
+        satisfied = true;
+        Object.assign(entityChanges, result.changes);
+      } else if (result.changes && Object.keys(result.changes).length > 0) {
+        // Apply partial changes and continue iterating
+        Object.assign(entityChanges, result.changes);
+        this.applyChangesToEntities(result.changes, constraintEntities);
+      } else {
+        // No progress made, break to avoid infinite loop
+        break;
+      }
+
+      iterations++;
+    }
+
+    return {
+      constraintId: constraint.id,
+      status: satisfied ? ConstraintStatus.SATISFIED : ConstraintStatus.UNSATISFIED,
+      iterations,
+      entityChanges
+    };
+  }
+
+  private applyConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
     switch (constraint.type) {
-      case ConstraintType.PARALLEL:
-        return this.solveParallel(constraint as ParallelConstraint);
-        
-      case ConstraintType.PERPENDICULAR:
-        return this.solvePerpendicular(constraint as PerpendicularConstraint);
-        
-      case ConstraintType.HORIZONTAL:
-        return this.solveHorizontal(constraint as HorizontalConstraint);
-        
-      case ConstraintType.VERTICAL:
-        return this.solveVertical(constraint as VerticalConstraint);
-        
-      case ConstraintType.TANGENT:
-        return this.solveTangent(constraint as TangentConstraint);
-        
-      case ConstraintType.CONCENTRIC:
-        return this.solveConcentric(constraint as ConcentricConstraint);
-        
       case ConstraintType.DISTANCE:
-        return this.solveDistance(constraint as DistanceConstraint);
-        
-      case ConstraintType.ANGLE:
-        return this.solveAngle(constraint as AngleConstraint);
-        
-      case ConstraintType.RADIUS:
-        return this.solveRadius(constraint as RadiusConstraint);
-        
-      case ConstraintType.LENGTH:
-        return this.solveLength(constraint as LengthConstraint);
-        
+        return this.applyDistanceConstraint(constraint, entities);
+      
+      case ConstraintType.PARALLEL:
+        return this.applyParallelConstraint(constraint, entities);
+      
+      case ConstraintType.PERPENDICULAR:
+        return this.applyPerpendicularConstraint(constraint, entities);
+      
+      case ConstraintType.HORIZONTAL:
+        return this.applyHorizontalConstraint(constraint, entities);
+      
+      case ConstraintType.VERTICAL:
+        return this.applyVerticalConstraint(constraint, entities);
+      
+      case ConstraintType.COINCIDENT:
+        return this.applyCoincidentConstraint(constraint, entities);
+      
+      case ConstraintType.FIX:
+        return this.applyFixConstraint(constraint, entities);
+      
       default:
-        throw new Error(`Unsupported constraint type: ${constraint.type}`);
+        return { satisfied: false };
     }
   }
 
-  /**
-   * Risolve vincolo di parallelismo
-   */
-  private async solveParallel(constraint: ParallelConstraint): Promise<ConstraintSolution> {
-    const line1 = this.entities[constraint.line1Id] as LineEntity;
-    const line2 = this.entities[constraint.line2Id] as LineEntity;
-
-    if (!line1 || !line2 || line1.type !== 'line' || line2.type !== 'line') {
-      throw new Error('Invalid entities for parallel constraint');
+  private applyDistanceConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    if (entities.length !== 2) {
+      return { satisfied: false };
     }
 
-    // Calcola angoli delle linee
-    const angle1 = Math.atan2(
-      line1.endPoint.y - line1.startPoint.y,
-      line1.endPoint.x - line1.startPoint.x
-    );
+    const targetDistance = constraint.parameters.distance as number;
+    if (!targetDistance || targetDistance <= 0) {
+      return { satisfied: false };
+    }
+
+    const entity1 = entities[0];
+    const entity2 = entities[1];
+
+    // Get representative points from entities
+    const point1 = this.getEntityCenterPoint(entity1);
+    const point2 = this.getEntityCenterPoint(entity2);
+
+    if (!point1 || !point2) {
+      return { satisfied: false };
+    }
+
+    const currentDistance = this.calculateDistance(point1, point2);
     
-    const angle2 = Math.atan2(
-      line2.endPoint.y - line2.startPoint.y,
-      line2.endPoint.x - line2.startPoint.x
-    );
+    if (Math.abs(currentDistance - targetDistance) < this.tolerance) {
+      return { satisfied: true };
+    }
+
+    // Calculate adjustment needed
+    const direction = this.normalizeVector({
+      x: point2.x - point1.x,
+      y: point2.y - point1.y
+    });
+
+    const adjustment = (currentDistance - targetDistance) / 2;
+    const offset1 = {
+      x: direction.x * adjustment,
+      y: direction.y * adjustment
+    };
+    const offset2 = {
+      x: -direction.x * adjustment,
+      y: -direction.y * adjustment
+    };
+
+    return {
+      satisfied: false,
+      changes: {
+        [entity1.id]: this.applyOffsetToEntity(entity1, offset1),
+        [entity2.id]: this.applyOffsetToEntity(entity2, offset2)
+      }
+    };
+  }
+
+  private applyParallelConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    if (entities.length !== 2 || entities[0].type !== 'line' || entities[1].type !== 'line') {
+      return { satisfied: false };
+    }
+
+    const line1 = entities[0] as any;
+    const line2 = entities[1] as any;
+
+    const angle1 = this.calculateLineAngle(line1);
+    const angle2 = this.calculateLineAngle(line2);
 
     const angleDiff = Math.abs(angle1 - angle2);
     const normalizedDiff = Math.min(angleDiff, Math.PI - angleDiff);
 
-    // Se già parallele, non fare nulla
-    if (normalizedDiff < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
+    if (normalizedDiff < this.tolerance) {
+      return { satisfied: true };
     }
 
-    // Ruota la seconda linea per renderla parallela alla prima
-    const targetAngle = angle1;
-    const currentLength = Math.sqrt(
-      Math.pow(line2.endPoint.x - line2.startPoint.x, 2) +
-      Math.pow(line2.endPoint.y - line2.startPoint.y, 2)
-    );
-
-    const newEndPoint: Point = {
-      x: line2.startPoint.x + currentLength * Math.cos(targetAngle),
-      y: line2.startPoint.y + currentLength * Math.sin(targetAngle)
+    // Adjust second line to be parallel to first
+    const length = this.calculateDistance(line2.startPoint, line2.endPoint);
+    const newEndPoint = {
+      x: line2.startPoint.x + length * Math.cos(angle1),
+      y: line2.startPoint.y + length * Math.sin(angle1)
     };
 
     return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.line2Id]: {
+      satisfied: false,
+      changes: {
+        [line2.id]: {
           endPoint: newEndPoint
         }
-      },
-      iterations: 1
+      }
     };
   }
 
-  /**
-   * Risolve vincolo di perpendicolarità
-   */
-  private async solvePerpendicular(constraint: PerpendicularConstraint): Promise<ConstraintSolution> {
-    const line1 = this.entities[constraint.line1Id] as LineEntity;
-    const line2 = this.entities[constraint.line2Id] as LineEntity;
-
-    if (!line1 || !line2 || line1.type !== 'line' || line2.type !== 'line') {
-      throw new Error('Invalid entities for perpendicular constraint');
+  private applyPerpendicularConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    if (entities.length !== 2 || entities[0].type !== 'line' || entities[1].type !== 'line') {
+      return { satisfied: false };
     }
 
-    // Calcola angoli delle linee
-    const angle1 = Math.atan2(
-      line1.endPoint.y - line1.startPoint.y,
-      line1.endPoint.x - line1.startPoint.x
-    );
+    const line1 = entities[0] as any;
+    const line2 = entities[1] as any;
 
-    const angle2 = Math.atan2(
-      line2.endPoint.y - line2.startPoint.y,
-      line2.endPoint.x - line2.startPoint.x
-    );
+    const angle1 = this.calculateLineAngle(line1);
+    const angle2 = this.calculateLineAngle(line2);
 
     const angleDiff = Math.abs(angle1 - angle2);
-    const perpendicularCheck = Math.abs(angleDiff - Math.PI/2) < this.config.tolerance ||
-                              Math.abs(angleDiff - 3*Math.PI/2) < this.config.tolerance;
+    const perpendicularDiff = Math.abs(angleDiff - Math.PI / 2);
 
-    // Se già perpendicolari, non fare nulla
-    if (perpendicularCheck) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
+    if (perpendicularDiff < this.tolerance || Math.abs(perpendicularDiff - Math.PI) < this.tolerance) {
+      return { satisfied: true };
     }
 
-    // Ruota la seconda linea per renderla perpendicolare alla prima
-    const targetAngle = angle1 + Math.PI/2;
-    const currentLength = Math.sqrt(
-      Math.pow(line2.endPoint.x - line2.startPoint.x, 2) +
-      Math.pow(line2.endPoint.y - line2.startPoint.y, 2)
-    );
-
-    const newEndPoint: Point = {
-      x: line2.startPoint.x + currentLength * Math.cos(targetAngle),
-      y: line2.startPoint.y + currentLength * Math.sin(targetAngle)
+    // Adjust second line to be perpendicular to first
+    const perpendicularAngle = angle1 + Math.PI / 2;
+    const length = this.calculateDistance(line2.startPoint, line2.endPoint);
+    const newEndPoint = {
+      x: line2.startPoint.x + length * Math.cos(perpendicularAngle),
+      y: line2.startPoint.y + length * Math.sin(perpendicularAngle)
     };
 
     return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.line2Id]: {
+      satisfied: false,
+      changes: {
+        [line2.id]: {
           endPoint: newEndPoint
         }
-      },
-      iterations: 1
+      }
     };
   }
 
-  /**
-   * Risolve vincolo orizzontale
-   */
-  private async solveHorizontal(constraint: HorizontalConstraint): Promise<ConstraintSolution> {
-    const line = this.entities[constraint.lineId] as LineEntity;
-
-    if (!line || line.type !== 'line') {
-      throw new Error('Invalid entity for horizontal constraint');
+  private applyHorizontalConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    if (entities.length !== 1 || entities[0].type !== 'line') {
+      return { satisfied: false };
     }
 
-    // Se già orizzontale, non fare nulla
-    if (Math.abs(line.endPoint.y - line.startPoint.y) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
+    const line = entities[0] as any;
+    const yDiff = Math.abs(line.endPoint.y - line.startPoint.y);
 
-    // Rende la linea orizzontale
-    const newEndPoint: Point = {
-      x: line.endPoint.x,
-      y: line.startPoint.y
-    };
+    if (yDiff < this.tolerance) {
+      return { satisfied: true };
+    }
 
     return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.lineId]: {
-          endPoint: newEndPoint
-        }
-      },
-      iterations: 1
-    };
-  }
-
-  /**
-   * Risolve vincolo verticale
-   */
-  private async solveVertical(constraint: VerticalConstraint): Promise<ConstraintSolution> {
-    const line = this.entities[constraint.lineId] as LineEntity;
-
-    if (!line || line.type !== 'line') {
-      throw new Error('Invalid entity for vertical constraint');
-    }
-
-    // Se già verticale, non fare nulla
-    if (Math.abs(line.endPoint.x - line.startPoint.x) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
-
-    // Rende la linea verticale
-    const newEndPoint: Point = {
-      x: line.startPoint.x,
-      y: line.endPoint.y
-    };
-
-    return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.lineId]: {
-          endPoint: newEndPoint
-        }
-      },
-      iterations: 1
-    };
-  }
-
-  /**
-   * Risolve vincolo di tangenza
-   */
-  private async solveTangent(constraint: TangentConstraint): Promise<ConstraintSolution> {
-    const circle = this.entities[constraint.circleId] as CircleEntity;
-    const line = this.entities[constraint.lineId] as LineEntity;
-
-    if (!circle || !line || circle.type !== 'circle' || line.type !== 'line') {
-      throw new Error('Invalid entities for tangent constraint');
-    }
-
-    // Calcola la distanza dalla linea al centro del cerchio
-    const distance = this.pointToLineDistance(circle.center, line.startPoint, line.endPoint);
-
-    // Se già tangente, non fare nulla
-    if (Math.abs(distance - circle.radius) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
-
-    // Sposta la linea per renderla tangente
-    const lineVector = {
-      x: line.endPoint.x - line.startPoint.x,
-      y: line.endPoint.y - line.startPoint.y
-    };
-
-    const lineLength = Math.sqrt(lineVector.x * lineVector.x + lineVector.y * lineVector.y);
-    const unitVector = {
-      x: lineVector.x / lineLength,
-      y: lineVector.y / lineLength
-    };
-
-    const perpVector = {
-      x: -unitVector.y,
-      y: unitVector.x
-    };
-
-    const moveDistance = circle.radius - distance;
-    const moveVector = {
-      x: perpVector.x * moveDistance,
-      y: perpVector.y * moveDistance
-    };
-
-    return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.lineId]: {
-          startPoint: {
-            x: line.startPoint.x + moveVector.x,
-            y: line.startPoint.y + moveVector.y
-          },
+      satisfied: false,
+      changes: {
+        [line.id]: {
           endPoint: {
-            x: line.endPoint.x + moveVector.x,
-            y: line.endPoint.y + moveVector.y
+            x: line.endPoint.x,
+            y: line.startPoint.y
           }
         }
-      },
-      iterations: 1
+      }
     };
   }
 
-  /**
-   * Risolve vincolo concentrico
-   */
-  private async solveConcentric(constraint: ConcentricConstraint): Promise<ConstraintSolution> {
-    const circle1 = this.entities[constraint.circle1Id] as CircleEntity;
-    const circle2 = this.entities[constraint.circle2Id] as CircleEntity;
-
-    if (!circle1 || !circle2 || circle1.type !== 'circle' || circle2.type !== 'circle') {
-      throw new Error('Invalid entities for concentric constraint');
+  private applyVerticalConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    if (entities.length !== 1 || entities[0].type !== 'line') {
+      return { satisfied: false };
     }
 
-    // Se già concentrici, non fare nulla
-    const centerDistance = Math.sqrt(
-      Math.pow(circle1.center.x - circle2.center.x, 2) +
-      Math.pow(circle1.center.y - circle2.center.y, 2)
-    );
+    const line = entities[0] as any;
+    const xDiff = Math.abs(line.endPoint.x - line.startPoint.x);
 
-    if (centerDistance < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
+    if (xDiff < this.tolerance) {
+      return { satisfied: true };
     }
 
-    // Sposta il secondo cerchio per renderlo concentrico al primo
     return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.circle2Id]: {
-          center: { ...circle1.center }
+      satisfied: false,
+      changes: {
+        [line.id]: {
+          endPoint: {
+            x: line.startPoint.x,
+            y: line.endPoint.y
+          }
         }
-      },
-      iterations: 1
+      }
     };
   }
 
-  /**
-   * Risolve vincolo di distanza
-   */
-  private async solveDistance(constraint: DistanceConstraint): Promise<ConstraintSolution> {
-    const entity1 = this.entities[constraint.entity1Id];
-    const entity2 = this.entities[constraint.entity2Id];
-
-    if (!entity1 || !entity2) {
-      throw new Error('Invalid entities for distance constraint');
+  private applyCoincidentConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    if (entities.length < 2) {
+      return { satisfied: false };
     }
 
-    // Per semplicità, implementiamo distanza tra due punti specifici
-    let point1: Point, point2: Point;
-
-    if (constraint.point1 && constraint.point2) {
-      point1 = constraint.point1;
-      point2 = constraint.point2;
-    } else {
-      // Usa i centri delle entità
-      point1 = this.getEntityCenter(entity1);
-      point2 = this.getEntityCenter(entity2);
+    const referencePoint = this.getEntityCenterPoint(entities[0]);
+    if (!referencePoint) {
+      return { satisfied: false };
     }
 
-    const currentDistance = Math.sqrt(
-      Math.pow(point2.x - point1.x, 2) +
-      Math.pow(point2.y - point1.y, 2)
-    );
+    const changes: Record<string, any> = {};
+    let allCoincident = true;
 
-    // Se la distanza è già corretta, non fare nulla
-    if (Math.abs(currentDistance - constraint.distance) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
+    for (let i = 1; i < entities.length; i++) {
+      const entity = entities[i];
+      const entityPoint = this.getEntityCenterPoint(entity);
+      
+      if (!entityPoint) continue;
 
-    // Sposta la seconda entità per rispettare la distanza
-    const direction = {
-      x: (point2.x - point1.x) / currentDistance,
-      y: (point2.y - point1.y) / currentDistance
-    };
-
-    const newPoint2: Point = {
-      x: point1.x + direction.x * constraint.distance,
-      y: point1.y + direction.y * constraint.distance
-    };
-
-    const offset = {
-      x: newPoint2.x - point2.x,
-      y: newPoint2.y - point2.y
-    };
-
-    return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.entity2Id]: this.createOffsetUpdate(entity2, offset)
-      },
-      iterations: 1
-    };
-  }
-
-  /**
-   * Risolve vincolo angolare
-   */
-  private async solveAngle(constraint: AngleConstraint): Promise<ConstraintSolution> {
-    const line1 = this.entities[constraint.line1Id] as LineEntity;
-    const line2 = this.entities[constraint.line2Id] as LineEntity;
-
-    if (!line1 || !line2 || line1.type !== 'line' || line2.type !== 'line') {
-      throw new Error('Invalid entities for angle constraint');
-    }
-
-    // Calcola angoli attuali
-    const angle1 = Math.atan2(
-      line1.endPoint.y - line1.startPoint.y,
-      line1.endPoint.x - line1.startPoint.x
-    );
-
-    const angle2 = Math.atan2(
-      line2.endPoint.y - line2.startPoint.y,
-      line2.endPoint.x - line2.startPoint.x
-    );
-
-    const currentAngle = Math.abs(angle2 - angle1);
-    const normalizedCurrentAngle = Math.min(currentAngle, 2*Math.PI - currentAngle);
-
-    // Se l'angolo è già corretto, non fare nulla
-    if (Math.abs(normalizedCurrentAngle - constraint.angle) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
-
-    // Ruota la seconda linea per rispettare l'angolo
-    const targetAngle = angle1 + constraint.angle;
-    const currentLength = Math.sqrt(
-      Math.pow(line2.endPoint.x - line2.startPoint.x, 2) +
-      Math.pow(line2.endPoint.y - line2.startPoint.y, 2)
-    );
-
-    const newEndPoint: Point = {
-      x: line2.startPoint.x + currentLength * Math.cos(targetAngle),
-      y: line2.startPoint.y + currentLength * Math.sin(targetAngle)
-    };
-
-    return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.line2Id]: {
-          endPoint: newEndPoint
-        }
-      },
-      iterations: 1
-    };
-  }
-
-  /**
-   * Risolve vincolo di raggio
-   */
-  private async solveRadius(constraint: RadiusConstraint): Promise<ConstraintSolution> {
-    const circle = this.entities[constraint.circleId] as CircleEntity;
-
-    if (!circle || circle.type !== 'circle') {
-      throw new Error('Invalid entity for radius constraint');
-    }
-
-    // Se il raggio è già corretto, non fare nulla
-    if (Math.abs(circle.radius - constraint.radius) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
-
-    // Aggiorna il raggio
-    return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.circleId]: {
-          radius: constraint.radius
-        }
-      },
-      iterations: 1
-    };
-  }
-
-  /**
-   * Risolve vincolo di lunghezza
-   */
-  private async solveLength(constraint: LengthConstraint): Promise<ConstraintSolution> {
-    const line = this.entities[constraint.lineId] as LineEntity;
-
-    if (!line || line.type !== 'line') {
-      throw new Error('Invalid entity for length constraint');
-    }
-
-    const currentLength = Math.sqrt(
-      Math.pow(line.endPoint.x - line.startPoint.x, 2) +
-      Math.pow(line.endPoint.y - line.startPoint.y, 2)
-    );
-
-    // Se la lunghezza è già corretta, non fare nulla
-    if (Math.abs(currentLength - constraint.length) < this.config.tolerance) {
-      return {
-        constraintId: constraint.id,
-        satisfied: true,
-        entityUpdates: {},
-        iterations: 0
-      };
-    }
-
-    // Scala la linea per rispettare la lunghezza
-    const direction = {
-      x: (line.endPoint.x - line.startPoint.x) / currentLength,
-      y: (line.endPoint.y - line.startPoint.y) / currentLength
-    };
-
-    const newEndPoint: Point = {
-      x: line.startPoint.x + direction.x * constraint.length,
-      y: line.startPoint.y + direction.y * constraint.length
-    };
-
-    return {
-      constraintId: constraint.id,
-      satisfied: true,
-      entityUpdates: {
-        [constraint.lineId]: {
-          endPoint: newEndPoint
-        }
-      },
-      iterations: 1
-    };
-  }
-
-  // Utility methods
-
-  private applyEntityUpdates(updates: Record<string, Partial<any>>) {
-    for (const [entityId, update] of Object.entries(updates)) {
-      if (this.entities[entityId]) {
-        this.entities[entityId] = { ...this.entities[entityId], ...update };
+      const distance = this.calculateDistance(referencePoint, entityPoint);
+      
+      if (distance > this.tolerance) {
+        allCoincident = false;
+        const offset = {
+          x: referencePoint.x - entityPoint.x,
+          y: referencePoint.y - entityPoint.y
+        };
+        changes[entity.id] = this.applyOffsetToEntity(entity, offset);
       }
     }
+
+    return {
+      satisfied: allCoincident,
+      changes: Object.keys(changes).length > 0 ? changes : undefined
+    };
   }
 
-  private pointToLineDistance(point: Point, lineStart: Point, lineEnd: Point): number {
-    const A = point.x - lineStart.x;
-    const B = point.y - lineStart.y;
-    const C = lineEnd.x - lineStart.x;
-    const D = lineEnd.y - lineStart.y;
-
-    const dot = A * C + B * D;
-    const lenSq = C * C + D * D;
-    
-    if (lenSq === 0) {
-      return Math.sqrt(A * A + B * B);
-    }
-
-    const param = dot / lenSq;
-    
-    let xx: number, yy: number;
-    
-    if (param < 0) {
-      xx = lineStart.x;
-      yy = lineStart.y;
-    } else if (param > 1) {
-      xx = lineEnd.x;
-      yy = lineEnd.y;
-    } else {
-      xx = lineStart.x + param * C;
-      yy = lineStart.y + param * D;
-    }
-
-    const dx = point.x - xx;
-    const dy = point.y - yy;
-    
-    return Math.sqrt(dx * dx + dy * dy);
+  private applyFixConstraint(constraint: Constraint, entities: AnyEntity[]): { satisfied: boolean; changes?: Record<string, any> } {
+    // Fix constraint prevents movement - always satisfied by definition
+    return { satisfied: true };
   }
 
-  private getEntityCenter(entity: DrawingEntity): Point {
+  private getEntityCenterPoint(entity: AnyEntity): Point | null {
     switch (entity.type) {
-      case 'circle':
-        return (entity as CircleEntity).center;
-      case 'line':
-        const line = entity as LineEntity;
+      case 'line': {
+        const line = entity as any;
         return {
           x: (line.startPoint.x + line.endPoint.x) / 2,
           y: (line.startPoint.y + line.endPoint.y) / 2
         };
+      }
+      case 'circle': {
+        const circle = entity as any;
+        return circle.center;
+      }
+      case 'rectangle': {
+        const rect = entity as any;
+        return {
+          x: rect.position.x + rect.width / 2,
+          y: rect.position.y + rect.height / 2
+        };
+      }
       default:
-        return { x: 0, y: 0 };
+        return null;
     }
   }
 
-  private createOffsetUpdate(entity: DrawingEntity, offset: Point): Partial<any> {
+  private calculateDistance(p1: Point, p2: Point): number {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  }
+
+  private calculateLineAngle(line: any): number {
+    return Math.atan2(
+      line.endPoint.y - line.startPoint.y,
+      line.endPoint.x - line.startPoint.x
+    );
+  }
+
+  private normalizeVector(vector: Point): Point {
+    const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+    if (length === 0) return { x: 0, y: 0 };
+    return { x: vector.x / length, y: vector.y / length };
+  }
+
+  private applyOffsetToEntity(entity: AnyEntity, offset: Point): Partial<AnyEntity> {
+    const changes: any = {};
+
     switch (entity.type) {
-      case 'circle':
-        const circle = entity as CircleEntity;
-        return {
-          center: {
-            x: circle.center.x + offset.x,
-            y: circle.center.y + offset.y
-          }
+      case 'line': {
+        const line = entity as any;
+        changes.startPoint = {
+          x: line.startPoint.x + offset.x,
+          y: line.startPoint.y + offset.y
         };
-      case 'line':
-        const line = entity as LineEntity;
-        return {
-          startPoint: {
-            x: line.startPoint.x + offset.x,
-            y: line.startPoint.y + offset.y
-          },
-          endPoint: {
-            x: line.endPoint.x + offset.x,
-            y: line.endPoint.y + offset.y
-          }
+        changes.endPoint = {
+          x: line.endPoint.x + offset.x,
+          y: line.endPoint.y + offset.y
         };
-      default:
-        return {};
+        break;
+      }
+      case 'circle': {
+        const circle = entity as any;
+        changes.center = {
+          x: circle.center.x + offset.x,
+          y: circle.center.y + offset.y
+        };
+        break;
+      }
+      case 'rectangle': {
+        const rect = entity as any;
+        changes.position = {
+          x: rect.position.x + offset.x,
+          y: rect.position.y + offset.y
+        };
+        break;
+      }
     }
+
+    return changes;
   }
 
-  private log(message: string) {
-    if (this.debugMode) {
-      console.log(`[ConstraintSolver] ${message}`);
-    }
+  private applyChangesToEntities(changes: Record<string, any>, entities: AnyEntity[]): void {
+    entities.forEach(entity => {
+      const entityChanges = changes[entity.id];
+      if (entityChanges) {
+        Object.assign(entity, entityChanges);
+      }
+    });
   }
 }
-
-export default ConstraintSolver;
